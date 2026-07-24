@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "bun --check plugins/harness-state.ts && bun plugins/_harness-state-v1/harness-state.smoke.ts",
+    "check": "bash -n install.sh doctor && bun --check plugins/harness-state.ts && bun plugins/_harness-state-v1/harness-state.smoke.ts",
+    "doctor": "./doctor",
     "test": "bun plugins/_harness-state-v1/harness-state.smoke.ts"
   },
   "dependencies": {

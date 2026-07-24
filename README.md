@@ -40,23 +40,60 @@ for the full runtime contract.
 Change the `model` fields under `agents/` before use if your provider exposes
 different IDs.
 
-## Try without modifying global config
+## Install
 
 ```bash
 git clone https://github.com/Bearsharks/opencode-o.git
 cd opencode-o
-bun install
-bun run check
-
-export OPENCODE_CONFIG_DIR="$PWD"
-opencode
+./install.sh
 ```
 
-`OPENCODE_CONFIG_DIR` is the recommended installation mode. OpenCode loads this
-directory using the standard config layout while leaving
-`~/.config/opencode` untouched. It is loaded after global and project config,
-so it overrides conflicting values but may still inherit unrelated global
-settings.
+The installer does not copy or modify `~/.config/opencode`. It checks for
+conflicting global or project agents and plugins, installs locked dependencies,
+runs the harness smoke test, and creates:
+
+```text
+~/.local/bin/opencode-o
+```
+
+Run:
+
+```bash
+opencode-o
+opencode-o run "Hello"
+```
+
+The wrapper sets `OPENCODE_CONFIG_DIR` to this checkout. OpenCode still loads
+global and project config before the custom directory, so the installer refuses
+known same-name agent and local-plugin conflicts rather than relying on
+undocumented local-plugin deduplication.
+
+If `~/.local/bin` is not on `PATH`, add it to your shell configuration or invoke
+the wrapper by its absolute path.
+
+## Diagnose
+
+`doctor` does not edit OpenCode configuration or install files.
+
+```bash
+./doctor --preflight
+./doctor
+```
+
+Preflight checks prerequisites, repository layout, and global/project
+conflicts. Full diagnostics additionally check the smoke test, required model
+IDs, resolved agents, the plugin origin count, wrapper target, and `PATH`.
+
+Results are reported as `PASS`, `WARN`, or `FAIL`. A failure exits with status
+1; invalid doctor usage exits with status 2.
+
+## Run without installing a wrapper
+
+```bash
+bun install --frozen-lockfile
+bun run check
+OPENCODE_CONFIG_DIR="$PWD" opencode
+```
 
 To validate resolved agents:
 

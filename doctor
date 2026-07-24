@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+
+set -u
+
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+CALLER_DIR="$PWD"
+EXPECTED_OPENCODE_VERSION="1.18.4"
+MODE="full"
+failures=0
+warnings=0
+
+if [[ "${1:-}" == "--preflight" ]]; then
+  MODE="preflight"
+elif [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  cat <<'EOF'
+Usage: ./doctor [--preflight]
+
+  --preflight  Check prerequisites and config conflicts without running models,
+               smoke tests, or resolved-config validation.
+EOF
+  exit 0
+elif [[ $# -gt 0 ]]; then
+  printf 'Unknown argument: %s\n' "$1" >&2
+  exit 2
+fi
+
+pass() {
+  printf 'PASS  %s\n' "$1"
+}
+
+warn() {
+  warnings=$((warnings + 1))
+  printf 'WARN  %s\n' "$1"
+}
+
+fail() {
+  failures=$((failures + 1))
+  printf 'FAIL  %s\n' "$1"
+}
+
+finish() {
+  printf '\nSummary: %d failure(s), %d warning(s)\n' "$failures" "$warnings"
+  if [[ $failures -gt 0 ]]; then
+    exit 1
+  fi
+  exit 0
+}
+
+if [[ -n "${OPENCODE_O_GLOBAL_CONFIG_DIR:-}" ]]; then
+  GLOBAL_CONFIG_DIR="$OPENCODE_O_GLOBAL_CONFIG_DIR"
+elif [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+  GLOBAL_CONFIG_DIR="$XDG_CONFIG_HOME/opencode"
+elif [[ -n "${HOME:-}" ]]; then
+  GLOBAL_CONFIG_DIR="$HOME/.config/opencode"
+else
+  GLOBAL_CONFIG_DIR=""
+  fail "Cannot determine the global OpenCode config directory because HOME is unset"
+fi
+
+if [[ -n "${OPENCODE_O_BIN_DIR:-}" ]]; then
+  BIN_DIR="$OPENCODE_O_BIN_DIR"
+elif [[ -n "${HOME:-}" ]]; then
+  BIN_DIR="$HOME/.local/bin"
+else
+  BIN_DIR=""
+fi
+
+if command -v opencode >/dev/null 2>&1; then
+  opencode_version="$(opencode --version 2>/dev/null | head -n 1)"
+  if [[ "$opencode_version" == "$EXPECTED_OPENCODE_VERSION" ]]; then
+    pass "OpenCode $opencode_version"
+  else
+    warn "OpenCode $opencode_version is installed; this harness is tested with $EXPECTED_OPENCODE_VERSION"
+  fi
+else
+  fail "OpenCode is not available on PATH"
+fi
+
+if command -v bun >/dev/null 2>&1; then
+  pass "Bun is available"
+else
+  fail "Bun is not available on PATH"
+fi
+
+required_files=(
+  "opencode.jsonc"
+  "package.json"
+  "bun.lock"
+  "agents/orchestrator.md"
+  "agents/terraworker.md"
+  "agents/lunaworker.md"
+  "agents/probe.md"
+  "plugins/harness-state.ts"
+  "plugins/_harness-state-v1/harness-state.smoke.ts"
+)
+
+for file in "${required_files[@]}"; do
+  if [[ -f "$ROOT/$file" ]]; then
+    pass "Repository file $file"
+  else
+    fail "Missing repository file $file"
+  fi
+done
+
+agent_names=(orchestrator terraworker lunaworker probe)
+
+if [[ -n "$GLOBAL_CONFIG_DIR" ]]; then
+  for agent in "${agent_names[@]}"; do
+    path="$GLOBAL_CONFIG_DIR/agents/$agent.md"
+    if [[ -e "$path" || -L "$path" ]]; then
+      fail "Global agent conflict: $path"
+    fi
+  done
+
+  for directory in "$GLOBAL_CONFIG_DIR/plugin" "$GLOBAL_CONFIG_DIR/plugins"; do
+    if [[ ! -d "$directory" ]]; then
+      continue
+    fi
+    while IFS= read -r path; do
+      fail "Global local-plugin conflict: $path"
+    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) -name '*harness-state*' -print)
+  done
+
+  for config in "$GLOBAL_CONFIG_DIR/opencode.json" "$GLOBAL_CONFIG_DIR/opencode.jsonc"; do
+    if [[ -f "$config" ]] && grep -Fq "harness-state" "$config"; then
+      fail "Global config references harness-state: $config"
+    fi
+  done
+fi
+
+if [[ "$CALLER_DIR" != "$ROOT" ]]; then
+  for agent in "${agent_names[@]}"; do
+    path="$CALLER_DIR/.opencode/agents/$agent.md"
+    if [[ -e "$path" || -L "$path" ]]; then
+      fail "Project agent conflict: $path"
+    fi
+  done
+
+  for directory in "$CALLER_DIR/.opencode/plugin" "$CALLER_DIR/.opencode/plugins"; do
+    if [[ ! -d "$directory" ]]; then
+      continue
+    fi
+    while IFS= read -r path; do
+      fail "Project local-plugin conflict: $path"
+    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) -name '*harness-state*' -print)
+  done
+fi
+
+if [[ "$MODE" == "preflight" ]]; then
+  finish
+fi
+
+if command -v bun >/dev/null 2>&1; then
+  if (cd "$ROOT" && bun run check >/dev/null 2>&1); then
+    pass "Harness smoke check"
+  else
+    fail "Harness smoke check failed; run 'bun run check' for diagnostics"
+  fi
+fi
+
+if command -v opencode >/dev/null 2>&1; then
+  if models="$(opencode models 2>/dev/null)"; then
+    model_ids=(
+      "openai/gpt-5.6-sol"
+      "openai/gpt-5.6-terra"
+      "openai/gpt-5.6-luna-fast"
+      "opencode-go/minimax-m3"
+    )
+    for model in "${model_ids[@]}"; do
+      if grep -Fq "$model" <<<"$models"; then
+        pass "Model $model"
+      else
+        fail "Model is unavailable: $model"
+      fi
+    done
+  else
+    fail "Could not list OpenCode models"
+  fi
+
+  if resolved="$(cd "$CALLER_DIR" && OPENCODE_CONFIG_DIR="$ROOT" opencode debug config 2>&1)"; then
+    origin_count="$(
+      grep -E '"spec": "file:.*harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    )"
+    if [[ "$origin_count" == "1" ]]; then
+      pass "Exactly one harness-state plugin origin"
+    else
+      fail "Expected one harness-state plugin origin, found $origin_count"
+    fi
+  else
+    fail "Could not resolve OpenCode config with OPENCODE_CONFIG_DIR=$ROOT"
+  fi
+
+  for agent in "${agent_names[@]}"; do
+    if (cd "$CALLER_DIR" && OPENCODE_CONFIG_DIR="$ROOT" opencode debug agent "$agent" >/dev/null 2>&1); then
+      pass "Resolved agent $agent"
+    else
+      fail "Could not resolve agent $agent"
+    fi
+  done
+fi
+
+if [[ -n "$BIN_DIR" ]]; then
+  wrapper="$BIN_DIR/opencode-o"
+  if [[ -f "$wrapper" ]]; then
+    if grep -Fqx "# opencode-o-root: $ROOT" "$wrapper"; then
+      pass "Installed wrapper points to this checkout"
+    else
+      fail "Existing wrapper is not managed by this checkout: $wrapper"
+    fi
+  else
+    warn "Wrapper is not installed at $wrapper"
+  fi
+
+  case ":$PATH:" in
+    *":$BIN_DIR:"*) pass "$BIN_DIR is on PATH" ;;
+    *) warn "$BIN_DIR is not on PATH" ;;
+  esac
+fi
+
+finish
