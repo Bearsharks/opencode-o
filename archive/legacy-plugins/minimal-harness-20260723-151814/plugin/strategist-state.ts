@@ -1,0 +1,1 @@
+/Users/jsp1226/.config/opencode/plugin/_strategist-state-v1/strategist-state.ts

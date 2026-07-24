@@ -1,0 +1,1 @@
+/Users/jsp1226/.config/opencode/plugin/_advisor-state-v5/advisor-state.ts

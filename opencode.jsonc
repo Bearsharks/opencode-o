@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "subagent_depth": 2,
+  "default_agent": "orchestrator",
+  "compaction": {
+    "auto": true,
+    "reserved": 25600
+  },
+  "agent": {
+    "build": {
+      "disable": true
+    },
+    "plan": {
+      "disable": true
+    },
+    "general": {
+      "disable": true
+    },
+    "explore": {
+      "disable": true
+    }
+  },
+  "permission": {
+    "harness_state": "deny",
+    "investigate": "deny"
+  }
+}
