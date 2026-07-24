@@ -68,8 +68,39 @@ global and project config before the custom directory, so the installer refuses
 known same-name agent and local-plugin conflicts rather than relying on
 undocumented local-plugin deduplication.
 
+The wrapper does not change the behavior of the ordinary `opencode` command.
+Do not export this repository as `OPENCODE_CONFIG_DIR` in your shell profile if
+you want the two commands to remain independent.
+
 If `~/.local/bin` is not on `PATH`, add it to your shell configuration or invoke
 the wrapper by its absolute path.
+
+## Migrating an existing global harness
+
+The installer intentionally does not move or delete global agents and plugins.
+If preflight reports conflicts, back up the reported paths before moving only
+those conflicting files out of `~/.config/opencode`.
+
+Also audit `~/.config/opencode/opencode.json` and `opencode.jsonc`. Moving agent
+files without removing their JSON references can leave ordinary OpenCode with a
+missing default agent or with every built-in agent disabled. Remove settings
+that existed only for the old harness, such as:
+
+- `default_agent: "orchestrator"`;
+- `disable: true` overrides for built-in agents when those overrides only
+  existed to force the old orchestrator;
+- permissions for removed harness tools and plugins.
+
+Do not copy this repository's `opencode.jsonc` into the global config directory.
+After migration, close running OpenCode processes and verify both commands
+separately:
+
+```bash
+opencode debug agent build
+opencode-o debug agent orchestrator
+./doctor --preflight
+./doctor
+```
 
 ## Diagnose
 
