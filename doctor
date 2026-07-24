@@ -8,6 +8,15 @@ EXPECTED_OPENCODE_VERSION="1.18.4"
 MODE="full"
 failures=0
 warnings=0
+diagnostic_root=""
+
+cleanup() {
+  if [[ -n "$diagnostic_root" && -d "$diagnostic_root" ]]; then
+    rm -rf -- "$diagnostic_root"
+  fi
+}
+
+trap cleanup EXIT
 
 if [[ "${1:-}" == "--preflight" ]]; then
   MODE="preflight"
@@ -125,6 +134,9 @@ if [[ -n "$GLOBAL_CONFIG_DIR" ]]; then
     if [[ -f "$config" ]] && grep -Fq "harness-state" "$config"; then
       fail "Global config references harness-state: $config"
     fi
+    if [[ -f "$config" ]] && grep -Eq '"default_agent"[[:space:]]*:[[:space:]]*"orchestrator"' "$config"; then
+      fail "Global config makes orchestrator the default agent: $config"
+    fi
   done
 fi
 
@@ -144,6 +156,41 @@ if [[ "$CALLER_DIR" != "$ROOT" ]]; then
       fail "Project local-plugin conflict: $path"
     done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) -name '*harness-state*' -print)
   done
+fi
+
+if command -v opencode >/dev/null 2>&1 && command -v bun >/dev/null 2>&1; then
+  diagnostic_root="$(mktemp -d "${TMPDIR:-/tmp}/opencode-o-doctor.XXXXXX" 2>/dev/null || true)"
+  if [[ -n "$diagnostic_root" ]]; then
+    mkdir -p "$diagnostic_root/data" "$diagnostic_root/work"
+    if bare_config="$(
+      cd "$diagnostic_root/work" &&
+        XDG_DATA_HOME="$diagnostic_root/data" opencode debug config 2>/dev/null
+    )"; then
+      default_agent="$(
+        bun -e 'const config = JSON.parse(await Bun.stdin.text()); console.log(config.default_agent || "build")' \
+          <<<"$bare_config" 2>/dev/null
+      )"
+      if [[ -n "$default_agent" ]] &&
+        (
+          cd "$diagnostic_root/work" &&
+            XDG_DATA_HOME="$diagnostic_root/data" opencode debug agent "$default_agent" >/dev/null 2>&1
+        ); then
+        pass "Bare OpenCode resolves its default agent ($default_agent)"
+      else
+        fail "Bare OpenCode cannot resolve its default agent (${default_agent:-unknown})"
+      fi
+
+      if grep -Fq "harness-state.ts" <<<"$bare_config"; then
+        fail "Bare OpenCode resolves harness-state without the opencode-o wrapper"
+      else
+        pass "Bare OpenCode does not resolve the opencode-o plugin"
+      fi
+    else
+      warn "Could not resolve bare OpenCode config in an isolated diagnostic directory"
+    fi
+  else
+    warn "Could not create an isolated directory for bare OpenCode diagnostics"
+  fi
 fi
 
 if [[ "$MODE" == "preflight" ]]; then
