@@ -19,7 +19,7 @@ lunaworker   --investigate--> reusable Probe
   implementation-direction uncertainty.
 - `lunaworker`: handles well-specified work, including complex or multi-file
   implementation when contracts and stop conditions are explicit.
-- `probe`: a read-only Minimax M3 evidence worker reached only through the
+- `probe`: a hidden read-only Luna evidence worker reached only through the
   `investigate` tool.
 - `harness-state`: enforces task topology, reusable Probe slots, and discounted
   read-budget accounting.
@@ -33,9 +33,8 @@ for the full runtime contract.
 - Bun
 - Access to the model IDs configured in the agent front matter:
   - `openai/gpt-5.6-sol`
-  - `openai/gpt-5.6-terra`
+  - `openai/gpt-5.6-terra-fast`
   - `openai/gpt-5.6-luna-fast`
-  - `opencode-go/minimax-m3`
 
 Change the `model` fields under `agents/` before use if your provider exposes
 different IDs.
@@ -63,10 +62,11 @@ opencode-o
 opencode-o run "Hello"
 ```
 
-The wrapper sets `OPENCODE_CONFIG_DIR` to this checkout. OpenCode still loads
-global and project config before the custom directory, so the installer refuses
-known same-name agent and local-plugin conflicts rather than relying on
-undocumented local-plugin deduplication.
+The wrapper sets `OPENCODE_CONFIG_DIR` to this checkout and enables OpenCode's
+experimental LSP tool for Probe symbol queries. OpenCode still loads global and
+project config before the custom directory, so the installer refuses known
+same-name agent and local-plugin conflicts rather than relying on undocumented
+local-plugin deduplication.
 
 The wrapper does not change the behavior of the ordinary `opencode` command.
 Do not export this repository as `OPENCODE_CONFIG_DIR` in your shell profile if
@@ -123,16 +123,16 @@ Results are reported as `PASS`, `WARN`, or `FAIL`. A failure exits with status
 ```bash
 bun install --frozen-lockfile
 bun run check
-OPENCODE_CONFIG_DIR="$PWD" opencode
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode
 ```
 
 To validate resolved agents:
 
 ```bash
-OPENCODE_CONFIG_DIR="$PWD" opencode debug agent orchestrator
-OPENCODE_CONFIG_DIR="$PWD" opencode debug agent terraworker
-OPENCODE_CONFIG_DIR="$PWD" opencode debug agent lunaworker
-OPENCODE_CONFIG_DIR="$PWD" opencode debug agent probe
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent orchestrator
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent terraworker
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent lunaworker
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent probe
 ```
 
 ## Project-local use
