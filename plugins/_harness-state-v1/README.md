@@ -17,10 +17,12 @@ probe        -------------> none
 - `investigate` owns exactly one Probe child session per caller session ID.
 - Repeated calls from the same caller reuse that child. A new orchestrator or worker session gets a new child.
 - Process restarts recover the slot by listing the caller's children and finding the `harness:probe` title.
-- The Probe transcript, including prior `scope_searched` and gaps, is the exploration memory. Default OpenCode automatic compaction is used; V1 adds no custom compaction hook or file/range cache.
-- Probe uses `opencode-go/minimax-m3`. Current provider metadata resolves a 1M context limit and a 512K pricing tier, so no local limit override is applied.
-- `investigate` treats the Probe schema as validation, not a hard gate. It returns `{schema_valid, probe_result}` when valid; on schema mismatch it also returns compact `schema_warnings` while preserving the parsed Probe object, and on malformed JSON it preserves the raw text as `probe_result_text`.
-- Probe read usage is charged even when its response is schema-invalid or malformed. Callers should use preserved evidence cautiously and directly verify decision-critical claims instead of retrying only to repair formatting.
+- The Probe transcript, including prior evidence and gaps, is the exploration memory. Default OpenCode automatic compaction is used; V1 adds no custom compaction hook or file/range cache.
+- Probe uses `openai/gpt-5.6-luna-fast` with low reasoning effort and a 20-step limit. The installed wrapper enables OpenCode's experimental LSP tool so Probe can use definition and reference queries when a configured language server is available.
+- `investigate` handles one caller-contracted question and passes through the Probe response without parsing, validation, normalization, or schema wrapping. Existing read-budget notices may still be appended and are out-of-band from the Probe contract.
+- Callers request a specific structured output shape only when the result needs machine-readable or otherwise constrained formatting.
+- The immediate caller checks the raw response against its requested scope, evidence, completion, and format. When the response is deficient, the caller sends one focused follow-up through the same reusable Probe slot and reuses unchanged evidence.
+- Probe read usage is charged regardless of response format or contract compliance.
 
 ## Reading strategy
 

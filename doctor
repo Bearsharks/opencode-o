@@ -209,9 +209,8 @@ if command -v opencode >/dev/null 2>&1; then
   if models="$(opencode models 2>/dev/null)"; then
     model_ids=(
       "openai/gpt-5.6-sol"
-      "openai/gpt-5.6-terra"
+      "openai/gpt-5.6-terra-fast"
       "openai/gpt-5.6-luna-fast"
-      "opencode-go/minimax-m3"
     )
     for model in "${model_ids[@]}"; do
       if grep -Fq "$model" <<<"$models"; then
@@ -224,7 +223,7 @@ if command -v opencode >/dev/null 2>&1; then
     fail "Could not list OpenCode models"
   fi
 
-  if resolved="$(cd "$CALLER_DIR" && OPENCODE_CONFIG_DIR="$ROOT" opencode debug config 2>&1)"; then
+  if resolved="$(cd "$CALLER_DIR" && OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$ROOT" opencode debug config 2>&1)"; then
     origin_count="$(
       grep -E '"spec": "file:.*harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
@@ -238,7 +237,7 @@ if command -v opencode >/dev/null 2>&1; then
   fi
 
   for agent in "${agent_names[@]}"; do
-    if (cd "$CALLER_DIR" && OPENCODE_CONFIG_DIR="$ROOT" opencode debug agent "$agent" >/dev/null 2>&1); then
+    if (cd "$CALLER_DIR" && OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$ROOT" opencode debug agent "$agent" >/dev/null 2>&1); then
       pass "Resolved agent $agent"
     else
       fail "Could not resolve agent $agent"
@@ -250,7 +249,11 @@ if [[ -n "$BIN_DIR" ]]; then
   wrapper="$BIN_DIR/opencode-o"
   if [[ -f "$wrapper" ]]; then
     if grep -Fqx "# opencode-o-root: $ROOT" "$wrapper"; then
-      pass "Installed wrapper points to this checkout"
+      if grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$wrapper"; then
+        pass "Installed wrapper points to this checkout with Probe LSP enabled"
+      else
+        fail "Installed wrapper does not enable the Probe LSP tool; rerun ./install.sh"
+      fi
     else
       fail "Existing wrapper is not managed by this checkout: $wrapper"
     fi

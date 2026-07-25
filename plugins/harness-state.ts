@@ -27,20 +27,6 @@ const turnReadUsage = new Map<string, ReadUsage>()
 const sessionAgents = new Map<string, string>()
 const probeSlots = new Map<string, Promise<string>>()
 
-const investigationSchema = tool.schema.object({
-  scope_searched: tool.schema.array(tool.schema.string()),
-  findings: tool.schema.array(
-    tool.schema.object({
-      claim: tool.schema.string(),
-      evidence: tool.schema.array(tool.schema.string()),
-      confidence: tool.schema.enum(["exact", "partial"]),
-    }),
-  ),
-  counterexamples: tool.schema.array(tool.schema.string()),
-  not_verified: tool.schema.array(tool.schema.string()),
-  direct_verification_candidates: tool.schema.array(tool.schema.string()),
-})
-
 function asRecord(value: unknown): Json | undefined {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Json) : undefined
 }
@@ -122,51 +108,15 @@ function investigationText(args: {
   verification_goal?: string
 }) {
   return [
-    "Investigate the following request within the exact assigned scope.",
+    "Investigate one question within the caller-defined contract.",
     `Question: ${args.question}`,
     `Scope: ${JSON.stringify(args.scope)}`,
     `Expected evidence: ${JSON.stringify(args.expected_evidence)}`,
     `Verification goal: ${args.verification_goal || "Map evidence and explicit gaps for the caller."}`,
     "Reuse prior findings in this session. Do not reread unchanged evidence unless revalidation is necessary.",
-    "counterexamples, not_verified, and direct_verification_candidates must be arrays of strings, never objects.",
-    "Return only the JSON object required by your agent instructions, without a code fence.",
+    "Follow any response format and completion condition specified by the caller.",
+    "Return only the requested result without an unsolicited preamble.",
   ].join("\n")
-}
-
-function parseInvestigation(output: string) {
-  const trimmed = output.trim()
-  const unfenced = trimmed.startsWith("```")
-    ? trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
-    : trimmed
-  const json = parseJSON(unfenced)
-  if (!json.success) {
-    return {
-      schema_valid: false,
-      schema_warnings: [{ path: "", message: "Probe returned malformed JSON" }],
-      probe_result_text: output,
-    }
-  }
-  const parsed = investigationSchema.safeParse(json.data)
-  if (parsed.success) return { schema_valid: true, probe_result: parsed.data }
-  return {
-    schema_valid: false,
-    schema_warnings: parsed.error.issues.map((issue) => ({
-      path: issue.path.reduce(
-        (path, part) => (typeof part === "number" ? `${path}[${part}]` : path ? `${path}.${String(part)}` : String(part)),
-        "",
-      ),
-      message: issue.message,
-    })),
-    probe_result: json.data,
-  }
-}
-
-function parseJSON(input: string) {
-  try {
-    return { success: true as const, data: JSON.parse(input) as unknown }
-  } catch {
-    return { success: false as const }
-  }
 }
 
 export default (async ({ client }) => {
@@ -250,7 +200,7 @@ export default (async ({ client }) => {
       }),
       investigate: tool({
         description:
-          "Investigates broad or uncertain code evidence in one reusable Probe session owned by the current caller session.",
+          "Investigates one caller-contracted code question in a reusable Probe session without parsing, normalizing, or schema-wrapping the Probe response.",
         args: {
           question: tool.schema.string().min(1),
           scope: tool.schema.array(tool.schema.string().min(1)).min(1),
@@ -277,13 +227,12 @@ export default (async ({ client }) => {
             .filter((part) => part.type === "text")
             .map((part) => part.text)
             .join("\n")
-          const parsed = parseInvestigation(output)
           const usage = turnReadUsage.get(probeSessionID) || { lines: 0, chars: 0 }
           turnReadUsage.delete(probeSessionID)
           const divisor = probeDiscountDivisor[context.agent as keyof typeof probeDiscountDivisor]
           const result = {
             title: `Investigate via Probe (${probeSessionID})`,
-            output: JSON.stringify(parsed),
+            output,
             metadata: { probeSessionID },
           }
           chargeReadBudget(

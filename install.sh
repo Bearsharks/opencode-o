@@ -21,6 +21,19 @@ fi
 WRAPPER="$BIN_DIR/opencode-o"
 created_wrapper=0
 
+write_wrapper() {
+  local target="$1"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf '# opencode-o-root: %s\n' "$ROOT"
+    printf 'set -euo pipefail\n'
+    printf 'OPENCODE_O_ROOT=%q\n' "$ROOT"
+    printf 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true\n'
+    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_ROOT" exec opencode "$@"\n'
+  } >"$target"
+  chmod 755 "$target"
+}
+
 printf 'Running preflight checks...\n'
 "$ROOT/doctor" --preflight
 
@@ -37,7 +50,15 @@ if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
     printf 'Refusing to overwrite an unmanaged path: %s\n' "$WRAPPER" >&2
     exit 1
   fi
-  printf 'Wrapper already points to this checkout: %s\n' "$WRAPPER"
+  temporary="$(mktemp "$BIN_DIR/.opencode-o.XXXXXX")"
+  write_wrapper "$temporary"
+  if cmp -s "$temporary" "$WRAPPER"; then
+    rm -f "$temporary"
+    printf 'Wrapper is already up to date: %s\n' "$WRAPPER"
+  else
+    mv "$temporary" "$WRAPPER"
+    printf 'Updated managed wrapper: %s\n' "$WRAPPER"
+  fi
 else
   temporary="$(mktemp "$BIN_DIR/.opencode-o.XXXXXX")"
   cleanup() {
@@ -47,14 +68,7 @@ else
   }
   trap cleanup EXIT
 
-  {
-    printf '#!/usr/bin/env bash\n'
-    printf '# opencode-o-root: %s\n' "$ROOT"
-    printf 'set -euo pipefail\n'
-    printf 'OPENCODE_O_ROOT=%q\n' "$ROOT"
-    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_ROOT" exec opencode "$@"\n'
-  } >"$temporary"
-  chmod 755 "$temporary"
+  write_wrapper "$temporary"
   mv "$temporary" "$WRAPPER"
   created_wrapper=1
   temporary=""

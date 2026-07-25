@@ -147,9 +147,9 @@ if (typeof firstInvestigation === "string" || !firstInvestigation.output.include
 }
 if (
   typeof firstInvestigation === "string" ||
-  JSON.parse(firstInvestigation.output.split("\n\n[read budget:")[0]).schema_valid !== true
+  firstInvestigation.output.split("\n\n[read budget:")[0] !== nextProbeOutput
 ) {
-  throw new Error("valid investigate response was not wrapped as schema-valid")
+  throw new Error("investigate did not preserve the raw Probe response")
 }
 await investigate.execute(investigateArgs, context("orchestrator-investigate", "orchestrator"))
 if (createdByParent.get("orchestrator-investigate") !== 1) {
@@ -240,42 +240,19 @@ try {
 if (!probeAllocationBlocked) throw new Error("probe was allowed to allocate a budget")
 
 nextProbeOutput = "not json"
-await start("invalid-investigation", "orchestrator")
-const malformedInvestigation = await investigate.execute(
+await start("raw-investigation", "orchestrator")
+const rawInvestigation = await investigate.execute(
   investigateArgs,
-  context("invalid-investigation", "orchestrator"),
+  context("raw-investigation", "orchestrator"),
 )
-if (typeof malformedInvestigation === "string" || !malformedInvestigation.output.includes("[read budget: 598L")) {
-  throw new Error("malformed investigate response did not charge Probe reads")
+if (typeof rawInvestigation === "string" || !rawInvestigation.output.includes("[read budget: 598L")) {
+  throw new Error("raw investigate response did not charge Probe reads")
 }
-const malformed = JSON.parse(malformedInvestigation.output.split("\n\n[read budget:")[0])
 if (
-  malformed.schema_valid !== false ||
-  malformed.schema_warnings?.[0]?.message !== "Probe returned malformed JSON" ||
-  malformed.probe_result_text !== "not json"
+  typeof rawInvestigation === "string" ||
+  rawInvestigation.output.split("\n\n[read budget:")[0] !== "not json"
 ) {
-  throw new Error(`malformed investigate response was not preserved: ${malformedInvestigation.output}`)
-}
-
-nextProbeOutput = JSON.stringify({
-  scope_searched: ["src/example.ts"],
-  findings: [{ claim: "example", evidence: ["src/example.ts:1"], confidence: "exact" }],
-  counterexamples: [{ claim: "wrong item type", evidence: ["src/example.ts:2"] }],
-  not_verified: [],
-  direct_verification_candidates: ["src/example.ts:1"],
-})
-const invalidInvestigation = await investigate.execute(
-  investigateArgs,
-  context("invalid-investigation", "orchestrator"),
-)
-if (typeof invalidInvestigation === "string") throw new Error("schema-invalid investigate response returned a string")
-const invalid = JSON.parse(invalidInvestigation.output)
-if (
-  invalid.schema_valid !== false ||
-  invalid.schema_warnings?.[0]?.path !== "counterexamples[0]" ||
-  invalid.probe_result?.counterexamples?.[0]?.claim !== "wrong item type"
-) {
-  throw new Error(`schema-invalid investigate response was not preserved: ${invalidInvestigation.output}`)
+  throw new Error(`raw investigate response was not preserved: ${rawInvestigation.output}`)
 }
 
 const allocation = await harnessState.execute(
