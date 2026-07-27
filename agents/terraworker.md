@@ -21,8 +21,21 @@ permission:
     git log*: allow
     git ls-files*: allow
     bun --check*: allow
+    bun run *check*: allow
+    bun run *format*: allow
+    bun run *lint*: allow
+    bun run *test*: allow
+    bun run *type-check*: allow
+    bun run *typecheck*: allow
     bun typecheck*: allow
     bun test*: allow
+    bunx biome*: allow
+    bunx eslint*: allow
+    bunx playwright test*: allow
+    bunx prettier*: allow
+    bunx rstest*: allow
+    bunx tsc*: allow
+    bunx vitest*: allow
     pnpm test*: allow
     pnpm typecheck*: allow
     pnpm vitest*: allow

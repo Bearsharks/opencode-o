@@ -22,6 +22,20 @@ permission:
     git show*: allow
     git log*: allow
     git ls-files*: allow
+    bun run *check*: allow
+    bun run *lint*: allow
+    bun run *test*: allow
+    bun run *type-check*: allow
+    bun run *typecheck*: allow
+    bunx biome check*: allow
+    bunx eslint*: allow
+    bunx playwright test*: allow
+    bunx rstest*: allow
+    bunx tsc*: allow
+    bunx vitest*: allow
+    bunx biome *--fix*: deny
+    bunx biome *--write*: deny
+    bunx eslint *--fix*: deny
   task:
     "*": deny
     terraworker: allow
