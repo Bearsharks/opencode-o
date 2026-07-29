@@ -10,6 +10,8 @@ permission:
   edit: allow
   bash:
     "*": ask
+    agent-browser *: allow
+    npx agent-browser *: allow
     pwd: allow
     ls*: allow
     rg*: allow

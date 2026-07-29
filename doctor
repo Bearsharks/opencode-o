@@ -237,8 +237,23 @@ if command -v opencode >/dev/null 2>&1; then
   fi
 
   for agent in "${agent_names[@]}"; do
-    if (cd "$CALLER_DIR" && OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$ROOT" opencode debug agent "$agent" >/dev/null 2>&1); then
+    if agent_config="$(
+      cd "$CALLER_DIR" &&
+        OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$ROOT" opencode debug agent "$agent" 2>/dev/null
+    )"; then
       pass "Resolved agent $agent"
+      if bun -e '
+        const agent = JSON.parse(await Bun.stdin.text())
+        const allowed = (pattern) =>
+          agent.permission?.some((rule) =>
+            rule.permission === "bash" && rule.pattern === pattern && rule.action === "allow",
+          )
+        if (!allowed("agent-browser *") || !allowed("npx agent-browser *")) process.exit(1)
+      ' <<<"$agent_config"; then
+        pass "Agent $agent allows agent-browser without approval"
+      else
+        fail "Agent $agent does not allow agent-browser without approval"
+      fi
     else
       fail "Could not resolve agent $agent"
     fi
