@@ -21,12 +21,16 @@ permission:
   apply_patch: deny
   bash:
     "*": deny
+    agent-browser *: allow
+    npx agent-browser *: allow
     git status*: allow
     git diff*: allow
     git log*: allow
   task: deny
   todowrite: deny
-  skill: deny
+  skill:
+    "*": deny
+    agent-browser: allow
   harness_state: deny
   investigate: deny
   webfetch: deny

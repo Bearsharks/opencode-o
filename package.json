@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "check": "bash -n install.sh doctor && bun --check plugins/harness-state.ts && bun plugins/_harness-state-v1/harness-state.smoke.ts",
+    "check:all": "bun run check && bun run check:max",
+    "check:max": "bash -n install-max.sh doctor-max && bun --check profiles/max/plugins/max-topology.ts && bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "doctor": "./doctor",
+    "doctor:max": "./doctor-max",
+    "test:max": "bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "test": "bun plugins/_harness-state-v1/harness-state.smoke.ts"
   },
   "dependencies": {

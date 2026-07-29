@@ -2,7 +2,8 @@
 
 A lightweight OpenCode orchestration harness with one coordinator, two
 implementation workers, and one reusable investigation Probe per caller
-session.
+session. An independently installed max profile is also available for
+HTOrchestrator, Terra, and a context-protecting Runner.
 
 ```text
 orchestrator --task--------> terraworker | lunaworker
@@ -75,6 +76,50 @@ you want the two commands to remain independent.
 If `~/.local/bin` is not on `PATH`, add it to your shell configuration or invoke
 the wrapper by its absolute path.
 
+## Install max mode separately
+
+Max mode has its own config root, installer, doctor, and wrapper. Installing it
+does not replace or modify the default `opencode-o` wrapper.
+
+```bash
+./install-max.sh
+opencode-o-max
+opencode-o-max run "Hello"
+```
+
+```text
+HTOrchestrator --task--> terraworker
+HTOrchestrator --task--> runner
+terraworker    --task--> runner
+```
+
+- `HTOrchestrator` owns goals, plans, delegation, final verification, and the
+  user response. Implementation normally goes to Terra, while difficult
+  documents or reports, conflicts, small final corrections, and repair of an
+  unsatisfactory Terra result may be handled directly.
+- `terraworker` executes scoped implementation with high reasoning.
+- `runner` is a read-only Luna-fast subagent with medium reasoning. It performs
+  broad file or external research and high-output test or verification commands,
+  then returns compact results. For exploration, local claims require `path:line`
+  evidence; web and MCP claims require direct source URLs or resource identifiers.
+- Max mode has no lunaworker, Probe, `investigate` tool, `harness_state` tool, or
+  read-budget accounting.
+
+The max topology plugin registers no tools; it only enforces
+`HTOrchestrator -> terraworker|runner` and `terraworker -> runner`. The profile
+lives under [`profiles/max/`](profiles/max/) so OpenCode never auto-loads it
+beside the default harness plugin.
+
+OpenCode still merges global and project plugins by design. `doctor-max` rejects
+known harness-agent and local-plugin conflicts, verifies exactly one max plugin
+origin, and verifies that the default harness plugin did not leak into max
+mode:
+
+```bash
+./doctor-max --preflight
+./doctor-max
+```
+
 ## Migrating an existing global harness
 
 The installer intentionally does not move or delete global agents and plugins.
@@ -109,6 +154,8 @@ opencode-o debug agent orchestrator
 ```bash
 ./doctor --preflight
 ./doctor
+./doctor-max --preflight
+./doctor-max
 ```
 
 Preflight checks prerequisites, repository layout, and global/project
@@ -126,6 +173,13 @@ bun run check
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode
 ```
 
+For max mode without installing its wrapper:
+
+```bash
+bun run check:max
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode
+```
+
 To validate resolved agents:
 
 ```bash
@@ -133,6 +187,9 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug ag
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent terraworker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent lunaworker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug agent probe
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent HTOrchestrator
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent terraworker
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent runner
 ```
 
 ## Project-local use
