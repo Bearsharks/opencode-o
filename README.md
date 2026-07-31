@@ -2,7 +2,7 @@
 
 A lightweight OpenCode orchestration harness with one coordinator, two
 implementation workers, and one reusable investigation Probe per caller
-session. An independently installed max profile is also available for
+session. Independently installed Max and A-Max profiles are also available for
 HTOrchestrator, Terra, and a context-protecting Runner.
 
 ```text
@@ -120,6 +120,48 @@ mode:
 ./doctor-max
 ```
 
+## Install A-Max separately
+
+A-Max extends the current Max profile with multiple concurrent background Terra
+workers and a process-local Kanban. It has its own profile, plugin, installer,
+doctor, wrapper, and session database; installing it does not modify
+`opencode-o-max`.
+
+```bash
+./install-a-max.sh
+opencode-o-a-max
+opencode-o-a-max run "Hello"
+```
+
+```text
+HTOrchestrator --background task--> terraworker (zero or more, concurrently)
+HTOrchestrator --foreground task--> runner
+terraworker    --foreground task--> runner
+```
+
+A-Max does not copy the Max agents. Its config and agent files are relative
+symlinks to [`profiles/max/`](profiles/max/), and the A-Max plugin appends only
+the asynchronous contract and Kanban tool permissions at config resolution
+time. Current and future Max prompts, models, reasoning settings, permissions,
+browser access, Runner handoff shape, and directed self-improvement skill
+contract therefore remain the source of truth. A-Max also composes the Max
+topology plugin directly instead of copying its task-edge enforcement.
+
+`a_max_board` displays background Terra cards in Working, Review, Done, and
+Blocked columns. OpenCode completion moves a card to Review; HTOrchestrator
+must verify it before `a_max_move` can mark it Done. There is no fixed worker
+count limit, but parallel edit scopes must be disjoint. Runner is always
+foreground and the plugin rejects `runner` calls with `background: true`.
+
+The wrapper enables `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS` and uses
+`opencode-a-max.db`, isolating A-Max sessions while retaining the normal
+OpenCode authentication store:
+
+```bash
+./doctor-a-max --preflight
+./doctor-a-max
+```
+
 ## Migrating an existing global harness
 
 The installer intentionally does not move or delete global agents and plugins.
@@ -154,6 +196,8 @@ opencode-o debug agent orchestrator
 ```bash
 ./doctor --preflight
 ./doctor
+./doctor-a-max --preflight
+./doctor-a-max
 ./doctor-max --preflight
 ./doctor-max
 ```
@@ -180,6 +224,17 @@ bun run check:max
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode
 ```
 
+For A-Max without installing its wrapper:
+
+```bash
+bun run check:a-max
+OPENCODE_DB=opencode-a-max.db \
+  OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
+  OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true \
+  OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" \
+  opencode
+```
+
 To validate resolved agents:
 
 ```bash
@@ -190,6 +245,9 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug ag
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent HTOrchestrator
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent terraworker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent runner
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent HTOrchestrator
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent terraworker
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent runner
 ```
 
 ## Project-local use
