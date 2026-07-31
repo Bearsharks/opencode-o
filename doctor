@@ -127,12 +127,13 @@ if [[ -n "$GLOBAL_CONFIG_DIR" ]]; then
     fi
     while IFS= read -r path; do
       fail "Global local-plugin conflict: $path"
-    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) -name '*harness-state*' -print)
+    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) \
+      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' \) -print)
   done
 
   for config in "$GLOBAL_CONFIG_DIR/opencode.json" "$GLOBAL_CONFIG_DIR/opencode.jsonc"; do
-    if [[ -f "$config" ]] && grep -Fq "harness-state" "$config"; then
-      fail "Global config references harness-state: $config"
+    if [[ -f "$config" ]] && grep -Eq 'harness-state|a-max|max-topology' "$config"; then
+      fail "Global config references a harness plugin: $config"
     fi
     if [[ -f "$config" ]] && grep -Eq '"default_agent"[[:space:]]*:[[:space:]]*"orchestrator"' "$config"; then
       fail "Global config makes orchestrator the default agent: $config"
@@ -154,7 +155,8 @@ if [[ "$CALLER_DIR" != "$ROOT" ]]; then
     fi
     while IFS= read -r path; do
       fail "Project local-plugin conflict: $path"
-    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) -name '*harness-state*' -print)
+    done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) \
+      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' \) -print)
   done
 fi
 
@@ -227,10 +229,21 @@ if command -v opencode >/dev/null 2>&1; then
     origin_count="$(
       grep -E '"spec": "file:.*harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
+    a_max_origin_count="$(
+      grep -E '"spec": "file:.*a-max\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    )"
+    max_origin_count="$(
+      grep -E '"spec": "file:.*max-topology\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    )"
     if [[ "$origin_count" == "1" ]]; then
       pass "Exactly one harness-state plugin origin"
     else
       fail "Expected one harness-state plugin origin, found $origin_count"
+    fi
+    if [[ "$a_max_origin_count" == "0" && "$max_origin_count" == "0" ]]; then
+      pass "Max and A-Max plugins are absent from default mode"
+    else
+      fail "A Max-family plugin leaked into default mode"
     fi
   else
     fail "Could not resolve OpenCode config with OPENCODE_CONFIG_DIR=$ROOT"
