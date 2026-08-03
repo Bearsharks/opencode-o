@@ -129,9 +129,11 @@ doctor, wrapper, and session database; installing it does not modify
 
 ```bash
 ./install-a-max.sh
-opencode-o-a-max
-opencode-o-a-max run "Hello"
+oc-amax
+oc-amax run "Hello"
 ```
+
+`opencode-o-a-max` remains installed as a backward-compatible command.
 
 ```text
 HTOrchestrator --background task--> terraworker (zero or more, concurrently)

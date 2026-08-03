@@ -19,8 +19,10 @@ else
   exit 1
 fi
 
-WRAPPER="$BIN_DIR/opencode-o-a-max"
-created_wrapper=0
+PRIMARY_WRAPPER="$BIN_DIR/oc-amax"
+LEGACY_WRAPPER="$BIN_DIR/opencode-o-a-max"
+created_primary_wrapper=0
+created_legacy_wrapper=0
 
 write_wrapper() {
   local target="$1"
@@ -37,6 +39,42 @@ write_wrapper() {
   chmod 755 "$target"
 }
 
+is_managed_wrapper() {
+  local wrapper="$1"
+  [[ -f "$wrapper" ]] && grep -Fqx "# opencode-o-a-max-root: $ROOT" "$wrapper"
+}
+
+install_wrapper() {
+  local wrapper="$1"
+  local temporary
+
+  INSTALLED_WRAPPER=0
+  temporary="$(mktemp "$BIN_DIR/.opencode-o-a-max.XXXXXX")"
+  if ! write_wrapper "$temporary"; then
+    rm -f "$temporary"
+    return 1
+  fi
+  if [[ -e "$wrapper" || -L "$wrapper" ]]; then
+    if cmp -s "$temporary" "$wrapper"; then
+      rm -f "$temporary"
+      printf 'Wrapper is already up to date: %s\n' "$wrapper"
+    else
+      if ! mv "$temporary" "$wrapper"; then
+        rm -f "$temporary"
+        return 1
+      fi
+      printf 'Updated managed wrapper: %s\n' "$wrapper"
+    fi
+  else
+    if ! mv "$temporary" "$wrapper"; then
+      rm -f "$temporary"
+      return 1
+    fi
+    printf 'Installed wrapper: %s\n' "$wrapper"
+    INSTALLED_WRAPPER=1
+  fi
+}
+
 printf 'Running A-Max preflight checks...\n'
 "$ROOT/doctor-a-max" --preflight
 
@@ -48,46 +86,32 @@ printf '\nRunning A-Max checks...\n'
 
 mkdir -p "$BIN_DIR"
 
-if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
-  if [[ ! -f "$WRAPPER" ]] || ! grep -Fqx "# opencode-o-a-max-root: $ROOT" "$WRAPPER"; then
-    printf 'Refusing to overwrite an unmanaged path: %s\n' "$WRAPPER" >&2
+for wrapper in "$PRIMARY_WRAPPER" "$LEGACY_WRAPPER"; do
+  if [[ -e "$wrapper" || -L "$wrapper" ]] && ! is_managed_wrapper "$wrapper"; then
+    printf 'Refusing to overwrite an unmanaged path: %s\n' "$wrapper" >&2
     exit 1
   fi
-  temporary="$(mktemp "$BIN_DIR/.opencode-o-a-max.XXXXXX")"
-  write_wrapper "$temporary"
-  if cmp -s "$temporary" "$WRAPPER"; then
-    rm -f "$temporary"
-    printf 'Wrapper is already up to date: %s\n' "$WRAPPER"
-  else
-    mv "$temporary" "$WRAPPER"
-    printf 'Updated managed wrapper: %s\n' "$WRAPPER"
-  fi
-else
-  temporary="$(mktemp "$BIN_DIR/.opencode-o-a-max.XXXXXX")"
-  cleanup() {
-    if [[ -n "${temporary:-}" && -e "$temporary" ]]; then
-      rm -f "$temporary"
-    fi
-  }
-  trap cleanup EXIT
+done
 
-  write_wrapper "$temporary"
-  mv "$temporary" "$WRAPPER"
-  created_wrapper=1
-  temporary=""
-  trap - EXIT
-  printf 'Installed wrapper: %s\n' "$WRAPPER"
-fi
+install_wrapper "$PRIMARY_WRAPPER"
+created_primary_wrapper=$INSTALLED_WRAPPER
+install_wrapper "$LEGACY_WRAPPER"
+created_legacy_wrapper=$INSTALLED_WRAPPER
 
 printf '\nRunning final A-Max diagnostics...\n'
 if ! "$ROOT/doctor-a-max"; then
-  if [[ $created_wrapper -eq 1 ]]; then
-    rm -f "$WRAPPER"
-    printf '\nA-Max diagnostics failed. Removed the newly installed wrapper.\n' >&2
+  if [[ $created_primary_wrapper -eq 1 ]]; then
+    rm -f "$PRIMARY_WRAPPER"
+  fi
+  if [[ $created_legacy_wrapper -eq 1 ]]; then
+    rm -f "$LEGACY_WRAPPER"
+  fi
+  if [[ $created_primary_wrapper -eq 1 || $created_legacy_wrapper -eq 1 ]]; then
+    printf '\nA-Max diagnostics failed. Removed newly installed wrapper(s).\n' >&2
   else
-    printf '\nA-Max diagnostics failed. The existing managed wrapper was preserved.\n' >&2
+    printf '\nA-Max diagnostics failed. Existing managed wrappers were preserved.\n' >&2
   fi
   exit 1
 fi
 
-printf '\nA-Max installation complete. Run: opencode-o-a-max\n'
+printf '\nA-Max installation complete. Run: oc-amax\n'

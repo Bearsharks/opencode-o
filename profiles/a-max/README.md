@@ -1,8 +1,8 @@
 # opencode-o A-Max profile
 
 A-Max is a separately installed, multi-background-worker extension of the
-current Max profile. Run it through `opencode-o-a-max`; `opencode-o-max` remains
-unchanged.
+current Max profile. Run it through `oc-amax`; `opencode-o-a-max` remains as a
+backward-compatible command, and `opencode-o-max` remains unchanged.
 
 ```text
 HTOrchestrator --background task--> terraworker (zero or more, concurrently)
@@ -37,9 +37,9 @@ There is no fixed A-Max concurrency limit. HTOrchestrator must assign disjoint
 edit scopes to parallel workers. New parallel work omits `task_id`; continuation
 or rework reuses the card's existing `task_id`. Runner is never asynchronous.
 
-The `opencode-o-a-max` wrapper uses a dedicated OpenCode database while sharing
-the normal OpenCode authentication store. This keeps A-Max sessions separate
-from ordinary OpenCode, `opencode-o`, and `opencode-o-max`.
+The `oc-amax` wrapper uses a dedicated OpenCode database while sharing the
+normal OpenCode authentication store. This keeps A-Max sessions separate from
+ordinary OpenCode, `opencode-o`, and `opencode-o-max`.
 
 Kanban remains process-local: restarting OpenCode interrupts active background
 work and clears the board.
