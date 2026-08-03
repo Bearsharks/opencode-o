@@ -390,19 +390,32 @@ if command -v opencode >/dev/null 2>&1; then
 fi
 
 if [[ -n "$BIN_DIR" ]]; then
-  wrapper="$BIN_DIR/opencode-o-a-max"
-  if [[ -f "$wrapper" ]]; then
-    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$wrapper" &&
-      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$wrapper" &&
-      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$wrapper"; then
-      pass "Installed A-Max wrapper enables background subagents and an isolated session database"
+  primary_wrapper="$BIN_DIR/oc-amax"
+  legacy_wrapper="$BIN_DIR/opencode-o-a-max"
+  if [[ -f "$primary_wrapper" ]]; then
+    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$primary_wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$primary_wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$primary_wrapper" &&
+      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$primary_wrapper" &&
+      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$primary_wrapper"; then
+      pass "Primary A-Max wrapper oc-amax enables background subagents and an isolated session database"
     else
-      fail "Existing A-Max wrapper is not managed by this checkout; rerun ./install-a-max.sh"
+      fail "Primary A-Max wrapper oc-amax is not managed by this checkout; rerun ./install-a-max.sh"
     fi
   else
-    warn "A-Max wrapper is not installed at $wrapper"
+    warn "Primary A-Max wrapper oc-amax is not installed at $primary_wrapper"
+  fi
+
+  if [[ -f "$legacy_wrapper" ]]; then
+    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$legacy_wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$legacy_wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$legacy_wrapper" &&
+      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$legacy_wrapper" &&
+      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$legacy_wrapper"; then
+      pass "Legacy A-Max compatibility wrapper opencode-o-a-max is managed by this checkout"
+    else
+      fail "Legacy A-Max compatibility wrapper opencode-o-a-max is not managed by this checkout; rerun ./install-a-max.sh"
+    fi
   fi
 
   case ":$PATH:" in
