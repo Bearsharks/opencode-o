@@ -18,9 +18,12 @@ permission:
     find*: allow
     wc*: allow
     git status*: allow
+    git branch *: allow
     git diff*: allow
     git show*: allow
     git log*: allow
+    grep *: allow
+    echo *: allow
     git ls-files*: allow
     bun --check*: allow
     bun run *check*: allow
