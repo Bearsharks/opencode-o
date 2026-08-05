@@ -24,8 +24,11 @@ permission:
     agent-browser *: allow
     npx agent-browser *: allow
     git status*: allow
+    git branch *: allow
     git diff*: allow
     git log*: allow
+    grep *: allow
+    echo *: allow
   task: deny
   todowrite: deny
   skill:
