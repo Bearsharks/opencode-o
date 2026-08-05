@@ -1,8 +1,8 @@
 # opencode-o A-Max profile
 
 A-Max is a separately installed, multi-background-worker extension of the
-current Max profile. Run it through `oc-amax`; `opencode-o-a-max` remains as a
-backward-compatible command, and `opencode-o-max` remains unchanged.
+current Max profile. Run it through `oc-amax`; `opencode-o-max` remains
+unchanged.
 
 ```text
 HTOrchestrator --background task--> terraworker (zero or more, concurrently)
@@ -24,6 +24,19 @@ plugin tracks each background Terra child as a process-local Kanban card:
 - `Review`: the child finished and awaits orchestrator verification;
 - `Done`: the orchestrator verified and accepted the result;
 - `Blocked`: the child failed or needs intervention.
+
+Each authorized `a_max_board` call also takes one current, non-persistent
+runtime snapshot for its visible cards: `busy`, `retry`, `idle`, or `unknown`.
+This is independent from the Kanban lifecycle, and the board explicitly flags
+any `Working` card whose runtime snapshot is `idle`. It does not poll, change
+cards, or retain runtime snapshots.
+
+HTOrchestrator can call `a_max_inspect` to read a background Terra child's
+current session status and latest tool state without changing it. When it needs
+to intervene, `a_max_interrupt` aborts the current execution without rolling
+back persisted conversation or file effects. After inspecting the current
+changes, HTOrchestrator can continue the same child with its existing `task_id`
+and revised instructions.
 
 When a **known A-Max parent session** becomes idle, A-Max derives unhandled
 input from that session's persisted OpenCode messages and assistant `parentID`

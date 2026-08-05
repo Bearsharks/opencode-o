@@ -2,7 +2,7 @@
 
 set -u
 
-ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
 CALLER_DIR="$PWD"
 EXPECTED_OPENCODE_VERSION="1.18.4"
 MODE="full"
@@ -22,7 +22,7 @@ if [[ "${1:-}" == "--preflight" ]]; then
   MODE="preflight"
 elif [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   cat <<'EOF'
-Usage: ./doctor [--preflight]
+Usage: ./scripts/doctor/default.sh [--preflight]
 
   --preflight  Check prerequisites and config conflicts without running models,
                smoke tests, or resolved-config validation.
@@ -92,6 +92,8 @@ else
 fi
 
 required_files=(
+  "scripts/install/default.sh"
+  "scripts/doctor/default.sh"
   "opencode.jsonc"
   "package.json"
   "bun.lock"
@@ -280,7 +282,7 @@ if [[ -n "$BIN_DIR" ]]; then
       if grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$wrapper"; then
         pass "Installed wrapper points to this checkout with Probe LSP enabled"
       else
-        fail "Installed wrapper does not enable the Probe LSP tool; rerun ./install.sh"
+        fail "Installed wrapper does not enable the Probe LSP tool; rerun ./scripts/install/default.sh"
       fi
     else
       fail "Existing wrapper is not managed by this checkout: $wrapper"

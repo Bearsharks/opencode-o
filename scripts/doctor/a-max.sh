@@ -2,7 +2,7 @@
 
 set -u
 
-ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
 A_MAX_ROOT="$ROOT/profiles/a-max"
 CALLER_DIR="$PWD"
 EXPECTED_OPENCODE_VERSION="1.18.4"
@@ -23,7 +23,7 @@ if [[ "${1:-}" == "--preflight" ]]; then
   MODE="preflight"
 elif [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   printf '%s\n' \
-    'Usage: ./doctor-a-max [--preflight]' \
+    'Usage: ./scripts/doctor/a-max.sh [--preflight]' \
     '' \
     '  --preflight  Check prerequisites and A-Max profile conflicts without' \
     '               smoke tests or resolved-config validation.'
@@ -94,8 +94,8 @@ fi
 required_files=(
   "package.json"
   "bun.lock"
-  "install-a-max.sh"
-  "doctor-a-max"
+  "scripts/install/a-max.sh"
+  "scripts/doctor/a-max.sh"
   "profiles/a-max/README.md"
   "profiles/a-max/.gitignore"
   "profiles/a-max/opencode.jsonc"
@@ -314,10 +314,20 @@ if command -v opencode >/dev/null 2>&1; then
         if (name === "HTOrchestrator") {
           if (!extended.prompt?.startsWith(base.prompt ?? "")) process.exit(1)
           if (!extended.prompt?.includes("## A-Max asynchronous delegation")) process.exit(1)
-          if (extended.tools?.a_max_board !== true || extended.tools?.a_max_move !== true) process.exit(1)
+          if (
+            extended.tools?.a_max_board !== true ||
+            extended.tools?.a_max_move !== true ||
+            extended.tools?.a_max_inspect !== true ||
+            extended.tools?.a_max_interrupt !== true
+          ) process.exit(1)
         } else {
           if (extended.prompt !== base.prompt) process.exit(1)
-          if (extended.tools?.a_max_board === true || extended.tools?.a_max_move === true) process.exit(1)
+          if (
+            extended.tools?.a_max_board === true ||
+            extended.tools?.a_max_move === true ||
+            extended.tools?.a_max_inspect === true ||
+            extended.tools?.a_max_interrupt === true
+          ) process.exit(1)
         }
       '; then
         pass "A-Max agent $agent preserves the current Max contract"
@@ -353,9 +363,14 @@ if command -v opencode >/dev/null 2>&1; then
     const agent = JSON.parse(await Bun.stdin.text())
     if (agent.tools?.harness_state === true || agent.tools?.investigate === true) process.exit(1)
     if (agent.tools?.task !== true || agent.tools?.read !== true || agent.tools?.apply_patch !== true) process.exit(1)
-    if (agent.tools?.a_max_board !== true || agent.tools?.a_max_move !== true) process.exit(1)
+    if (
+      agent.tools?.a_max_board !== true ||
+      agent.tools?.a_max_move !== true ||
+      agent.tools?.a_max_inspect !== true ||
+      agent.tools?.a_max_interrupt !== true
+    ) process.exit(1)
   ' <<<"$ht_agent"; then
-    pass "HTOrchestrator has Max capabilities plus A-Max Kanban tools"
+    pass "HTOrchestrator has Max capabilities plus A-Max intervention tools"
   else
     fail "HTOrchestrator A-Max tool isolation is incorrect"
   fi
@@ -381,7 +396,12 @@ if command -v opencode >/dev/null 2>&1; then
     if (!allowed("skill", "agent-browser")) process.exit(1)
     if (!allowed("bash", "agent-browser *")) process.exit(1)
     if (!allowed("bash", "npx agent-browser *")) process.exit(1)
-    if (agent.tools?.a_max_board === true || agent.tools?.a_max_move === true) process.exit(1)
+    if (
+      agent.tools?.a_max_board === true ||
+      agent.tools?.a_max_move === true ||
+      agent.tools?.a_max_inspect === true ||
+      agent.tools?.a_max_interrupt === true
+    ) process.exit(1)
   ' <<<"$runner_agent"; then
     pass "Runner is read/command-only with agent-browser and directed skill-view capability"
   else
@@ -390,32 +410,19 @@ if command -v opencode >/dev/null 2>&1; then
 fi
 
 if [[ -n "$BIN_DIR" ]]; then
-  primary_wrapper="$BIN_DIR/oc-amax"
-  legacy_wrapper="$BIN_DIR/opencode-o-a-max"
-  if [[ -f "$primary_wrapper" ]]; then
-    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$primary_wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$primary_wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$primary_wrapper" &&
-      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$primary_wrapper" &&
-      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$primary_wrapper"; then
-      pass "Primary A-Max wrapper oc-amax enables background subagents and an isolated session database"
+  wrapper="$BIN_DIR/oc-amax"
+  if [[ -f "$wrapper" ]]; then
+    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$wrapper" &&
+      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$wrapper" &&
+      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$wrapper" &&
+      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$wrapper"; then
+      pass "Installed A-Max wrapper oc-amax enables background subagents and an isolated session database"
     else
-      fail "Primary A-Max wrapper oc-amax is not managed by this checkout; rerun ./install-a-max.sh"
+      fail "A-Max wrapper oc-amax is not managed by this checkout; rerun ./scripts/install/a-max.sh"
     fi
   else
-    warn "Primary A-Max wrapper oc-amax is not installed at $primary_wrapper"
-  fi
-
-  if [[ -f "$legacy_wrapper" ]]; then
-    if grep -Fqx "# opencode-o-a-max-root: $ROOT" "$legacy_wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$legacy_wrapper" &&
-      grep -Fqx 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true' "$legacy_wrapper" &&
-      grep -Fqx 'export OPENCODE_DB=opencode-a-max.db' "$legacy_wrapper" &&
-      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"' "$legacy_wrapper"; then
-      pass "Legacy A-Max compatibility wrapper opencode-o-a-max is managed by this checkout"
-    else
-      fail "Legacy A-Max compatibility wrapper opencode-o-a-max is not managed by this checkout; rerun ./install-a-max.sh"
-    fi
+    warn "A-Max wrapper oc-amax is not installed at $wrapper"
   fi
 
   case ":$PATH:" in

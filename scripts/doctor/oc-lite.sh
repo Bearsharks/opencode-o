@@ -2,8 +2,8 @@
 
 set -u
 
-ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
-MAX_ROOT="$ROOT/profiles/max"
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
+OC_LITE_ROOT="$ROOT/profiles/oc-lite"
 CALLER_DIR="$PWD"
 EXPECTED_OPENCODE_VERSION="1.18.4"
 MODE="full"
@@ -23,9 +23,9 @@ if [[ "${1:-}" == "--preflight" ]]; then
   MODE="preflight"
 elif [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   printf '%s\n' \
-    'Usage: ./doctor-max [--preflight]' \
+    'Usage: ./scripts/doctor/oc-lite.sh [--preflight]' \
     '' \
-    '  --preflight  Check prerequisites and max-profile conflicts without' \
+    '  --preflight  Check prerequisites and oc-lite-profile conflicts without' \
     '               smoke tests or resolved-config validation.'
   exit 0
 elif [[ $# -gt 0 ]]; then
@@ -79,7 +79,7 @@ if command -v opencode >/dev/null 2>&1; then
   if [[ "$opencode_version" == "$EXPECTED_OPENCODE_VERSION" ]]; then
     pass "OpenCode $opencode_version"
   else
-    warn "OpenCode $opencode_version is installed; max mode is tested with $EXPECTED_OPENCODE_VERSION"
+    warn "OpenCode $opencode_version is installed; oc-lite is tested with $EXPECTED_OPENCODE_VERSION"
   fi
 else
   fail "OpenCode is not available on PATH"
@@ -94,14 +94,13 @@ fi
 required_files=(
   "package.json"
   "bun.lock"
-  "install-max.sh"
-  "doctor-max"
-  "profiles/max/opencode.jsonc"
-  "profiles/max/agents/HTOrchestrator.md"
-  "profiles/max/agents/terraworker.md"
-  "profiles/max/agents/runner.md"
-  "profiles/max/plugins/max-topology.ts"
-  "profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts"
+  "scripts/install/oc-lite.sh"
+  "scripts/doctor/oc-lite.sh"
+  "profiles/oc-lite/opencode.jsonc"
+  "profiles/oc-lite/agents/worker.md"
+  "profiles/oc-lite/agents/runner.md"
+  "profiles/oc-lite/plugins/oc-lite-topology.ts"
+  "profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts"
 )
 
 for file in "${required_files[@]}"; do
@@ -112,7 +111,7 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-conflicting_agents=(HTOrchestrator orchestrator terraworker lunaworker probe runner)
+conflicting_agents=(worker runner HTOrchestrator orchestrator terraworker lunaworker probe)
 
 if [[ -n "$GLOBAL_CONFIG_DIR" ]]; then
   for agent in "${conflicting_agents[@]}"; do
@@ -129,15 +128,15 @@ if [[ -n "$GLOBAL_CONFIG_DIR" ]]; then
     while IFS= read -r path; do
       fail "Global local-plugin conflict: $path"
     done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) \
-      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' -o -name '*max-harness*' \) -print)
+      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' -o -name '*oc-lite-topology*' \) -print)
   done
 
   for config in "$GLOBAL_CONFIG_DIR/opencode.json" "$GLOBAL_CONFIG_DIR/opencode.jsonc"; do
-    if [[ -f "$config" ]] && grep -Eq 'harness-state|a-max|max-topology|max-harness' "$config"; then
+    if [[ -f "$config" ]] && grep -Eq 'harness-state|a-max|max-topology|oc-lite-topology' "$config"; then
       fail "Global config references a harness plugin: $config"
     fi
-    if [[ -f "$config" ]] && grep -Eq '"default_agent"[[:space:]]*:[[:space:]]*"(HTOrchestrator|orchestrator)"' "$config"; then
-      fail "Global config makes a harness coordinator the default agent: $config"
+    if [[ -f "$config" ]] && grep -Eq '"default_agent"[[:space:]]*:[[:space:]]*"(worker|HTOrchestrator|orchestrator)"' "$config"; then
+      fail "Global config makes a harness coordinator or oc-lite worker the default agent: $config"
     fi
   done
 fi
@@ -157,22 +156,22 @@ if [[ "$CALLER_DIR" != "$ROOT" ]]; then
     while IFS= read -r path; do
       fail "Project local-plugin conflict: $path"
     done < <(find "$directory" -maxdepth 1 \( -type f -o -type l \) \
-      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' -o -name '*max-harness*' \) -print)
+      \( -name '*harness-state*' -o -name '*a-max*' -o -name '*max-topology*' -o -name '*oc-lite-topology*' \) -print)
   done
 fi
 
 if command -v opencode >/dev/null 2>&1 && command -v bun >/dev/null 2>&1; then
-  diagnostic_root="$(mktemp -d "${TMPDIR:-/tmp}/opencode-o-max-doctor.XXXXXX" 2>/dev/null || true)"
+  diagnostic_root="$(mktemp -d "${TMPDIR:-/tmp}/opencode-o-oc-lite-doctor.XXXXXX" 2>/dev/null || true)"
   if [[ -n "$diagnostic_root" ]]; then
     mkdir -p "$diagnostic_root/data" "$diagnostic_root/work"
     if bare_config="$(
       cd "$diagnostic_root/work" &&
         XDG_DATA_HOME="$diagnostic_root/data" opencode debug config 2>/dev/null
     )"; then
-      if grep -Fq "max-topology.ts" <<<"$bare_config"; then
-        fail "Bare OpenCode resolves max-topology without the max wrapper"
+      if grep -Fq "oc-lite-topology.ts" <<<"$bare_config"; then
+        fail "Bare OpenCode resolves oc-lite-topology without the oc-lite wrapper"
       else
-        pass "Bare OpenCode does not resolve the max plugin"
+        pass "Bare OpenCode does not resolve the oc-lite plugin"
       fi
     else
       warn "Could not resolve bare OpenCode config in an isolated diagnostic directory"
@@ -187,10 +186,10 @@ if [[ "$MODE" == "preflight" ]]; then
 fi
 
 if command -v bun >/dev/null 2>&1; then
-  if (cd "$ROOT" && bun run check:max >/dev/null 2>&1); then
-    pass "Max-mode smoke check"
+  if (cd "$ROOT" && bun run check:oc-lite >/dev/null 2>&1); then
+    pass "oc-lite smoke check"
   else
-    fail "Max-mode smoke check failed; run 'bun run check:max' for diagnostics"
+    fail "oc-lite smoke check failed; run 'bun run check:oc-lite' for diagnostics"
   fi
 fi
 
@@ -198,7 +197,6 @@ if command -v opencode >/dev/null 2>&1; then
   if models="$(opencode models 2>/dev/null)"; then
     model_ids=(
       "openai/gpt-5.6-sol"
-      "openai/gpt-5.6-terra-fast"
       "openai/gpt-5.6-luna-fast"
     )
     for model in "${model_ids[@]}"; do
@@ -214,42 +212,50 @@ if command -v opencode >/dev/null 2>&1; then
 
   if resolved="$(
     cd "$CALLER_DIR" &&
-      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$MAX_ROOT" opencode debug config 2>&1
+      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug config 2>&1
   )"; then
+    oc_lite_origin_count="$(
+      grep -E '"spec": "file:.*oc-lite-topology\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    )"
     max_origin_count="$(
       grep -E '"spec": "file:.*max-topology\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
-    )"
-    default_origin_count="$(
-      grep -E '"spec": "file:.*plugins/harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
     a_max_origin_count="$(
       grep -E '"spec": "file:.*a-max\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
-    if [[ "$max_origin_count" == "1" ]]; then
-      pass "Exactly one max-topology plugin origin"
+    default_origin_count="$(
+      grep -E '"spec": "file:.*plugins/harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    )"
+    if [[ "$oc_lite_origin_count" == "1" ]]; then
+      pass "Exactly one oc-lite topology plugin origin"
     else
-      fail "Expected one max-topology plugin origin, found $max_origin_count"
+      fail "Expected one oc-lite topology plugin origin, found $oc_lite_origin_count"
     fi
-    if [[ "$default_origin_count" == "0" ]]; then
-      pass "Default harness plugin is absent from max mode"
+    if [[ "$max_origin_count" == "0" ]]; then
+      pass "Max topology plugin is absent from oc-lite"
     else
-      fail "Default harness plugin leaked into max mode"
+      fail "Max topology plugin leaked into oc-lite"
     fi
     if [[ "$a_max_origin_count" == "0" ]]; then
-      pass "A-Max plugin is absent from max mode"
+      pass "A-Max plugin is absent from oc-lite"
     else
-      fail "A-Max plugin leaked into max mode"
+      fail "A-Max plugin leaked into oc-lite"
+    fi
+    if [[ "$default_origin_count" == "0" ]]; then
+      pass "Default harness plugin is absent from oc-lite"
+    else
+      fail "Default harness plugin leaked into oc-lite"
     fi
   else
-    fail "Could not resolve max config with OPENCODE_CONFIG_DIR=$MAX_ROOT"
+    fail "Could not resolve oc-lite config with OPENCODE_CONFIG_DIR=$OC_LITE_ROOT"
   fi
 
-  for agent in HTOrchestrator terraworker runner; do
+  for agent in worker runner; do
     if agent_config="$(
       cd "$CALLER_DIR" &&
-        OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$MAX_ROOT" opencode debug agent "$agent" 2>/dev/null
+        OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent "$agent" 2>/dev/null
     )"; then
-      pass "Resolved max agent $agent"
+      pass "Resolved oc-lite agent $agent"
       if bun -e '
         const agent = JSON.parse(await Bun.stdin.text())
         const allowed = (pattern) =>
@@ -258,40 +264,42 @@ if command -v opencode >/dev/null 2>&1; then
           )
         if (!allowed("agent-browser *") || !allowed("npx agent-browser *")) process.exit(1)
       ' <<<"$agent_config"; then
-        pass "Max agent $agent allows agent-browser without approval"
+        pass "Oc-lite agent $agent allows agent-browser without approval"
       else
-        fail "Max agent $agent does not allow agent-browser without approval"
+        fail "Oc-lite agent $agent does not allow agent-browser without approval"
       fi
     else
-      fail "Could not resolve max agent $agent"
+      fail "Could not resolve oc-lite agent $agent"
     fi
   done
 
-  if (
-    cd "$CALLER_DIR" &&
-      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$MAX_ROOT" opencode debug agent lunaworker >/dev/null 2>&1
-  ); then
-    fail "lunaworker leaked into max mode"
-  else
-    pass "lunaworker is absent from max mode"
-  fi
+  for absent_agent in HTOrchestrator terraworker lunaworker; do
+    if (
+      cd "$CALLER_DIR" &&
+        OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent "$absent_agent" >/dev/null 2>&1
+    ); then
+      fail "$absent_agent leaked into oc-lite"
+    else
+      pass "$absent_agent is absent from oc-lite"
+    fi
+  done
 
-  if ht_agent="$(
+  if worker_agent="$(
     cd "$CALLER_DIR" &&
-      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$MAX_ROOT" opencode debug agent HTOrchestrator 2>/dev/null
+      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent worker 2>/dev/null
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
     if (agent.tools?.harness_state === true || agent.tools?.investigate === true) process.exit(1)
     if (agent.tools?.task !== true || agent.tools?.read !== true || agent.tools?.apply_patch !== true) process.exit(1)
-  ' <<<"$ht_agent"; then
-    pass "HTOrchestrator has task/read/write capability without harness custom tools"
+  ' <<<"$worker_agent"; then
+    pass "Worker has task/read/edit/apply_patch capability without harness custom tools"
   else
-    fail "HTOrchestrator tool isolation is incorrect"
+    fail "Worker tool isolation or implementation capability is incorrect"
   fi
 
   if runner_agent="$(
     cd "$CALLER_DIR" &&
-      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$MAX_ROOT" opencode debug agent runner 2>/dev/null
+      OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent runner 2>/dev/null
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
     const allowed = (permission, pattern) =>
@@ -314,17 +322,17 @@ if command -v opencode >/dev/null 2>&1; then
 fi
 
 if [[ -n "$BIN_DIR" ]]; then
-  wrapper="$BIN_DIR/opencode-o-max"
+  wrapper="$BIN_DIR/oc-lite"
   if [[ -f "$wrapper" ]]; then
-    if grep -Fqx "# opencode-o-max-root: $ROOT" "$wrapper" &&
+    if grep -Fqx "# oc-lite-root: $ROOT" "$wrapper" &&
       grep -Fqx 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true' "$wrapper" &&
-      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_MAX_ROOT/profiles/max" exec opencode "$@"' "$wrapper"; then
-      pass "Installed max wrapper points to this profile with Runner LSP enabled"
+      grep -Fqx 'OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite" exec opencode "$@"' "$wrapper"; then
+      pass "Installed oc-lite wrapper points to this profile with Runner LSP enabled"
     else
-      fail "Existing max wrapper is not managed by this checkout; rerun ./install-max.sh"
+      fail "Existing oc-lite wrapper is not managed by this checkout; rerun ./scripts/install/oc-lite.sh"
     fi
   else
-    warn "Max wrapper is not installed at $wrapper"
+    warn "Oc-lite wrapper is not installed at $wrapper"
   fi
 
   case ":$PATH:" in

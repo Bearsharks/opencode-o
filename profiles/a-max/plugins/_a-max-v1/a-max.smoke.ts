@@ -1,7 +1,37 @@
 import plugin from "../a-max"
 
-const hooks = await plugin({} as never)
-if (!hooks.tool?.a_max_board || !hooks.tool?.a_max_move) {
+const abortCalls: Array<{ path: { id: string } }> = []
+let abortResponse: { data: boolean; error?: unknown } = { data: true }
+let statusCalls = 0
+const messageCalls: Array<{ path: { id: string } }> = []
+let parentWakeCalls = 0
+let statusResponse: unknown = { data: {}, error: undefined }
+let statusThrows = false
+let inspectionMessages: unknown[] = []
+const hooks = await plugin({
+  client: {
+    session: {
+      async abort(request: { path: { id: string } }) {
+        abortCalls.push(request)
+        return abortResponse
+      },
+      async status() {
+        statusCalls += 1
+        if (statusThrows) throw new Error("status lookup failed")
+        return statusResponse
+      },
+      async messages(request: { path: { id: string } }) {
+        messageCalls.push(request)
+        return { data: request.path.id === "task-inspect" ? inspectionMessages : [], error: undefined }
+      },
+      async promptAsync() {
+        parentWakeCalls += 1
+        return { data: undefined, error: undefined }
+      },
+    },
+  },
+} as never)
+if (!hooks.tool?.a_max_board || !hooks.tool?.a_max_move || !hooks.tool?.a_max_interrupt || !hooks.tool?.a_max_inspect) {
   throw new Error("a-max tools are missing")
 }
 
@@ -20,12 +50,23 @@ await hooks.config?.(config as never)
 const ht = config.agent.HTOrchestrator
 if (!ht.prompt.startsWith("MAX_BASE_PROMPT")) throw new Error("a-max replaced the Max prompt")
 if (!ht.prompt.includes("## A-Max asynchronous delegation")) throw new Error("a-max async contract is missing")
-if (ht.permission.a_max_board !== "allow" || ht.permission.a_max_move !== "allow") {
+if (
+  ht.permission.a_max_board !== "allow" ||
+  ht.permission.a_max_move !== "allow" ||
+  ht.permission.a_max_interrupt !== "allow" ||
+  ht.permission.a_max_inspect !== "allow"
+) {
   throw new Error("HTOrchestrator a-max tool permissions are incorrect")
 }
 if (
   config.agent.terraworker.permission.a_max_board !== "deny" ||
-  config.agent.runner.permission.a_max_board !== "deny"
+  config.agent.terraworker.permission.a_max_move !== "deny" ||
+  config.agent.terraworker.permission.a_max_interrupt !== "deny" ||
+  config.agent.terraworker.permission.a_max_inspect !== "deny" ||
+  config.agent.runner.permission.a_max_board !== "deny" ||
+  config.agent.runner.permission.a_max_move !== "deny" ||
+  config.agent.runner.permission.a_max_interrupt !== "deny" ||
+  config.agent.runner.permission.a_max_inspect !== "deny"
 ) {
   throw new Error("worker a-max tool permissions are incorrect")
 }
@@ -150,6 +191,10 @@ const doneBoard = String(await hooks.tool.a_max_board.execute({ include_done: tr
 if (!doneBoard.includes("## Done (1)") || !doneBoard.includes("note=verified")) {
   throw new Error(`reviewed card did not move to done:\n${doneBoard}`)
 }
+const withoutDoneBoard = String(await hooks.tool.a_max_board.execute({ include_done: false }, toolContext))
+if (withoutDoneBoard.includes("## Done") || withoutDoneBoard.includes("- task-1 |")) {
+  throw new Error(`a_max_board did not preserve include_done filtering:\n${withoutDoneBoard}`)
+}
 
 let prematureDoneBlocked = false
 await finishTaskCall("call-3", "task-3", "third")
@@ -159,6 +204,196 @@ try {
   prematureDoneBlocked = true
 }
 if (!prematureDoneBlocked) throw new Error("working card moved directly to done")
+
+const boardLine = (board: string, taskID: string) => board.split("\n").find((line) => line.startsWith(`- ${taskID} |`)) ?? ""
+statusCalls = 0
+statusResponse = {
+  data: { "task-1": { type: "busy" }, "task-2": { type: "retry" } },
+  error: undefined,
+}
+const runtimeBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (
+  statusCalls !== 1 ||
+  !boardLine(runtimeBoard, "task-1").includes("runtime=busy") ||
+  !boardLine(runtimeBoard, "task-2").includes("runtime=retry") ||
+  !boardLine(runtimeBoard, "task-3").includes("runtime=idle") ||
+  !runtimeBoard.includes("Working cards currently idle: task-3")
+) {
+  throw new Error(`a_max_board did not render one shared runtime snapshot:\n${runtimeBoard}`)
+}
+const stableRuntimeBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (statusCalls !== 2 || stableRuntimeBoard !== runtimeBoard || abortCalls.length !== 0 || parentWakeCalls !== 0) {
+  throw new Error("a_max_board did not remain read-only with one lookup per invocation")
+}
+
+statusCalls = 0
+statusResponse = {}
+const malformedRuntimeBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (statusCalls !== 1 || !boardLine(malformedRuntimeBoard, "task-1").includes("runtime=unknown")) {
+  throw new Error(`a_max_board did not handle a malformed status response:\n${malformedRuntimeBoard}`)
+}
+statusThrows = true
+const thrownRuntimeBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+statusThrows = false
+if (!boardLine(thrownRuntimeBoard, "task-1").includes("runtime=unknown")) {
+  throw new Error(`a_max_board did not handle a thrown status lookup:\n${thrownRuntimeBoard}`)
+}
+
+statusCalls = 0
+const otherParentBoard = String(
+  await hooks.tool.a_max_board.execute({ include_done: true }, { ...toolContext, sessionID: "other-parent" }),
+)
+if (statusCalls !== 0 || !otherParentBoard.includes("A-Max Kanban (0 cards)")) {
+  throw new Error("a_max_board did not preserve parent visibility")
+}
+let boardRejected = false
+try {
+  await hooks.tool.a_max_board.execute({ include_done: true }, { ...toolContext, agent: "terraworker" })
+} catch {
+  boardRejected = true
+}
+if (!boardRejected || statusCalls !== 0) throw new Error("a_max_board authorization called the child SDK")
+statusResponse = { data: {}, error: undefined }
+
+await finishTaskCall("call-interrupt", "task-interrupt", "interruptible")
+await hooks.event?.({
+  event: { type: "session.status", properties: { sessionID: "task-interrupt", status: { type: "busy" } } },
+} as never)
+const interruptResult = String(
+  await hooks.tool.a_max_interrupt.execute({ task_id: "task-interrupt", reason: "parent requested pause" }, toolContext),
+)
+if (
+  abortCalls.length !== 1 ||
+  abortCalls[0]?.path.id !== "task-interrupt" ||
+  !interruptResult.includes("Interrupted task-interrupt")
+) {
+  throw new Error("a_max_interrupt did not confirm the exact child abort")
+}
+const interruptedBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (!interruptedBoard.includes("## Blocked (2)") || !interruptedBoard.includes("note=Parent interrupted: parent requested pause")) {
+  throw new Error(`successful interrupt did not block its card with its reason:\n${interruptedBoard}`)
+}
+await hooks.event?.({
+  event: { type: "session.status", properties: { sessionID: "task-interrupt", status: { type: "idle" } } },
+} as never)
+await hooks.event?.({ event: { type: "session.idle", properties: { sessionID: "task-interrupt" } } } as never)
+const lateIdleBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (!lateIdleBoard.includes("## Blocked (2)") || lateIdleBoard.includes("## Review (1)\n- task-interrupt")) {
+  throw new Error(`late idle overwrote an interrupted card:\n${lateIdleBoard}`)
+}
+
+await beforeTask("parent", "terraworker", { task_id: "task-interrupt", description: "continue interrupted", background: true }, "allow")
+const continuedBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (!continuedBoard.includes("## Working (2)") || !continuedBoard.includes("task-interrupt")) {
+  throw new Error(`same-task continuation did not restore Working:\n${continuedBoard}`)
+}
+
+const expectInterruptRejected = async (args: Record<string, unknown>, context = toolContext) => {
+  let rejected = false
+  try {
+    await hooks.tool.a_max_interrupt.execute(args, context)
+  } catch {
+    rejected = true
+  }
+  if (!rejected) throw new Error("a_max_interrupt unexpectedly succeeded")
+}
+
+await finishTaskCall("call-abort-failure", "task-abort-failure", "abort failure")
+abortResponse = { data: false }
+await expectInterruptRejected({ task_id: "task-abort-failure" })
+let failedAbortBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (!failedAbortBoard.includes("## Working (3)") || !failedAbortBoard.includes("task-abort-failure")) {
+  throw new Error(`unconfirmed abort moved its card:\n${failedAbortBoard}`)
+}
+abortResponse = { data: true, error: { name: "AbortError" } }
+await expectInterruptRejected({ task_id: "task-abort-failure" })
+failedAbortBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (!failedAbortBoard.includes("task-abort-failure") || failedAbortBoard.includes("note=Parent interrupted")) {
+  throw new Error(`abort error falsely reported success:\n${failedAbortBoard}`)
+}
+abortResponse = { data: true }
+
+await expectInterruptRejected({ task_id: "task-1" })
+await expectInterruptRejected({ task_id: "task-interrupt" }, { ...toolContext, sessionID: "other-parent" })
+await expectInterruptRejected({ task_id: "task-interrupt" }, { ...toolContext, agent: "terraworker" })
+
+const inspectStartedAt = Date.now() - 5_000
+statusResponse = { data: { "task-inspect": { type: "busy" } }, error: undefined }
+inspectionMessages = [
+  {
+    info: { time: { created: inspectStartedAt - 1_000, updated: inspectStartedAt } },
+    parts: [
+      { type: "text", text: "PRIVATE_REASONING must not be returned" },
+      {
+        type: "tool",
+        tool: "apply_patch",
+        state: {
+          status: "running",
+          time: { start: inspectStartedAt },
+          input: { patch: "RAW_PATCH_TEXT", token: "SECRET_TOKEN" },
+        },
+      },
+    ],
+  },
+]
+await finishTaskCall("call-inspect", "task-inspect", "inspectible")
+const beforeInspectBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+const abortCountBeforeInspect = abortCalls.length
+statusCalls = 0
+const inspection = String(await hooks.tool.a_max_inspect.execute({ task_id: "task-inspect" }, toolContext))
+if (
+  statusCalls !== 1 ||
+  messageCalls.length !== 1 ||
+  messageCalls[0]?.path.id !== "task-inspect" ||
+  !inspection.includes("A-Max inspection task-inspect") ||
+  !inspection.includes("card_status=working") ||
+  !inspection.includes("runtime_status=busy") ||
+  !inspection.includes("tool=apply_patch") ||
+  !inspection.includes("tool_status=running") ||
+  (!inspection.includes("tool_started=") && !inspection.includes("tool_running_for="))
+) {
+  throw new Error(`a_max_inspect did not report compact running operational state:\n${inspection}`)
+}
+if (inspection.includes("PRIVATE_REASONING") || inspection.includes("RAW_PATCH_TEXT") || inspection.includes("SECRET_TOKEN")) {
+  throw new Error(`a_max_inspect exposed tool input or reasoning:\n${inspection}`)
+}
+const afterInspectBoard = String(await hooks.tool.a_max_board.execute({ include_done: true }, toolContext))
+if (abortCalls.length !== abortCountBeforeInspect || afterInspectBoard !== beforeInspectBoard) {
+  throw new Error("a_max_inspect mutated a card or interrupted its child")
+}
+
+statusCalls = 0
+statusResponse = { data: {}, error: undefined }
+const idleInspection = String(await hooks.tool.a_max_inspect.execute({ task_id: "task-inspect" }, toolContext))
+if (statusCalls !== 1 || !idleInspection.includes("runtime_status=idle")) {
+  throw new Error(`a_max_inspect did not treat a missing status entry as idle:\n${idleInspection}`)
+}
+statusCalls = 0
+statusResponse = { data: {}, error: { name: "StatusError" } }
+const failedInspection = String(await hooks.tool.a_max_inspect.execute({ task_id: "task-inspect" }, toolContext))
+if (statusCalls !== 1 || !failedInspection.includes("runtime_status=unknown")) {
+  throw new Error(`a_max_inspect did not treat a status API error as unknown:\n${failedInspection}`)
+}
+statusCalls = 0
+statusThrows = true
+const thrownInspection = String(await hooks.tool.a_max_inspect.execute({ task_id: "task-inspect" }, toolContext))
+statusThrows = false
+if (statusCalls !== 1 || !thrownInspection.includes("runtime_status=unknown")) {
+  throw new Error(`a_max_inspect did not treat a thrown status lookup as unknown:\n${thrownInspection}`)
+}
+
+const expectInspectRejected = async (context: typeof toolContext) => {
+  let rejected = false
+  try {
+    await hooks.tool.a_max_inspect.execute({ task_id: "task-inspect" }, context)
+  } catch {
+    rejected = true
+  }
+  if (!rejected) throw new Error("a_max_inspect unexpectedly succeeded")
+}
+await expectInspectRejected({ ...toolContext, sessionID: "other-parent" })
+await expectInspectRejected({ ...toolContext, agent: "runner" })
+if (statusCalls !== 1 || messageCalls.length !== 4) throw new Error("rejected inspection called the child SDK")
 
 type StoredMessage = {
   info: { id: string; role: "user" | "assistant"; parentID?: string }
