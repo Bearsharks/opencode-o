@@ -8,6 +8,7 @@ const asyncContract = `
 - Run independent implementation tasks as separate \`terraworker\` calls with \`background: true\`. A-Max imposes no fixed concurrency limit.
 - Give each parallel Terra task a disjoint edit scope. Serialize overlapping work or continue the existing card with its \`task_id\`; never launch duplicate work against the same files or topic.
 - Omit \`task_id\` to create a new parallel card. Reuse the original \`task_id\` for follow-up context, rework, or continuation of that card.
+- For a suspected stuck background Terra, use \`a_max_inspect\`, then \`a_max_interrupt\` if intervention is needed; inspect file changes before continuing with the same \`task_id\` and an instruction not to duplicate prior work.
 - Runner is synchronous only. Never set \`background: true\` for \`runner\`, whether Runner is called by HTOrchestrator or Terra.
 - After dispatching background work, briefly tell the user what is running and continue the conversation or other non-overlapping work. Do not sleep, poll, ask workers for status, or duplicate their work.
 - A background worker result moves its card to Review, not Done. Inspect the result, perform proportionate focused verification, then call \`a_max_move\` with \`status: "done"\`. Mark genuine failures or decision blockers as \`blocked\`.
@@ -16,6 +17,7 @@ const asyncContract = `
 
 type Json = Record<string, unknown>
 type CardStatus = "working" | "review" | "done" | "blocked"
+type RuntimeStatus = "busy" | "retry" | "idle" | "unknown"
 
 type Card = {
   taskID: string
@@ -109,8 +111,72 @@ function formatTime(value: number) {
   return new Date(value).toISOString()
 }
 
-function renderBoard(cards: Card[], includeDone: boolean) {
-  const visible = includeDone ? cards : cards.filter((card) => card.status !== "done")
+function runtimeStatus(value: unknown): RuntimeStatus {
+  const status = asString(asRecord(value)?.type)
+  return status === "busy" || status === "retry" ? status : "unknown"
+}
+
+function runtimeSnapshot(response: unknown, taskIDs: string[]) {
+  const result = asRecord(response)
+  const entries = asRecord(result?.data)
+  if (!result || result.error || !entries) {
+    return new Map(taskIDs.map((taskID) => [taskID, "unknown" as const]))
+  }
+  return new Map(taskIDs.map((taskID) => [taskID, entries[taskID] === undefined ? "idle" : runtimeStatus(entries[taskID])]))
+}
+
+function latestTime(current: number | undefined, value: unknown) {
+  const time = asRecord(value)
+  if (!time) return current
+  for (const key of ["created", "updated", "start", "end", "completed"]) {
+    const candidate = time[key]
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      current = Math.max(current ?? candidate, candidate)
+    }
+  }
+  return current
+}
+
+function formatDuration(value: number) {
+  const seconds = Math.max(0, Math.floor(value / 1000))
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`
+}
+
+function compactText(value: unknown) {
+  return errorText(value).replace(/\s+/g, " ").slice(0, 240)
+}
+
+function inspectMessages(messages: unknown) {
+  let activityAt: number | undefined
+  let latestTool: { name: string; status: string; startedAt?: number; error?: string } | undefined
+  if (!Array.isArray(messages)) return { activityAt, latestTool }
+
+  for (const message of messages) {
+    const record = asRecord(message)
+    activityAt = latestTime(activityAt, asRecord(record?.info)?.time)
+    const parts = record?.parts
+    if (!Array.isArray(parts)) continue
+    for (const part of parts) {
+      const partRecord = asRecord(part)
+      activityAt = latestTime(activityAt, partRecord?.time)
+      if (partRecord?.type !== "tool") continue
+      const state = asRecord(partRecord.state)
+      const status = asString(state?.status)
+      if (status !== "pending" && status !== "running" && status !== "completed" && status !== "error") continue
+      const stateTime = asRecord(state?.time)
+      activityAt = latestTime(activityAt, stateTime)
+      latestTool = {
+        name: asString(partRecord.tool) ?? "unknown",
+        status,
+        ...(typeof stateTime?.start === "number" ? { startedAt: stateTime.start } : {}),
+        ...(status === "error" && state?.error !== undefined ? { error: compactText(state.error) } : {}),
+      }
+    }
+  }
+  return { activityAt, latestTool }
+}
+
+function renderBoard(cards: Card[], runtimes: Map<string, RuntimeStatus>, includeDone = true) {
   const columns: Array<{ status: CardStatus; title: string }> = [
     { status: "working", title: "Working" },
     { status: "review", title: "Review" },
@@ -118,10 +184,18 @@ function renderBoard(cards: Card[], includeDone: boolean) {
     { status: "blocked", title: "Blocked" },
   ]
 
-  const lines = [`A-Max Kanban (${visible.length} card${visible.length === 1 ? "" : "s"})`]
+  const summary = (Object.keys({ busy: 0, retry: 0, idle: 0, unknown: 0 }) as RuntimeStatus[]).map(
+    (status) => `${status}=${cards.filter((card) => runtimes.get(card.taskID) === status).length}`,
+  )
+  const workingIdle = cards.filter((card) => card.status === "working" && runtimes.get(card.taskID) === "idle")
+  const lines = [
+    `A-Max Kanban (${cards.length} card${cards.length === 1 ? "" : "s"})`,
+    `Runtime snapshot: ${summary.join(" | ")}`,
+    ...(workingIdle.length ? [`Working cards currently idle: ${workingIdle.map((card) => card.taskID).join(", ")}`] : []),
+  ]
   for (const column of columns) {
     if (!includeDone && column.status === "done") continue
-    const items = visible
+    const items = cards
       .filter((card) => card.status === column.status)
       .sort((left, right) => left.startedAt - right.startedAt)
     lines.push("", `## ${column.title} (${items.length})`)
@@ -132,6 +206,7 @@ function renderBoard(cards: Card[], includeDone: boolean) {
     for (const card of items) {
       const details = [
         `worker=${card.worker}`,
+        `runtime=${runtimes.get(card.taskID) ?? "unknown"}`,
         ...(card.scope ? [`scope=${card.scope}`] : []),
         `updated=${formatTime(card.updatedAt)}`,
         ...(card.note ? [`note=${card.note}`] : []),
@@ -201,7 +276,7 @@ export default (async (input) => {
 
   const board = tool({
     description:
-      "Show this parent session's A-Max background Terra cards grouped as Working, Review, Done, and Blocked.",
+      "Show this parent session's A-Max background Terra cards with current runtime snapshots, grouped as Working, Review, Done, and Blocked.",
     args: {
       include_done: tool.schema.boolean().optional().describe("Include completed cards. Defaults to true."),
     },
@@ -210,7 +285,15 @@ export default (async (input) => {
         throw new Error("a_max_board is available only to HTOrchestrator")
       }
       const ownCards = [...cards.values()].filter((card) => card.parentSessionID === context.sessionID)
-      return renderBoard(ownCards, args.include_done !== false)
+      const visibleCards = args.include_done === false ? ownCards.filter((card) => card.status !== "done") : ownCards
+      if (visibleCards.length === 0) return renderBoard(visibleCards, new Map(), args.include_done !== false)
+      let runtimes: Map<string, RuntimeStatus>
+      try {
+        runtimes = runtimeSnapshot(await input.client.session.status(), visibleCards.map((card) => card.taskID))
+      } catch {
+        runtimes = new Map(visibleCards.map((card) => [card.taskID, "unknown" as const]))
+      }
+      return renderBoard(visibleCards, runtimes, args.include_done !== false)
     },
   })
 
@@ -238,6 +321,76 @@ export default (async (input) => {
     },
   })
 
+  const interrupt = tool({
+    description: "Interrupt one of this parent session's active A-Max background Terra cards and move it to Blocked.",
+    args: {
+      task_id: tool.schema.string().describe("Background Terra task/session ID shown by task or a_max_board"),
+      reason: tool.schema.string().optional().describe("Compact reason for interrupting the background task"),
+    },
+    async execute(args, context) {
+      if (context.agent !== "HTOrchestrator") {
+        throw new Error("a_max_interrupt is available only to HTOrchestrator")
+      }
+      const card = cards.get(args.task_id)
+      if (!card || card.parentSessionID !== context.sessionID) {
+        throw new Error(`Unknown A-Max card for this session: ${args.task_id}`)
+      }
+      if (card.status === "done") {
+        throw new Error(`A-Max card ${args.task_id} is already Done and cannot be interrupted`)
+      }
+
+      const response = await input.client.session.abort({ path: { id: args.task_id } })
+      if (response.error || response.data !== true) {
+        throw new Error(`A-Max interruption failed for ${args.task_id}: ${response.error ? errorText(response.error) : "session abort was not confirmed"}`)
+      }
+
+      transition(args.task_id, "blocked", `Parent interrupted${args.reason ? `: ${args.reason}` : ""}`)
+      return `Interrupted ${args.task_id} and moved it to blocked.`
+    },
+  })
+
+  const inspect = tool({
+    description: "Inspect compact operational status for one of this parent session's A-Max background Terra cards.",
+    args: {
+      task_id: tool.schema.string().describe("Background Terra task/session ID shown by task or a_max_board"),
+    },
+    async execute(args, context) {
+      if (context.agent !== "HTOrchestrator") {
+        throw new Error("a_max_inspect is available only to HTOrchestrator")
+      }
+      const card = cards.get(args.task_id)
+      if (!card || card.parentSessionID !== context.sessionID) {
+        throw new Error(`Unknown A-Max card for this session: ${args.task_id}`)
+      }
+
+      const [statusResult, messagesResult] = await Promise.allSettled([
+        input.client.session.status(),
+        input.client.session.messages({ path: { id: args.task_id } }),
+      ])
+      const status =
+        statusResult.status === "fulfilled"
+          ? (runtimeSnapshot(statusResult.value, [args.task_id]).get(args.task_id) ?? "unknown")
+          : "unknown"
+      const messagesResponse = messagesResult.status === "fulfilled" ? messagesResult.value : undefined
+      const messagesRecord = asRecord(messagesResponse)
+      const { activityAt, latestTool } = messagesRecord?.error ? inspectMessages(undefined) : inspectMessages(messagesRecord?.data)
+      const lines = [
+        `A-Max inspection ${args.task_id}`,
+        `card_status=${card.status}`,
+        `runtime_status=${status}`,
+        ...(activityAt !== undefined ? [`last_activity=${formatTime(activityAt)}`] : []),
+        `tool=${latestTool?.name ?? "unknown"}`,
+        `tool_status=${latestTool?.status ?? "unknown"}`,
+        ...(latestTool?.startedAt !== undefined ? [`tool_started=${formatTime(latestTool.startedAt)}`] : []),
+        ...(latestTool?.status === "running" && latestTool.startedAt !== undefined
+          ? [`tool_running_for=${formatDuration(Date.now() - latestTool.startedAt)}`]
+          : []),
+        ...(latestTool?.error ? [`tool_error=${latestTool.error}`] : []),
+      ]
+      return lines.join("\n")
+    },
+  })
+
   return {
     ...maxHooks,
 
@@ -251,16 +404,24 @@ export default (async (input) => {
       appendAsyncContract(orchestrator)
       addToolPermission(orchestrator, "a_max_board", "allow")
       addToolPermission(orchestrator, "a_max_move", "allow")
+      addToolPermission(orchestrator, "a_max_interrupt", "allow")
+      addToolPermission(orchestrator, "a_max_inspect", "allow")
       addToolPermission(terra, "a_max_board", "deny")
       addToolPermission(terra, "a_max_move", "deny")
+      addToolPermission(terra, "a_max_interrupt", "deny")
+      addToolPermission(terra, "a_max_inspect", "deny")
       addToolPermission(runner, "a_max_board", "deny")
       addToolPermission(runner, "a_max_move", "deny")
+      addToolPermission(runner, "a_max_interrupt", "deny")
+      addToolPermission(runner, "a_max_inspect", "deny")
     },
 
     tool: {
       ...maxHooks.tool,
       a_max_board: board,
       a_max_move: move,
+      a_max_interrupt: interrupt,
+      a_max_inspect: inspect,
     },
 
     "tool.execute.before": async (input, output) => {

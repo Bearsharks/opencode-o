@@ -12,8 +12,15 @@ The `a-max.ts` plugin adds only the A-Max delta:
 - multiple concurrent background `terraworker` tasks with no fixed count cap;
 - foreground-only Runner enforcement;
 - a process-local Kanban keyed by background Terra session ID;
-- `a_max_board` for Working, Review, Done, and Blocked cards;
-- `a_max_move` for explicit post-verification completion.
+- `a_max_board` for Working, Review, Done, and Blocked cards plus one
+  non-persistent `busy`/`retry`/`idle`/`unknown` runtime snapshot per visible
+  card; it flags `Working` cards currently reported as `idle` without changing
+  their Kanban state;
+- `a_max_move` for explicit post-verification completion;
+- `a_max_inspect` for an on-demand runtime and latest-tool summary without
+  mutating the child;
+- `a_max_interrupt` for parent-controlled interruption before continuing the
+  same child session with its existing `task_id`.
 
 OpenCode's built-in `task(background: true)` owns execution and completion
 notification. The plugin never polls workers. A child busy-to-idle transition

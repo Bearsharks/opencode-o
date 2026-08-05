@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
-MAX_ROOT="$ROOT/profiles/max"
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
+A_MAX_ROOT="$ROOT/profiles/a-max"
 
 if [[ "$ROOT" == *$'\n'* ]]; then
   printf 'The checkout path must not contain a newline.\n' >&2
@@ -19,39 +19,41 @@ else
   exit 1
 fi
 
-WRAPPER="$BIN_DIR/opencode-o-max"
+WRAPPER="$BIN_DIR/oc-amax"
 created_wrapper=0
 
 write_wrapper() {
   local target="$1"
   {
     printf '#!/usr/bin/env bash\n'
-    printf '# opencode-o-max-root: %s\n' "$ROOT"
+    printf '# opencode-o-a-max-root: %s\n' "$ROOT"
     printf 'set -euo pipefail\n'
-    printf 'OPENCODE_O_MAX_ROOT=%q\n' "$ROOT"
+    printf 'OPENCODE_O_A_MAX_ROOT=%q\n' "$ROOT"
     printf 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true\n'
-    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_MAX_ROOT/profiles/max" exec opencode "$@"\n'
+    printf 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true\n'
+    printf 'export OPENCODE_DB=opencode-a-max.db\n'
+    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"\n'
   } >"$target"
   chmod 755 "$target"
 }
 
-printf 'Running max-mode preflight checks...\n'
-"$ROOT/doctor-max" --preflight
+printf 'Running A-Max preflight checks...\n'
+"$ROOT/scripts/doctor/a-max.sh" --preflight
 
 printf '\nInstalling locked dependencies...\n'
 (cd "$ROOT" && bun install --frozen-lockfile)
 
-printf '\nRunning max-mode checks...\n'
-(cd "$ROOT" && bun run check:max)
+printf '\nRunning A-Max checks...\n'
+(cd "$ROOT" && bun run check:a-max)
 
 mkdir -p "$BIN_DIR"
 
 if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
-  if [[ ! -f "$WRAPPER" ]] || ! grep -Fqx "# opencode-o-max-root: $ROOT" "$WRAPPER"; then
+  if [[ ! -f "$WRAPPER" ]] || ! grep -Fqx "# opencode-o-a-max-root: $ROOT" "$WRAPPER"; then
     printf 'Refusing to overwrite an unmanaged path: %s\n' "$WRAPPER" >&2
     exit 1
   fi
-  temporary="$(mktemp "$BIN_DIR/.opencode-o-max.XXXXXX")"
+  temporary="$(mktemp "$BIN_DIR/.oc-amax.XXXXXX")"
   write_wrapper "$temporary"
   if cmp -s "$temporary" "$WRAPPER"; then
     rm -f "$temporary"
@@ -61,7 +63,7 @@ if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
     printf 'Updated managed wrapper: %s\n' "$WRAPPER"
   fi
 else
-  temporary="$(mktemp "$BIN_DIR/.opencode-o-max.XXXXXX")"
+  temporary="$(mktemp "$BIN_DIR/.oc-amax.XXXXXX")"
   cleanup() {
     if [[ -n "${temporary:-}" && -e "$temporary" ]]; then
       rm -f "$temporary"
@@ -77,15 +79,15 @@ else
   printf 'Installed wrapper: %s\n' "$WRAPPER"
 fi
 
-printf '\nRunning final max-mode diagnostics...\n'
-if ! "$ROOT/doctor-max"; then
+printf '\nRunning final A-Max diagnostics...\n'
+if ! "$ROOT/scripts/doctor/a-max.sh"; then
   if [[ $created_wrapper -eq 1 ]]; then
     rm -f "$WRAPPER"
-    printf '\nMax-mode diagnostics failed. Removed the newly installed wrapper.\n' >&2
+    printf '\nA-Max diagnostics failed. Removed the newly installed wrapper.\n' >&2
   else
-    printf '\nMax-mode diagnostics failed. The existing managed wrapper was preserved.\n' >&2
+    printf '\nA-Max diagnostics failed. The existing managed wrapper was preserved.\n' >&2
   fi
   exit 1
 fi
 
-printf '\nMax-mode installation complete. Run: opencode-o-max\n'
+printf '\nA-Max installation complete. Run: oc-amax\n'

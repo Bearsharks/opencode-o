@@ -13,7 +13,7 @@ terraworker    --task--> runner
 It provides:
 
 - `HTOrchestrator` using `openai/gpt-5.6-sol` with high reasoning;
-- `terraworker` using `openai/gpt-5.6-terra-fast` with high reasoning;
+- `terraworker` using `opencode-go/kimi-k3` with high reasoning;
 - a read-only `runner` using `openai/gpt-5.6-luna-fast` with medium reasoning;
 - no lunaworker, Probe, investigate tool, or read-budget accounting.
 
@@ -29,5 +29,5 @@ high-output test or verification logs. For exploration, local findings require
 resource identifiers.
 
 Global and project OpenCode configuration still merge by OpenCode design. Run
-`../../doctor-max` from the repository root to detect known agent and local
+`scripts/doctor/max.sh` from the repository root to detect known agent and local
 plugin conflicts and verify resolved plugin origins.

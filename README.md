@@ -2,8 +2,8 @@
 
 A lightweight OpenCode orchestration harness with one coordinator, two
 implementation workers, and one reusable investigation Probe per caller
-session. Independently installed Max and A-Max profiles are also available for
-HTOrchestrator, Terra, and a context-protecting Runner.
+session. Independently installed Max, A-Max, and oc-lite profiles are also
+available.
 
 ```text
 orchestrator --task--------> terraworker | lunaworker
@@ -45,7 +45,7 @@ different IDs.
 ```bash
 git clone https://github.com/Bearsharks/opencode-o.git
 cd opencode-o
-./install.sh
+./scripts/install/default.sh
 ```
 
 The installer does not copy or modify `~/.config/opencode`. It checks for
@@ -82,7 +82,7 @@ Max mode has its own config root, installer, doctor, and wrapper. Installing it
 does not replace or modify the default `opencode-o` wrapper.
 
 ```bash
-./install-max.sh
+./scripts/install/max.sh
 opencode-o-max
 opencode-o-max run "Hello"
 ```
@@ -110,14 +110,41 @@ The max topology plugin registers no tools; it only enforces
 lives under [`profiles/max/`](profiles/max/) so OpenCode never auto-loads it
 beside the default harness plugin.
 
-OpenCode still merges global and project plugins by design. `doctor-max` rejects
+OpenCode still merges global and project plugins by design. `scripts/doctor/max.sh` rejects
 known harness-agent and local-plugin conflicts, verifies exactly one max plugin
 origin, and verifies that the default harness plugin did not leak into max
 mode:
 
 ```bash
-./doctor-max --preflight
-./doctor-max
+./scripts/doctor/max.sh --preflight
+./scripts/doctor/max.sh
+```
+
+## Install oc-lite separately
+
+oc-lite is a single-primary-worker profile with one read-only Runner. The
+Worker implements directly; Runner handles broad exploration and high-output
+verification. It has its own profile, topology plugin, installer, doctor, and
+wrapper, and does not include Terra or A-Max background execution.
+
+```bash
+./scripts/install/oc-lite.sh
+oc-lite
+oc-lite run "Hello"
+```
+
+```text
+worker --task--> runner
+runner           --------> none
+```
+
+The oc-lite plugin registers no tools. It only enforces the two-agent task
+topology. The Worker prompt contains role, context management, reading
+strategy, and completion conditions; Runner keeps the read-only Max contract.
+
+```bash
+./scripts/doctor/oc-lite.sh --preflight
+./scripts/doctor/oc-lite.sh
 ```
 
 ## Install A-Max separately
@@ -128,12 +155,10 @@ doctor, wrapper, and session database; installing it does not modify
 `opencode-o-max`.
 
 ```bash
-./install-a-max.sh
+./scripts/install/a-max.sh
 oc-amax
 oc-amax run "Hello"
 ```
-
-`opencode-o-a-max` remains installed as a backward-compatible command.
 
 ```text
 HTOrchestrator --background task--> terraworker (zero or more, concurrently)
@@ -154,14 +179,22 @@ Blocked columns. OpenCode completion moves a card to Review; HTOrchestrator
 must verify it before `a_max_move` can mark it Done. There is no fixed worker
 count limit, but parallel edit scopes must be disjoint. Runner is always
 foreground and the plugin rejects `runner` calls with `background: true`.
+Every board call also shows a current per-card `busy`, `retry`, `idle`, or
+`unknown` runtime snapshot without changing the Kanban lifecycle.
+
+HTOrchestrator can use `a_max_inspect` to read a Terra child's current OpenCode
+session status and latest tool state without changing it. If intervention is
+needed, `a_max_interrupt` stops the current execution without rolling back its
+conversation or file effects; HTOrchestrator can inspect the current changes
+and continue the same child with its existing `task_id`.
 
 The wrapper enables `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS` and uses
 `opencode-a-max.db`, isolating A-Max sessions while retaining the normal
 OpenCode authentication store:
 
 ```bash
-./doctor-a-max --preflight
-./doctor-a-max
+./scripts/doctor/a-max.sh --preflight
+./scripts/doctor/a-max.sh
 ```
 
 ## Migrating an existing global harness
@@ -187,8 +220,8 @@ separately:
 ```bash
 opencode debug agent build
 opencode-o debug agent orchestrator
-./doctor --preflight
-./doctor
+./scripts/doctor/default.sh --preflight
+./scripts/doctor/default.sh
 ```
 
 ## Diagnose
@@ -196,12 +229,14 @@ opencode-o debug agent orchestrator
 `doctor` does not edit OpenCode configuration or install files.
 
 ```bash
-./doctor --preflight
-./doctor
-./doctor-a-max --preflight
-./doctor-a-max
-./doctor-max --preflight
-./doctor-max
+./scripts/doctor/default.sh --preflight
+./scripts/doctor/default.sh
+./scripts/doctor/a-max.sh --preflight
+./scripts/doctor/a-max.sh
+./scripts/doctor/max.sh --preflight
+./scripts/doctor/max.sh
+./scripts/doctor/oc-lite.sh --preflight
+./scripts/doctor/oc-lite.sh
 ```
 
 Preflight checks prerequisites, repository layout, and global/project
@@ -226,6 +261,13 @@ bun run check:max
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode
 ```
 
+For oc-lite without installing its wrapper:
+
+```bash
+bun run check:oc-lite
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode
+```
+
 For A-Max without installing its wrapper:
 
 ```bash
@@ -247,6 +289,8 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug ag
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent HTOrchestrator
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent terraworker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent runner
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent worker
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent runner
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent HTOrchestrator
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent terraworker
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent runner

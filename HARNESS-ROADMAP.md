@@ -15,6 +15,12 @@
 - **HTOrchestrator**: can edit/write directly, uses Runner for broad exploration
 - **No read-budget accounting**; chooses based on quality, time, context cleanliness
 
+### oc-lite (Single Worker)
+- **Topology**: `worker` -> `runner`
+- **Plugin**: `oc-lite-topology.ts` enforces the two-agent topology only
+- **Worker**: edits directly and uses Runner for broad exploration or high-output verification
+- **No Terra, A-Max background execution, Kanban, or read-budget accounting**
+
 ---
 
 ## Gap Analysis
