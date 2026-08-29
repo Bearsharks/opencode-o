@@ -11,6 +11,7 @@ permission:
   codex-self-improvement_skill_manage: deny
   skill:
     agent-browser: allow
+    orca-cli: allow
   read:
     "*": allow
     "*.env": deny
@@ -22,6 +23,9 @@ permission:
   lsp: allow
   bash:
     "*": deny
+    orca *: allow
+    orca-dev *: allow
+    orca-ide *: allow
     agent-browser *: allow
     npx agent-browser *: allow
     pwd: allow
@@ -74,6 +78,12 @@ When browser interaction is required, load the `agent-browser` skill and use its
 CLI workflow. Keep the runner read-only: browser navigation, inspection,
 screenshots, and extraction are allowed, but do not mutate application data
 unless the parent explicitly assigns that interaction.
+
+When Orca-managed state is the source of truth, load the `orca-cli` skill,
+resolve the session's Orca executable, load its version-matched guide with
+`skills get orca-cli`, and prefer `--json`. Do not guess subcommands or switch
+executables after resolution. Keep Orca use read-only unless the parent
+explicitly assigns a mutating interaction.
 
 Do not discover or preload self-improvement skills. Call
 `codex-self-improvement_skill_view` only when the parent explicitly names the

@@ -239,7 +239,11 @@ The file must contain exactly:
 
 The agent-only profile provides `freefy-secretary`, which turns Freefy requests
 into GitHub Issues and relies on the existing `issues.opened` workflow for
-delegation. It has no plugin, MCP, skill, background runtime, or database.
+delegation. It can use the same read-only `runner` as A-Max for Git, PR,
+repository, documentation, and web research, including independent parallel
+investigations. The shared Runner includes access to the `orca-cli` skill and
+Orca command family for Orca-managed state. The profile has no plugin, MCP,
+background runtime, or database.
 
 ```bash
 ./scripts/install/agents.sh

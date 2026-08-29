@@ -47,6 +47,7 @@ validate_profile() {
   local command_prefix=("$@")
   OPENCODE_CONFIG_DIR="$PROFILE_ROOT" "${command_prefix[@]}" debug config >/dev/null
   OPENCODE_CONFIG_DIR="$PROFILE_ROOT" "${command_prefix[@]}" debug agent freefy-secretary >/dev/null
+  OPENCODE_CONFIG_DIR="$PROFILE_ROOT" "${command_prefix[@]}" debug agent runner >/dev/null
 }
 
 cleanup() {

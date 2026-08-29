@@ -2,7 +2,11 @@
 
 This lightweight, agent-only profile starts with `freefy-secretary`, a Freefy
 issue-intake agent. It converts requests into executable GitHub Issues and lets
-Freefy's existing `issues.opened` workflow handle delegation.
+Freefy's existing `issues.opened` workflow handle delegation. The secretary can
+delegate read-only Git, PR, repository, documentation, and web research to the
+same hidden `runner` used by A-Max. The shared Runner includes the `orca-cli`
+skill and Orca CLI command family so it can inspect
+Orca-managed worktrees, terminals, repos, artifacts, and browser state.
 
 ## Install
 
@@ -25,10 +29,12 @@ oc-agents
 oc-agents run "Freefy work request"
 ```
 
-`freefy-secretary` is the default and only included agent. It may read the
-known checkout at `/Users/ck/Documents/freefy/` as needed and may create Issues
-in `Bearsharks/freefy` with `gh`. It does not implement work, create an Orca
-worktree, manually dispatch a worker, or duplicate the `issues.opened` workflow.
+`freefy-secretary` is the default agent. It may read the known checkout at
+`/Users/ck/Documents/freefy/` as needed and may create Issues in
+`Bearsharks/freefy` with `gh`. For larger investigations it can call the hidden,
+read-only `runner`, including independent parallel research calls. It does not
+implement work, create an Orca worktree, manually dispatch a worker, or
+duplicate the `issues.opened` workflow.
 
 ## Uninstall
 
@@ -43,6 +49,8 @@ or project OpenCode configuration are left untouched.
 
 - No custom plugin, MCP server, skill, background runtime, database, or
   generated artifact is included.
+- `runner` is a relative link to the Max profile's Runner definition, matching
+  A-Max rather than maintaining a separate copy.
 - The secretary creates an implementation Issue with the required Korean
   intake sections and the Freefy implementation marker, then reports the Issue
   URL and observed or pending workflow status.
