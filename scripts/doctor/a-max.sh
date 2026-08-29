@@ -232,6 +232,98 @@ if command -v opencode >/dev/null 2>&1; then
     fail "Could not list OpenCode models"
   fi
 
+  # A-Max external model/effort config detection mirrors the plugin contract:
+  # - OPENCODE_O_A_MAX_MODEL_CONFIG unset: auto-discover the default file;
+  # - set to a non-empty value: that absolute path is required to exist and be valid;
+  # - set to the empty string: external loading is disabled.
+  # A missing auto-discovered default file is a no-op; Max inheritance then applies.
+  a_max_external_model=""
+  a_max_external_effort=""
+  external_config_path=""
+  external_from_env=0
+  if [[ -n "${OPENCODE_O_A_MAX_MODEL_CONFIG+x}" ]]; then
+    external_from_env=1
+    if [[ -n "$OPENCODE_O_A_MAX_MODEL_CONFIG" ]]; then
+      external_config_path="$OPENCODE_O_A_MAX_MODEL_CONFIG"
+      case "$external_config_path" in
+        /*) ;;
+        *)
+          fail "A-Max model config override is not an absolute path: $external_config_path"
+          external_config_path=""
+          ;;
+      esac
+    fi
+  elif [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+    external_config_path="$XDG_CONFIG_HOME/opencode/a-max-model.json"
+  elif [[ -n "${HOME:-}" ]]; then
+    external_config_path="$HOME/.config/opencode/a-max-model.json"
+  fi
+
+  if [[ -n "$external_config_path" ]] && [[ "$external_from_env" -eq 0 ]] && [[ ! -e "$external_config_path" ]]; then
+    external_config_path=""
+  fi
+
+  if [[ -n "$external_config_path" ]]; then
+    if ! command -v bun >/dev/null 2>&1; then
+      fail "Cannot validate the active A-Max model config without Bun"
+      external_config_path=""
+    elif external_values="$(
+      A_MAX_MODEL_CONFIG_PATH="$external_config_path" bun -e '
+        const configPath = process.env.A_MAX_MODEL_CONFIG_PATH ?? ""
+        let raw: string
+        try {
+          raw = await Bun.file(configPath).text()
+        } catch (error) {
+          console.error(`A-Max model config error: cannot read ${configPath}: ${error instanceof Error ? error.message : String(error)}`)
+          process.exit(1)
+        }
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(raw)
+        } catch (error) {
+          console.error(`A-Max model config error: ${configPath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`)
+          process.exit(1)
+        }
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          console.error(`A-Max model config error: ${configPath} must contain a JSON object, not ${Array.isArray(parsed) ? "an array" : typeof parsed}`)
+          process.exit(1)
+        }
+        const record = parsed as Record<string, unknown>
+        const keys = Object.keys(record).sort()
+        if (keys.length !== 2 || keys[0] !== "effort" || keys[1] !== "model") {
+          console.error(`A-Max model config error: ${configPath} must contain exactly the "model" and "effort" keys`)
+          process.exit(1)
+        }
+        const rawModel = record.model
+        const rawEffort = record.effort
+        if (typeof rawModel !== "string" || typeof rawEffort !== "string") {
+          console.error(`A-Max model config error: ${configPath} fields "model" and "effort" must be strings`)
+          process.exit(1)
+        }
+        const model = rawModel.trim()
+        const effort = rawEffort.trim()
+        if (!model || !/^\S+\/\S+$/.test(model)) {
+          console.error(`A-Max model config error: ${configPath} field "model" must be a trimmed non-empty "provider/model" identifier without surrounding or internal whitespace`)
+          process.exit(1)
+        }
+        if (!effort) {
+          console.error(`A-Max model config error: ${configPath} field "effort" must be a trimmed non-empty string`)
+          process.exit(1)
+        }
+        process.stdout.write(`${model}\t${effort}`)
+      '
+    )"; then
+      a_max_external_model="${external_values%%$'\t'*}"
+      a_max_external_effort="${external_values##*$'\t'}"
+      pass "A-Max external model config is active: $external_config_path (model=$a_max_external_model, effort=$a_max_external_effort)"
+    else
+      fail "A-Max external model config is not usable: $external_config_path"
+      external_config_path=""
+    fi
+  else
+    pass "No active A-Max external model config; inherited Max models apply"
+  fi
+
   if resolved="$(
     cd "$CALLER_DIR" &&
       OPENCODE_DB=:memory: \
@@ -264,6 +356,23 @@ if command -v opencode >/dev/null 2>&1; then
     else
       fail "Default harness plugin leaked into A-Max"
     fi
+
+    if [[ -n "$a_max_external_model" ]]; then
+      if A_MAX_EXTERNAL_MODEL="$a_max_external_model" A_MAX_EXTERNAL_EFFORT="$a_max_external_effort" bun -e '
+        const config = JSON.parse(await Bun.stdin.text())
+        const expectedModel = process.env.A_MAX_EXTERNAL_MODEL
+        const expectedEffort = process.env.A_MAX_EXTERNAL_EFFORT
+        if (config.model !== expectedModel) process.exit(1)
+        for (const name of ["HTOrchestrator", "terraworker", "runner"]) {
+          const agent = config.agent?.[name]
+          if (agent?.model !== expectedModel || agent?.reasoningEffort !== expectedEffort) process.exit(1)
+        }
+      ' <<<"$resolved"; then
+        pass "A-Max top-level model and all three A-Max agents reflect the external model config"
+      else
+        fail "A-Max resolved config does not reflect the external model config (model=$a_max_external_model, effort=$a_max_external_effort)"
+      fi
+    fi
   else
     fail "Could not resolve A-Max config with OPENCODE_CONFIG_DIR=$A_MAX_ROOT"
   fi
@@ -291,13 +400,53 @@ if command -v opencode >/dev/null 2>&1; then
         fail "A-Max agent $agent does not allow agent-browser without approval"
       fi
 
-      if max_agent_config="$(
+      if [[ -n "$a_max_external_model" ]]; then
+        # With an active external config, model/reasoningEffort are owned by the
+        # external file rather than Max inheritance (reasoningEffort is asserted
+        # by the resolved-config check above; model identity here).
+        if A_MAX_AGENT_JSON="$agent_config" A_MAX_EXTERNAL_MODEL="$a_max_external_model" bun -e '
+          const extended = JSON.parse(process.env.A_MAX_AGENT_JSON)
+          const externalModel = process.env.A_MAX_EXTERNAL_MODEL ?? ""
+          const separator = externalModel.indexOf("/")
+          if (separator <= 0) process.exit(1)
+          const resolved = extended.model ?? {}
+          if (resolved.providerID !== externalModel.slice(0, separator)) process.exit(1)
+          if (resolved.modelID !== externalModel.slice(separator + 1)) process.exit(1)
+        '; then
+          pass "A-Max agent $agent model identity follows the external model config"
+        else
+          fail "A-Max agent $agent does not follow the external model config ($a_max_external_model)"
+        fi
+        # Strict Max inheritance is verified against a resolution with external
+        # loading disabled, because an overriding model legitimately changes
+        # model-gated tool availability (for example apply_patch or edit).
+        if inherit_config="$(
+          cd "$CALLER_DIR" &&
+            OPENCODE_DB=:memory: \
+              OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
+              OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true \
+              OPENCODE_CONFIG_DIR="$A_MAX_ROOT" \
+              OPENCODE_O_A_MAX_MODEL_CONFIG="" \
+              opencode debug agent "$agent" 2>/dev/null
+        )"; then
+          :
+        else
+          inherit_config=""
+          fail "Could not resolve A-Max agent $agent with external model loading disabled"
+        fi
+      else
+        inherit_config="$agent_config"
+      fi
+
+      if [[ -z "$inherit_config" ]]; then
+        fail "A-Max agent $agent could not be compared against the Max contract"
+      elif max_agent_config="$(
         cd "$CALLER_DIR" &&
           OPENCODE_DB=:memory: \
             OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
             OPENCODE_CONFIG_DIR="$ROOT/profiles/max" \
             opencode debug agent "$agent" 2>/dev/null
-      )" && MAX_AGENT_JSON="$max_agent_config" A_MAX_AGENT_JSON="$agent_config" AGENT_NAME="$agent" bun -e '
+      )" && MAX_AGENT_JSON="$max_agent_config" A_MAX_AGENT_JSON="$inherit_config" AGENT_NAME="$agent" bun -e '
         const base = JSON.parse(process.env.MAX_AGENT_JSON)
         const extended = JSON.parse(process.env.A_MAX_AGENT_JSON)
         const name = process.env.AGENT_NAME
@@ -359,10 +508,18 @@ if command -v opencode >/dev/null 2>&1; then
         OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true \
         OPENCODE_CONFIG_DIR="$A_MAX_ROOT" \
         opencode debug agent HTOrchestrator 2>/dev/null
-  )" && bun -e '
+  )" && A_MAX_EXTERNAL_MODEL="$a_max_external_model" bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
+    const externalModel = process.env.A_MAX_EXTERNAL_MODEL ?? ""
     if (agent.tools?.harness_state === true || agent.tools?.investigate === true) process.exit(1)
-    if (agent.tools?.task !== true || agent.tools?.read !== true || agent.tools?.apply_patch !== true) process.exit(1)
+    if (agent.tools?.task !== true || agent.tools?.read !== true) process.exit(1)
+    if (externalModel) {
+      // An overriding model owns which concrete editing tools OpenCode derives;
+      // require the editing capability in either form.
+      if (agent.tools?.apply_patch !== true && !(agent.tools?.edit === true && agent.tools?.write === true)) process.exit(1)
+    } else if (agent.tools?.apply_patch !== true) {
+      process.exit(1)
+    }
     if (
       agent.tools?.a_max_board !== true ||
       agent.tools?.a_max_move !== true ||

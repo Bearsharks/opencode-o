@@ -2,7 +2,7 @@
 description: Read-only exploration and command runner that protects parent context by returning evidence-backed, compact results.
 mode: subagent
 hidden: true
-model: openai/gpt-5.6-luna-fast
+model: opencode-go/gpt-5.6-luna
 reasoningEffort: medium
 textVerbosity: low
 permission:

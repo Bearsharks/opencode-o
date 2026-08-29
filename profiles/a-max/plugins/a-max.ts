@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises"
+import { isAbsolute, join } from "node:path"
 import { tool, type Plugin } from "@opencode-ai/plugin"
 import maxTopology from "../../max/plugins/max-topology"
 
@@ -54,6 +56,111 @@ function addToolPermission(agent: Json | undefined, name: string, action: "allow
   agent.permission = permission
 }
 
+const modelConfigEnv = "OPENCODE_O_A_MAX_MODEL_CONFIG"
+const requiredAgents = ["HTOrchestrator", "terraworker", "runner"] as const
+
+type ExternalModelConfig = {
+  configPath: string
+  model: string
+  effort: string
+}
+
+function modelConfigError(message: string) {
+  return new Error(`A-Max model config error: ${message}`)
+}
+
+function defaultModelConfigPath() {
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME
+  if (xdgConfigHome) return join(xdgConfigHome, "opencode", "a-max-model.json")
+  const home = process.env.HOME
+  if (home) return join(home, ".config", "opencode", "a-max-model.json")
+  return undefined
+}
+
+function errorDetail(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function parseExternalModelConfig(raw: string, configPath: string) {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch (error) {
+    throw modelConfigError(`${configPath} is not valid JSON: ${errorDetail(error)}`)
+  }
+  const record = asRecord(parsed)
+  if (!record) {
+    throw modelConfigError(
+      `${configPath} must contain a JSON object, not ${Array.isArray(parsed) ? "an array" : typeof parsed}`,
+    )
+  }
+  const keys = Object.keys(record).sort()
+  if (keys.length !== 2 || keys[0] !== "effort" || keys[1] !== "model") {
+    throw modelConfigError(`${configPath} must contain exactly the "model" and "effort" keys`)
+  }
+  const rawModel = record.model
+  const rawEffort = record.effort
+  if (typeof rawModel !== "string" || typeof rawEffort !== "string") {
+    throw modelConfigError(`${configPath} fields "model" and "effort" must be strings`)
+  }
+  const model = rawModel.trim()
+  const effort = rawEffort.trim()
+  if (!model || !/^\S+\/\S+$/.test(model)) {
+    throw modelConfigError(
+      `${configPath} field "model" must be a trimmed non-empty "provider/model" identifier without surrounding or internal whitespace`,
+    )
+  }
+  if (!effort) {
+    throw modelConfigError(`${configPath} field "effort" must be a trimmed non-empty string`)
+  }
+  return { model, effort }
+}
+
+async function readExternalModelConfig(configPath: string, missingIsNoOp: boolean): Promise<ExternalModelConfig | undefined> {
+  let raw: string
+  try {
+    raw = await readFile(configPath, "utf8")
+  } catch (error) {
+    if (missingIsNoOp && (error as { code?: unknown } | undefined)?.code === "ENOENT") return undefined
+    throw modelConfigError(`cannot read ${configPath}: ${errorDetail(error)}`)
+  }
+  return { configPath, ...parseExternalModelConfig(raw, configPath) }
+}
+
+async function loadExternalModelConfig(): Promise<ExternalModelConfig | undefined> {
+  const override = process.env[modelConfigEnv]
+  if (override !== undefined) {
+    if (override === "") return undefined
+    if (!isAbsolute(override)) {
+      throw modelConfigError(`${modelConfigEnv} must be an absolute path to a file, got "${override}"`)
+    }
+    return readExternalModelConfig(override, false)
+  }
+  const defaultPath = defaultModelConfigPath()
+  if (!defaultPath) return undefined
+  return readExternalModelConfig(defaultPath, true)
+}
+
+async function applyExternalModelConfig(config: { model?: string; agent?: unknown }) {
+  const external = await loadExternalModelConfig()
+  if (!external) return
+  const agentConfig = asRecord(config.agent)
+  const targets = requiredAgents.map((name) => {
+    const agent = asRecord(agentConfig?.[name])
+    if (!agent) {
+      throw modelConfigError(
+        `${external.configPath} cannot be applied because required A-Max agent "${name}" is missing from the resolved config`,
+      )
+    }
+    return agent
+  })
+  config.model = external.model
+  for (const agent of targets) {
+    agent.model = external.model
+    agent.reasoningEffort = external.effort
+  }
+}
+
 function appendAsyncContract(agent: Json | undefined) {
   if (!agent) return
   const prompt = asString(agent.prompt)
@@ -81,6 +188,16 @@ function isIdleResumeMessage(message: Json, parts: unknown[]) {
     const text = asRecord(part)
     return text?.type === "text" && asRecord(text.metadata)?.source === idleResumeSource
   })
+}
+
+function latestAssistantModel(messages: Array<{ info: unknown; parts: unknown[] }>) {
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const info = asRecord(messages[index]?.info)
+    if (info?.role !== "assistant" || info.error || info.summary === true) continue
+    const providerID = asString(info.providerID)
+    const modelID = asString(info.modelID)
+    if (providerID && modelID) return { providerID, modelID }
+  }
 }
 
 function hasUnhandledInput(messages: Array<{ info: unknown; parts: unknown[] }>) {
@@ -254,10 +371,12 @@ export default (async (input) => {
       const reviewInstruction = reviewTaskIDs.length
         ? `Then review completed A-Max task IDs: ${reviewTaskIDs.map((taskID) => `\`${taskID}\``).join(", ")}, using matching ${reviewTaskIDs.map((taskID) => `<task id="${taskID}">`).join(", ")} results already in this session; do not redispatch or accept work without verification.`
         : "Only pending user messages need reconciliation; do not redispatch or accept work without verification."
+      const model = latestAssistantModel(messagesResponse.data ?? [])
       const promptResponse = await input.client.session.promptAsync({
         path: { id: parentSessionID },
         body: {
           agent: "HTOrchestrator",
+          ...(model ? { model } : {}),
           parts: [
             {
               type: "text",
@@ -396,6 +515,7 @@ export default (async (input) => {
 
     config: async (config) => {
       await maxHooks.config?.(config)
+      await applyExternalModelConfig(config)
       const agentConfig = asRecord(config.agent)
       const orchestrator = asRecord(agentConfig?.HTOrchestrator)
       const terra = asRecord(agentConfig?.terraworker)
