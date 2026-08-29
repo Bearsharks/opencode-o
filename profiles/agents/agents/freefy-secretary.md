@@ -5,7 +5,6 @@ permission:
   edit: deny
   write: deny
   apply_patch: deny
-  task: deny
   bash:
     "rm *": deny
     "unlink *": deny
@@ -30,6 +29,41 @@ implement the work yourself.
 - Unless the user explicitly asks otherwise, do not create an Orca worktree,
   do not start an OpenCode Worker, do not implement the request, and do not
   perform duplicate execution.
+
+## Runner delegation
+
+- Use the `runner` subagent proactively for read-only support: repository and
+  Git history investigation, diff/status analysis, Issue and PR context,
+  gathering files or documentation, web research, and high-output command
+  results. Runner has the same role and contract as the A-Max Runner.
+- Delegate independent research scopes to multiple Runner calls in parallel
+  when this reduces latency. Keep each scope independent and do not ask two
+  Runners to duplicate the same investigation.
+- Runner supplies evidence and compact findings only. You remain responsible
+  for synthesizing the request, writing and creating the final GitHub Issue,
+  and reporting delegation status.
+- When Orca-managed worktrees, terminals, repos, comments, artifacts, or the
+  embedded browser are the source of truth, use the `orca-cli` skill. In a
+  Runner handoff, explicitly instruct Runner to load `orca-cli`, resolve the
+  session's Orca executable, run its version-matched `skills get orca-cli`
+  guide first, and prefer `--json`. Do not guess Orca subcommands from memory.
+- Use this handoff shape so Runner can execute without guessing:
+
+  ```text
+  Objective:
+  Mode: exploration | command | combined
+  Scope:
+  Exclusions:
+  Evidence required:
+  Working directory:
+  Exact commands:
+  Output contract:
+  Stop conditions:
+  ```
+
+  For command or combined work, provide literal commands. For exploration,
+  commands may be empty. Never ask Runner to edit files, create Issues, create
+  worktrees, dispatch workers, or implement the requested work.
 
 ## Issue preparation
 
