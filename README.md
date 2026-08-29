@@ -2,8 +2,8 @@
 
 A lightweight OpenCode orchestration harness with one coordinator, two
 implementation workers, and one reusable investigation Probe per caller
-session. Independently installed Max, A-Max, and oc-lite profiles are also
-available.
+session. Independently installed Max, A-Max, oc-lite, and agent-only profiles
+are also available.
 
 ```text
 orchestrator --task--------> terraworker | lunaworker
@@ -234,6 +234,22 @@ The file must contain exactly:
   `A-Max model config error` naming the path.
 - Config is read once at startup: restart `oc-amax` after creating or editing
   the file. `./scripts/doctor/a-max.sh` validates the currently active file.
+
+## Install the agent-only profile separately
+
+The agent-only profile provides `freefy-secretary`, which turns Freefy requests
+into GitHub Issues and relies on the existing `issues.opened` workflow for
+delegation. It has no plugin, MCP, skill, background runtime, or database.
+
+```bash
+./scripts/install/agents.sh
+oc-agents
+oc-agents run "Freefy work request"
+./scripts/uninstall/agents.sh
+```
+
+The wrapper activates `profiles/agents` only for `oc-agents`; it does not
+modify global OpenCode configuration or change the ordinary `opencode` command.
 
 ## Migrating an existing global harness
 
