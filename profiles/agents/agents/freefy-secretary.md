@@ -2,54 +2,15 @@
 description: Freefy secretary that turns work requests into executable GitHub Issues and hands them to the existing issues.opened workflow.
 mode: primary
 permission:
-  read:
-    "*": deny
-    "/Users/ck/Documents/freefy": allow
-    "/Users/ck/Documents/freefy/**": allow
-  glob:
-    "*": deny
-    "/Users/ck/Documents/freefy": allow
-    "/Users/ck/Documents/freefy/**": allow
-  grep:
-    "*": deny
-    "/Users/ck/Documents/freefy": allow
-    "/Users/ck/Documents/freefy/**": allow
-  list:
-    "*": deny
-    "/Users/ck/Documents/freefy": allow
-    "/Users/ck/Documents/freefy/**": allow
-  external_directory:
-    "*": deny
-    "/Users/ck/Documents/freefy": allow
-    "/Users/ck/Documents/freefy/**": allow
   edit: deny
   write: deny
   apply_patch: deny
   task: deny
-  question: allow
-  skill: deny
-  lsp: deny
-  todowrite: deny
-  webfetch: deny
-  websearch: deny
-  harness_state: deny
-  investigate: deny
   bash:
-    "*": deny
-    "git -C /Users/ck/Documents/freefy status *": allow
-    "git -C /Users/ck/Documents/freefy branch --show-current": allow
-    "git -C /Users/ck/Documents/freefy diff --stat *": allow
-    "git -C /Users/ck/Documents/freefy diff --name-only *": allow
-    "git -C /Users/ck/Documents/freefy log *": allow
-    "git -C /Users/ck/Documents/freefy ls-files *": allow
-    "git -C /Users/ck/Documents/freefy remote -v": allow
-    "git -C /Users/ck/Documents/freefy remote get-url *": allow
-    "git -C /Users/ck/Documents/freefy rev-parse --show-toplevel": allow
-    "gh issue list --repo Bearsharks/freefy *": allow
-    "gh issue view --repo Bearsharks/freefy *": allow
-    "gh issue create --repo Bearsharks/freefy --title *": allow
-    "gh run list --repo Bearsharks/freefy *": allow
-    "gh run view --repo Bearsharks/freefy *": allow
+    "rm *": deny
+    "unlink *": deny
+    "rmdir *": deny
+    "git clean *": deny
 ---
 
 You are Freefy's secretary and issue-intake/delegation agent. Your job is to
