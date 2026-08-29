@@ -1,4 +1,16 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import path from "node:path"
 import plugin from "../a-max"
+
+// Repository-owned smoke checks must be deterministic, so user auto-discovery
+// of the external A-Max model config is disabled up front and restored on exit.
+const savedModelConfigEnv = process.env.OPENCODE_O_A_MAX_MODEL_CONFIG
+process.env.OPENCODE_O_A_MAX_MODEL_CONFIG = ""
+process.on("exit", () => {
+  if (savedModelConfigEnv === undefined) delete process.env.OPENCODE_O_A_MAX_MODEL_CONFIG
+  else process.env.OPENCODE_O_A_MAX_MODEL_CONFIG = savedModelConfigEnv
+})
 
 const abortCalls: Array<{ path: { id: string } }> = []
 let abortResponse: { data: boolean; error?: unknown } = { data: true }
@@ -46,6 +58,10 @@ const config = {
   },
 }
 await hooks.config?.(config as never)
+
+if (config.model !== undefined) {
+  throw new Error("baseline smoke applied an external A-Max model config despite disabled discovery")
+}
 
 const ht = config.agent.HTOrchestrator
 if (!ht.prompt.startsWith("MAX_BASE_PROMPT")) throw new Error("a-max replaced the Max prompt")
@@ -542,6 +558,230 @@ promptFailure = false
 const failureBoard = String(await recoveryHooks.tool?.a_max_board.execute({ include_done: true }, recoveryContext(failingParent)))
 if (!failureBoard.includes("## Review (1)") || !failureBoard.includes("failing-task")) {
   throw new Error("client failure changed card status")
+}
+
+// ===== External A-Max model/effort config =====
+// Every scenario below pins all discovery inputs (OPENCODE_O_A_MAX_MODEL_CONFIG,
+// XDG_CONFIG_HOME, HOME) to the temporary directory so a developer's real
+// default file can never influence these checks.
+
+const externalRoot = await mkdtemp(path.join(tmpdir(), "a-max-model-smoke."))
+const savedDiscoveryEnv = {
+  OPENCODE_O_A_MAX_MODEL_CONFIG: process.env.OPENCODE_O_A_MAX_MODEL_CONFIG,
+  XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+  HOME: process.env.HOME,
+}
+
+try {
+  const withEnv = async (env: Record<string, string | undefined>, run: () => Promise<void>) => {
+    for (const [key, value] of Object.entries(env)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+    try {
+      await run()
+    } finally {
+      for (const [key, value] of Object.entries(savedDiscoveryEnv)) {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+    }
+  }
+
+  const inheritedConfig = () => ({
+    model: "inherited/top-model",
+    agent: {
+      HTOrchestrator: { prompt: "MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
+      terraworker: { prompt: "TERRA_BASE_PROMPT", model: "zai-coding-plan/glm-5.3-flash", reasoningEffort: "high" },
+      runner: { prompt: "RUNNER_BASE_PROMPT", model: "opencode-go/gpt-5.6-luna", reasoningEffort: "medium" },
+    },
+  })
+
+  const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+  const expectExternalApplied = async (
+    env: Record<string, string | undefined>,
+    expected: { model: string; effort: string },
+  ) => {
+    await withEnv(env, async () => {
+      const instance = await plugin({ client: fakeClient } as never)
+      const cfg = inheritedConfig() as { model: string; agent: Record<string, Record<string, unknown>> }
+      await instance.config?.(cfg as never)
+      if (cfg.model !== expected.model) {
+        throw new Error(`external model config did not override the top-level model: ${cfg.model}`)
+      }
+      for (const agentName of ["HTOrchestrator", "terraworker", "runner"]) {
+        const agent = cfg.agent[agentName]
+        if (agent.model !== expected.model || agent.reasoningEffort !== expected.effort) {
+          throw new Error(`external model config did not override ${agentName}: ${JSON.stringify(agent)}`)
+        }
+      }
+      if (!cfg.agent.HTOrchestrator.prompt.startsWith("MAX_BASE_PROMPT")) {
+        throw new Error("external model config displaced the inherited HTOrchestrator prompt")
+      }
+    })
+  }
+
+  const expectExternalRejected = async (env: Record<string, string | undefined>, messageFragment: string) => {
+    await withEnv(env, async () => {
+      const instance = await plugin({ client: fakeClient } as never)
+      const cfg = inheritedConfig() as { model: string; agent: Record<string, Record<string, unknown>> }
+      let message = ""
+      try {
+        await instance.config?.(cfg as never)
+      } catch (error) {
+        message = errorMessage(error)
+      }
+      if (!message.includes("A-Max model config") || !message.includes(messageFragment)) {
+        throw new Error(`external model config failure was not reported clearly: ${message}`)
+      }
+      if (cfg.model !== "inherited/top-model" || cfg.agent.terraworker.model !== "zai-coding-plan/glm-5.3-flash") {
+        throw new Error(`failed external model config partially applied: ${message}`)
+      }
+    })
+  }
+
+  const xdgRoot = path.join(externalRoot, "xdg")
+  const defaultConfigPath = path.join(xdgRoot, "opencode", "a-max-model.json")
+  await mkdir(path.dirname(defaultConfigPath), { recursive: true })
+  await writeFile(defaultConfigPath, `${JSON.stringify({ model: "xdg/external-model", effort: "low" })}\n`)
+
+  const homeDir = path.join(externalRoot, "home")
+  const homeConfigPath = path.join(homeDir, ".config", "opencode", "a-max-model.json")
+  await mkdir(path.dirname(homeConfigPath), { recursive: true })
+  await writeFile(homeConfigPath, JSON.stringify({ model: "home/external-model", effort: "medium" }))
+
+  const emptyDir = path.join(externalRoot, "empty")
+  await mkdir(emptyDir, { recursive: true })
+
+  const explicitDir = path.join(externalRoot, "explicit")
+  await mkdir(explicitDir, { recursive: true })
+  const explicitPath = path.join(explicitDir, "model.json")
+  await writeFile(explicitPath, JSON.stringify({ model: "acme/explicit-model", effort: "high" }))
+
+  // Explicit absolute path wins over any default discovery.
+  await expectExternalApplied({ OPENCODE_O_A_MAX_MODEL_CONFIG: explicitPath }, { model: "acme/explicit-model", effort: "high" })
+
+  // Values are trimmed before validation and application.
+  const trimmedPath = path.join(explicitDir, "trimmed.json")
+  await writeFile(trimmedPath, JSON.stringify({ model: "  acme/trimmed-model  ", effort: "\nhigh\t" }))
+  await expectExternalApplied({ OPENCODE_O_A_MAX_MODEL_CONFIG: trimmedPath }, { model: "acme/trimmed-model", effort: "high" })
+
+  // Auto-discovery through XDG_CONFIG_HOME while the override env is unset.
+  await expectExternalApplied(
+    { OPENCODE_O_A_MAX_MODEL_CONFIG: undefined, XDG_CONFIG_HOME: xdgRoot },
+    { model: "xdg/external-model", effort: "low" },
+  )
+
+  // HOME fallback when XDG_CONFIG_HOME is unset.
+  await expectExternalApplied(
+    { OPENCODE_O_A_MAX_MODEL_CONFIG: undefined, XDG_CONFIG_HOME: undefined, HOME: homeDir },
+    { model: "home/external-model", effort: "medium" },
+  )
+
+  // XDG_CONFIG_HOME takes precedence over HOME.
+  await expectExternalApplied(
+    { OPENCODE_O_A_MAX_MODEL_CONFIG: undefined, XDG_CONFIG_HOME: xdgRoot, HOME: homeDir },
+    { model: "xdg/external-model", effort: "low" },
+  )
+
+  // A missing default file is a no-op: inherited Max values remain untouched.
+  await withEnv(
+    { OPENCODE_O_A_MAX_MODEL_CONFIG: "", XDG_CONFIG_HOME: emptyDir, HOME: emptyDir },
+    async () => {
+      const instance = await plugin({ client: fakeClient } as never)
+      const cfg = inheritedConfig() as { model: string; agent: Record<string, Record<string, unknown>> }
+      await instance.config?.(cfg as never)
+      if (
+        cfg.model !== "inherited/top-model" ||
+        cfg.agent.HTOrchestrator.model !== "openai/gpt-5.6-sol" ||
+        cfg.agent.terraworker.reasoningEffort !== "high" ||
+        cfg.agent.runner.model !== "opencode-go/gpt-5.6-luna" ||
+        cfg.agent.runner.reasoningEffort !== "medium"
+      ) {
+        throw new Error("a missing default file did not preserve Max inheritance")
+      }
+    },
+  )
+
+  // An empty explicit override disables loading even when a default file exists.
+  await withEnv(
+    { OPENCODE_O_A_MAX_MODEL_CONFIG: "", XDG_CONFIG_HOME: xdgRoot, HOME: homeDir },
+    async () => {
+      const instance = await plugin({ client: fakeClient } as never)
+      const cfg = inheritedConfig() as { model: string; agent: Record<string, Record<string, unknown>> }
+      await instance.config?.(cfg as never)
+      if (
+        cfg.model !== "inherited/top-model" ||
+        cfg.agent.HTOrchestrator.model !== "openai/gpt-5.6-sol" ||
+        cfg.agent.terraworker.model !== "zai-coding-plan/glm-5.3-flash" ||
+        cfg.agent.runner.model !== "opencode-go/gpt-5.6-luna"
+      ) {
+        throw new Error("an empty OPENCODE_O_A_MAX_MODEL_CONFIG did not disable external loading")
+      }
+    },
+  )
+
+  // Explicit path failures must be concise, A-Max-specific, and name the path.
+  await expectExternalRejected({ OPENCODE_O_A_MAX_MODEL_CONFIG: path.join(externalRoot, "missing", "model.json") }, "missing")
+  await expectExternalRejected({ OPENCODE_O_A_MAX_MODEL_CONFIG: "relative/model.json" }, "absolute")
+
+  const invalidCases: Array<[name: string, content: string]> = [
+    ["broken.json", "{not json"],
+    ["array.json", "[]"],
+    ["string.json", '"model"'],
+    ["null.json", "null"],
+    ["missing-effort.json", JSON.stringify({ model: "acme/m" })],
+    ["missing-model.json", JSON.stringify({ effort: "high" })],
+    ["unknown-key.json", JSON.stringify({ model: "acme/m", effort: "high", extra: true })],
+    ["blank-model.json", JSON.stringify({ model: "   ", effort: "high" })],
+    ["no-slash-model.json", JSON.stringify({ model: "provider-only", effort: "high" })],
+    ["whitespace-model.json", JSON.stringify({ model: "acme/has space", effort: "high" })],
+    ["blank-effort.json", JSON.stringify({ model: "acme/m", effort: "  " })],
+    ["numeric-effort.json", JSON.stringify({ model: "acme/m", effort: 3 })],
+  ]
+  const invalidDir = path.join(externalRoot, "invalid")
+  for (const [name, content] of invalidCases) {
+    const invalidPath = path.join(invalidDir, name)
+    await mkdir(invalidDir, { recursive: true })
+    await writeFile(invalidPath, content)
+    await expectExternalRejected({ OPENCODE_O_A_MAX_MODEL_CONFIG: invalidPath }, name)
+  }
+
+  // A missing required agent fails clearly instead of partially applying.
+  await withEnv({ OPENCODE_O_A_MAX_MODEL_CONFIG: explicitPath }, async () => {
+    const instance = await plugin({ client: fakeClient } as never)
+    const cfg = {
+      model: "inherited/top-model",
+      agent: {
+        HTOrchestrator: { prompt: "MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
+        terraworker: { prompt: "TERRA_BASE_PROMPT", model: "zai-coding-plan/glm-5.3-flash", reasoningEffort: "high" },
+      },
+    } as { model: string; agent: Record<string, Record<string, unknown>> }
+    let message = ""
+    try {
+      await instance.config?.(cfg as never)
+    } catch (error) {
+      message = errorMessage(error)
+    }
+    if (!message.includes("runner") || !message.includes("A-Max model config")) {
+      throw new Error(`missing agent was not reported clearly: ${message}`)
+    }
+    if (
+      cfg.model !== "inherited/top-model" ||
+      cfg.agent.HTOrchestrator.model !== "openai/gpt-5.6-sol" ||
+      cfg.agent.terraworker.model !== "zai-coding-plan/glm-5.3-flash"
+    ) {
+      throw new Error(`missing agent caused a partial external application: ${message}`)
+    }
+  })
+
+  await rm(externalRoot, { recursive: true, force: true })
+} finally {
+  for (const [key, value] of Object.entries(savedDiscoveryEnv)) {
+    if (value === undefined) delete process.env[key]
+    else process.env[key] = value
+  }
 }
 
 console.log("a-max-smoke-ok")

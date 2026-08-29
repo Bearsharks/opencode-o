@@ -20,7 +20,37 @@ The `a-max.ts` plugin adds only the A-Max delta:
 - `a_max_inspect` for an on-demand runtime and latest-tool summary without
   mutating the child;
 - `a_max_interrupt` for parent-controlled interruption before continuing the
-  same child session with its existing `task_id`.
+  same child session with its existing `task_id`;
+- an external model/effort config applied inside the `config` hook (after the
+  composed Max hooks): the plugin reads
+  `$XDG_CONFIG_HOME/opencode/a-max-model.json`, or
+  `$HOME/.config/opencode/a-max-model.json` when `XDG_CONFIG_HOME` is unset,
+  or the file named by `OPENCODE_O_A_MAX_MODEL_CONFIG`.
+
+## External model/effort config
+
+The external file must contain exactly `{ "model": "provider/model-id",
+"effort": "high" }`. Validation is strict: object roots only, no missing or
+unknown keys, no blank values, a whitespace-free `provider/model` identifier,
+and a trimmed non-empty `effort` rather than a hardcoded provider enum.
+
+Application semantics:
+
+- The Max topology `config` hook runs first; the external values are applied
+  afterwards at the same config-resolution point, before agent resolution.
+- When present and valid, the file sets the top-level `config.model` and
+  `model`/`reasoningEffort` on `HTOrchestrator`, `terraworker`, and `runner`,
+  winning over inherited Max frontmatter. Nothing else in the config changes.
+- If the file requires application but one of the three A-Max agent records is
+  unavailable, the hook fails with a named error instead of partially
+  applying.
+- `OPENCODE_O_A_MAX_MODEL_CONFIG` set to the empty string disables external
+  loading (deterministic smoke tests and diagnostics); a non-empty value must
+  be an absolute path that exists and reads successfully, otherwise the hook
+  fails with a concise `A-Max model config error` naming the path.
+- A missing auto-discovered default file is a no-op, so an absent file
+  preserves the current Max inheritance unchanged.
+- The file is read once at startup; restart OpenCode after editing it.
 
 OpenCode's built-in `task(background: true)` owns execution and completion
 notification. The plugin never polls workers. A child busy-to-idle transition

@@ -1,7 +1,7 @@
 ---
 description: Max-mode implementation worker that may delegate broad exploration and high-output verification to Runner.
 mode: subagent
-model:  openai/gpt-5.6-terra-fast
+model:  zai-coding-plan/glm-5.3-flash
 reasoningEffort: high
 permission:
   read: allow

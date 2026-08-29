@@ -197,6 +197,44 @@ OpenCode authentication store:
 ./scripts/doctor/a-max.sh
 ```
 
+### External model/effort override for A-Max
+
+A-Max can override the inherited Max model and reasoning effort from one
+user-owned JSON file. The plugin auto-discovers:
+
+```text
+$XDG_CONFIG_HOME/opencode/a-max-model.json
+$HOME/.config/opencode/a-max-model.json   (used when XDG_CONFIG_HOME is unset)
+```
+
+The file must contain exactly:
+
+```json
+{
+  "model": "provider/model-id",
+  "effort": "high"
+}
+```
+
+- `model` must be a `provider/model-id` string without whitespace; `effort` is
+  any non-empty trimmed string, such as `high`.
+- When the file applies, it overrides the top-level `model` and the
+  `model`/`reasoningEffort` of all three A-Max agents (`HTOrchestrator`,
+  `terraworker`, and `runner`). These external values win over the inherited
+  Max frontmatter and config; prompts, permissions, and tool behavior are
+  unchanged.
+- An absent file changes nothing: A-Max keeps the full Max inheritance.
+- Set `OPENCODE_O_A_MAX_MODEL_CONFIG=/absolute/path/to/file.json` to load an
+  explicit file instead of the default location, or export it as an empty
+  string to disable external loading entirely (deterministic tests and
+  diagnostics). The `oc-amax` wrapper inherits this variable, so no reinstall
+  is needed.
+- A missing auto-discovered default file is a no-op. An explicit override that
+  is relative, missing, unreadable, or invalid fails with a concise
+  `A-Max model config error` naming the path.
+- Config is read once at startup: restart `oc-amax` after creating or editing
+  the file. `./scripts/doctor/a-max.sh` validates the currently active file.
+
 ## Migrating an existing global harness
 
 The installer intentionally does not move or delete global agents and plugins.
