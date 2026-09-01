@@ -41,7 +41,7 @@ permission:
     git log*: allow
     git ls-files*: allow
     python3 Tools/read_ai_trace.py *: allow
-    python3 -m unittest Tools/test_run_cooperative_live_acceptance.py: allow
+    python3 -m unittest Tools/*: allow
     make help: allow
     make verify-stage: allow
     make verify-stage *: allow
