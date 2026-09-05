@@ -1,8 +1,7 @@
 # opencode-o A-Max profile
 
-A-Max is a separately installed, multi-background-worker extension of the
-current Max profile. Run it through `oc-amax`; `opencode-o-max` remains
-unchanged.
+A-Max is a separately installed, standalone multi-background-worker profile.
+Run it through `oc-amax`.
 
 ```text
 HTOrchestrator --background task--> terraworker (zero or more, concurrently)
@@ -10,14 +9,11 @@ HTOrchestrator --foreground task--> runner
 terraworker    --foreground task--> runner
 ```
 
-The profile reuses Max's `opencode.jsonc` and all three Max agent files through
-relative symlinks. Max prompt, model, reasoning, permission, browser, Runner,
-and directed self-improvement skill contracts therefore remain the source of
-truth. The A-Max plugin also composes Max's topology plugin directly, then
-appends only its asynchronous orchestration contract and tool permissions at
-config resolution time. The one exception is the external model/effort config
-described below, which can override the inherited model settings at the same
-resolution point.
+The profile owns its `opencode.jsonc`, all three agent files, and its topology
+plugin under `profiles/a-max`. The A-Max plugin enforces the local topology,
+then appends its asynchronous orchestration contract and tool permissions at
+config resolution time. The external model/effort config described below can
+override A-Max's configured model settings at that same resolution point.
 
 A-Max uses OpenCode's built-in experimental background subagent execution. Its
 plugin tracks each background Terra child as a process-local Kanban card:
@@ -58,8 +54,8 @@ ordinary OpenCode, `opencode-o`, and `opencode-o-max`.
 
 ## External model/effort config
 
-A-Max can override the inherited Max model settings from one user-owned JSON
-file. The plugin auto-discovers the first existing location:
+A-Max can override its configured model settings from one user-owned JSON file.
+The plugin auto-discovers the first existing location:
 
 ```text
 $XDG_CONFIG_HOME/opencode/a-max-model.json
@@ -81,10 +77,9 @@ contain exactly:
   hardcoded provider enum.
 - When the file applies, the plugin sets the top-level config `model` plus
   `model` and `reasoningEffort` on all three A-Max agents: `HTOrchestrator`,
-  `terraworker`, and `runner`. External values win over the inherited Max
+  `terraworker`, and `runner`. External values win over A-Max's configured
   frontmatter and config. Prompts, permissions, and tools are untouched.
-- An absent default file is a no-op: A-Max keeps the exact current Max
-  inheritance. This keeps the feature fully backward compatible.
+- An absent default file is a no-op: A-Max keeps its configured defaults.
 - `OPENCODE_O_A_MAX_MODEL_CONFIG=/absolute/path/to/file.json` points at an
   explicit file and must then exist and be valid; a relative, missing,
   unreadable, or invalid explicit path fails with a concise
@@ -96,10 +91,9 @@ contain exactly:
   so no reinstall or wrapper change is needed.
 - `./scripts/doctor/a-max.sh --preflight` never requires the file. Full
   diagnostics validate the active file (default or explicit): with no active
-  config they assert strict Max inheritance for `model`/`reasoningEffort`, and
-  with an active config they assert that the top-level model and every A-Max
-  agent reflect its validated values. A malformed active config fails with a
-  clear error.
+  config they preserve A-Max's configured defaults, and with an active config
+  they assert that the top-level model and every A-Max agent reflect its
+  validated values. A malformed active config fails with a clear error.
 
 Kanban remains process-local: restarting OpenCode interrupts active background
 work and clears the board.

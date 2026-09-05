@@ -103,6 +103,7 @@ required_files=(
   "profiles/a-max/agents/terraworker.md"
   "profiles/a-max/agents/runner.md"
   "profiles/a-max/plugins/a-max.ts"
+  "profiles/a-max/plugins/_a-max-v1/a-max-topology.ts"
   "profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts"
   "profiles/a-max/plugins/_a-max-v1/README.md"
 )
@@ -115,22 +116,41 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-inheritance_links=(
-  "profiles/a-max/opencode.jsonc|../max/opencode.jsonc"
-  "profiles/a-max/agents/HTOrchestrator.md|../../max/agents/HTOrchestrator.md"
-  "profiles/a-max/agents/terraworker.md|../../max/agents/terraworker.md"
-  "profiles/a-max/agents/runner.md|../../max/agents/runner.md"
+profile_local_files=(
+  "profiles/a-max/opencode.jsonc"
+  "profiles/a-max/agents/HTOrchestrator.md"
+  "profiles/a-max/agents/terraworker.md"
+  "profiles/a-max/agents/runner.md"
+  "profiles/a-max/plugins/_a-max-v1/a-max-topology.ts"
 )
 
-for entry in "${inheritance_links[@]}"; do
-  path="${entry%%|*}"
-  target="${entry#*|}"
-  if [[ -L "$ROOT/$path" ]] && [[ "$(readlink "$ROOT/$path")" == "$target" ]]; then
-    pass "A-Max inherits $path from $target"
+for path in "${profile_local_files[@]}"; do
+  if [[ -f "$ROOT/$path" && ! -L "$ROOT/$path" ]]; then
+    pass "A-Max profile-local regular file $path"
   else
-    fail "A-Max inheritance link is incorrect: $path -> $target"
+    fail "A-Max requires a profile-local regular file: $path"
   fi
 done
+
+if command -v bun >/dev/null 2>&1; then
+  if A_MAX_CONFIG_PATH="$A_MAX_ROOT/opencode.jsonc" bun -e '
+    const config = JSON.parse(await Bun.file(process.env.A_MAX_CONFIG_PATH ?? "").text())
+    const disabled = ["build", "plan", "general", "explore"]
+    if (
+      config.model !== "zai-coding-plan/glm-5.3-flash" ||
+      config.subagent_depth !== 2 ||
+      config.default_agent !== "HTOrchestrator" ||
+      config.compaction?.auto !== true || config.compaction?.reserved !== 25600 ||
+      config.provider?.["opencode-go"]?.models?.["gpt-5.6-luna"]?.limit?.context !== 272000 ||
+      disabled.some((name) => config.agent?.[name]?.disable !== true) ||
+      config.permission?.harness_state !== "deny" || config.permission?.investigate !== "deny"
+    ) process.exit(1)
+  '; then
+    pass "A-Max standalone config preserves its configured defaults"
+  else
+    fail "A-Max standalone config is invalid or missing required defaults"
+  fi
+fi
 
 conflicting_agents=(HTOrchestrator orchestrator terraworker lunaworker probe runner)
 
@@ -187,7 +207,7 @@ if command -v opencode >/dev/null 2>&1 && command -v bun >/dev/null 2>&1; then
     mkdir -p "$diagnostic_root/data" "$diagnostic_root/work"
     if bare_config="$(
       cd "$diagnostic_root/work" &&
-        XDG_DATA_HOME="$diagnostic_root/data" opencode debug config 2>/dev/null
+        env -u OPENCODE_CONFIG_DIR XDG_DATA_HOME="$diagnostic_root/data" opencode debug config 2>/dev/null
     )"; then
       if grep -Fq "a-max.ts" <<<"$bare_config"; then
         fail "Bare OpenCode resolves a-max without the A-Max wrapper"
@@ -236,7 +256,7 @@ if command -v opencode >/dev/null 2>&1; then
   # - OPENCODE_O_A_MAX_MODEL_CONFIG unset: auto-discover the default file;
   # - set to a non-empty value: that absolute path is required to exist and be valid;
   # - set to the empty string: external loading is disabled.
-  # A missing auto-discovered default file is a no-op; Max inheritance then applies.
+  # A missing auto-discovered default file is a no-op; A-Max defaults then apply.
   a_max_external_model=""
   a_max_external_effort=""
   external_config_path=""
@@ -321,7 +341,7 @@ if command -v opencode >/dev/null 2>&1; then
       external_config_path=""
     fi
   else
-    pass "No active A-Max external model config; inherited Max models apply"
+    pass "No active A-Max external model config; A-Max configured defaults apply"
   fi
 
   if resolved="$(
@@ -335,8 +355,8 @@ if command -v opencode >/dev/null 2>&1; then
     a_max_origin_count="$(
       grep -E '"spec": "file:.*a-max\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
-    max_origin_count="$(
-      grep -E '"spec": "file:.*max-topology\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
+    legacy_profile_origin_count="$(
+      grep -E '"spec": "file:.*profiles/max/' <<<"$resolved" | wc -l | tr -d '[:space:]'
     )"
     default_origin_count="$(
       grep -E '"spec": "file:.*plugins/harness-state\.ts"' <<<"$resolved" | wc -l | tr -d '[:space:]'
@@ -346,15 +366,27 @@ if command -v opencode >/dev/null 2>&1; then
     else
       fail "Expected one A-Max plugin origin, found $a_max_origin_count"
     fi
-    if [[ "$max_origin_count" == "0" ]]; then
-      pass "Max topology plugin is absent from A-Max"
+    if [[ "$legacy_profile_origin_count" == "0" ]]; then
+      pass "Deleted Max profile is absent from A-Max resolution"
     else
-      fail "Max topology plugin leaked into A-Max"
+      fail "Deleted Max profile leaked into A-Max resolution"
     fi
     if [[ "$default_origin_count" == "0" ]]; then
       pass "Default harness plugin is absent from A-Max"
     else
       fail "Default harness plugin leaked into A-Max"
+    fi
+
+    if bun -e '
+      const config = JSON.parse(await Bun.stdin.text())
+      if (config.default_agent !== "HTOrchestrator") process.exit(1)
+      for (const name of ["HTOrchestrator", "terraworker", "runner"]) {
+        if (!config.agent?.[name]) process.exit(1)
+      }
+    ' <<<"$resolved"; then
+      pass "Resolved A-Max config selects HTOrchestrator and all three local agents"
+    else
+      fail "Resolved A-Max config is missing HTOrchestrator or a local A-Max agent"
     fi
 
     if [[ -n "$a_max_external_model" ]]; then
@@ -402,8 +434,8 @@ if command -v opencode >/dev/null 2>&1; then
 
       if [[ -n "$a_max_external_model" ]]; then
         # With an active external config, model/reasoningEffort are owned by the
-        # external file rather than Max inheritance (reasoningEffort is asserted
-        # by the resolved-config check above; model identity here).
+        # external file (reasoningEffort is asserted by the resolved-config
+        # check above; model identity here).
         if A_MAX_AGENT_JSON="$agent_config" A_MAX_EXTERNAL_MODEL="$a_max_external_model" bun -e '
           const extended = JSON.parse(process.env.A_MAX_AGENT_JSON)
           const externalModel = process.env.A_MAX_EXTERNAL_MODEL ?? ""
@@ -417,71 +449,6 @@ if command -v opencode >/dev/null 2>&1; then
         else
           fail "A-Max agent $agent does not follow the external model config ($a_max_external_model)"
         fi
-        # Strict Max inheritance is verified against a resolution with external
-        # loading disabled, because an overriding model legitimately changes
-        # model-gated tool availability (for example apply_patch or edit).
-        if inherit_config="$(
-          cd "$CALLER_DIR" &&
-            OPENCODE_DB=:memory: \
-              OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
-              OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true \
-              OPENCODE_CONFIG_DIR="$A_MAX_ROOT" \
-              OPENCODE_O_A_MAX_MODEL_CONFIG="" \
-              opencode debug agent "$agent" 2>/dev/null
-        )"; then
-          :
-        else
-          inherit_config=""
-          fail "Could not resolve A-Max agent $agent with external model loading disabled"
-        fi
-      else
-        inherit_config="$agent_config"
-      fi
-
-      if [[ -z "$inherit_config" ]]; then
-        fail "A-Max agent $agent could not be compared against the Max contract"
-      elif max_agent_config="$(
-        cd "$CALLER_DIR" &&
-          OPENCODE_DB=:memory: \
-            OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
-            OPENCODE_CONFIG_DIR="$ROOT/profiles/max" \
-            opencode debug agent "$agent" 2>/dev/null
-      )" && MAX_AGENT_JSON="$max_agent_config" A_MAX_AGENT_JSON="$inherit_config" AGENT_NAME="$agent" bun -e '
-        const base = JSON.parse(process.env.MAX_AGENT_JSON)
-        const extended = JSON.parse(process.env.A_MAX_AGENT_JSON)
-        const name = process.env.AGENT_NAME
-        const equal = (left, right) => JSON.stringify(left) === JSON.stringify(right)
-        for (const key of ["model", "reasoningEffort", "textVerbosity", "mode", "hidden", "description"]) {
-          if (!equal(base[key], extended[key])) process.exit(1)
-        }
-        for (const rule of base.permission ?? []) {
-          if (!(extended.permission ?? []).some((candidate) => equal(candidate, rule))) process.exit(1)
-        }
-        for (const [tool, enabled] of Object.entries(base.tools ?? {})) {
-          if (extended.tools?.[tool] !== enabled) process.exit(1)
-        }
-        if (name === "HTOrchestrator") {
-          if (!extended.prompt?.startsWith(base.prompt ?? "")) process.exit(1)
-          if (!extended.prompt?.includes("## A-Max asynchronous delegation")) process.exit(1)
-          if (
-            extended.tools?.a_max_board !== true ||
-            extended.tools?.a_max_move !== true ||
-            extended.tools?.a_max_inspect !== true ||
-            extended.tools?.a_max_interrupt !== true
-          ) process.exit(1)
-        } else {
-          if (extended.prompt !== base.prompt) process.exit(1)
-          if (
-            extended.tools?.a_max_board === true ||
-            extended.tools?.a_max_move === true ||
-            extended.tools?.a_max_inspect === true ||
-            extended.tools?.a_max_interrupt === true
-          ) process.exit(1)
-        }
-      '; then
-        pass "A-Max agent $agent preserves the current Max contract"
-      else
-        fail "A-Max agent $agent drifted from the current Max contract"
       fi
     else
       fail "Could not resolve A-Max agent $agent"
@@ -527,7 +494,7 @@ if command -v opencode >/dev/null 2>&1; then
       agent.tools?.a_max_interrupt !== true
     ) process.exit(1)
   ' <<<"$ht_agent"; then
-    pass "HTOrchestrator has Max capabilities plus A-Max intervention tools"
+    pass "HTOrchestrator has A-Max capabilities and intervention tools"
   else
     fail "HTOrchestrator A-Max tool isolation is incorrect"
   fi
@@ -553,6 +520,22 @@ if command -v opencode >/dev/null 2>&1; then
     if (!allowed("skill", "agent-browser")) process.exit(1)
     if (!allowed("bash", "agent-browser *")) process.exit(1)
     if (!allowed("bash", "npx agent-browser *")) process.exit(1)
+    if (!allowed("bash", "python3 -m unittest Tools/*")) process.exit(1)
+    if (!allowed("bash", "pgrep -fal *")) process.exit(1)
+    if (!allowed("bash", "make help")) process.exit(1)
+    if (!allowed("bash", "make verify-*")) process.exit(1)
+    if (!allowed("bash", "make *-test")) process.exit(1)
+    if (!allowed("bash", "git rev-parse*")) process.exit(1)
+    if (!allowed("bash", "git rev-list*")) process.exit(1)
+    if (!allowed("bash", "git fetch origin main")) process.exit(1)
+    if (!allowed("bash", "git branch --show-current")) process.exit(1)
+    if (!allowed("bash", "git branch -vv")) process.exit(1)
+    if (!allowed("bash", "git remote -v")) process.exit(1)
+    if (!allowed("bash", "git remote get-url*")) process.exit(1)
+    if (!allowed("bash", "gh pr list*")) process.exit(1)
+    if (!allowed("bash", "gh pr view*")) process.exit(1)
+    if (!allowed("bash", "gh issue list*")) process.exit(1)
+    if (!allowed("bash", "gh issue view*")) process.exit(1)
     if (
       agent.tools?.a_max_board === true ||
       agent.tools?.a_max_move === true ||
@@ -560,9 +543,9 @@ if command -v opencode >/dev/null 2>&1; then
       agent.tools?.a_max_interrupt === true
     ) process.exit(1)
   ' <<<"$runner_agent"; then
-    pass "Runner is read/command-only with agent-browser and directed skill-view capability"
+    pass "Runner is read/command-only with bounded diagnostic and verification command families"
   else
-    fail "Runner tool isolation, agent-browser, or directed skill-view capability is incorrect"
+    fail "Runner tool isolation or bounded diagnostic/verification permissions are incorrect"
   fi
 fi
 

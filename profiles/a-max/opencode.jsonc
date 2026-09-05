@@ -1,1 +1,33 @@
-../max/opencode.jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "zai-coding-plan/glm-5.3-flash",
+  "subagent_depth": 2,
+  "default_agent": "HTOrchestrator",
+  "compaction": {
+    "auto": true,
+    "reserved": 25600
+  },
+  "provider": {
+    "opencode-go": {
+      "models": {
+        "gpt-5.6-luna": {
+          "limit": {
+            "context": 272000,
+            "input": 240000,
+            "output": 32000
+          }
+        }
+      }
+    }
+  },
+  "agent": {
+    "build": { "disable": true },
+    "plan": { "disable": true },
+    "general": { "disable": true },
+    "explore": { "disable": true }
+  },
+  "permission": {
+    "harness_state": "deny",
+    "investigate": "deny"
+  }
+}

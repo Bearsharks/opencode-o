@@ -306,6 +306,8 @@ if command -v opencode >/dev/null 2>&1; then
     if (!allowed("skill", "agent-browser")) process.exit(1)
     if (!allowed("bash", "agent-browser *")) process.exit(1)
     if (!allowed("bash", "npx agent-browser *")) process.exit(1)
+    if (!allowed("bash", "gh api*")) process.exit(1)
+    if (allowed("bash", "gh *")) process.exit(1)
   ' <<<"$runner_agent"; then
     pass "Runner is read/command-only with agent-browser and directed skill-view capability"
   else

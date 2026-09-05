@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
 import { tool, type Plugin } from "@opencode-ai/plugin"
-import maxTopology from "../../max/plugins/max-topology"
+import aMaxTopology from "./_a-max-v1/a-max-topology"
 
 const asyncContract = `
 ## A-Max asynchronous delegation
@@ -336,7 +336,7 @@ function renderBoard(cards: Card[], runtimes: Map<string, RuntimeStatus>, includ
 }
 
 export default (async (input) => {
-  const maxHooks = await maxTopology(input)
+  const topologyHooks = await aMaxTopology(input)
   const cards = new Map<string, Card>()
   const busySessions = new Set<string>()
   const terminalBeforeRegistration = new Map<string, TerminalState>()
@@ -512,10 +512,10 @@ export default (async (input) => {
   })
 
   return {
-    ...maxHooks,
+    ...topologyHooks,
 
     config: async (config) => {
-      await maxHooks.config?.(config)
+      await topologyHooks.config?.(config)
       await applyExternalModelConfig(config)
       const agentConfig = asRecord(config.agent)
       const orchestrator = asRecord(agentConfig?.HTOrchestrator)
@@ -538,7 +538,7 @@ export default (async (input) => {
     },
 
     tool: {
-      ...maxHooks.tool,
+      ...topologyHooks.tool,
       a_max_board: board,
       a_max_move: move,
       a_max_interrupt: interrupt,
@@ -546,7 +546,7 @@ export default (async (input) => {
     },
 
     "tool.execute.before": async (input, output) => {
-      await maxHooks["tool.execute.before"]?.(input, output)
+      await topologyHooks["tool.execute.before"]?.(input, output)
       if (input.tool !== "task") return
       const args = asRecord(output.args)
       const child = asString(args?.subagent_type)
@@ -564,7 +564,7 @@ export default (async (input) => {
     },
 
     "tool.execute.after": async (input, output) => {
-      await maxHooks["tool.execute.after"]?.(input, output)
+      await topologyHooks["tool.execute.after"]?.(input, output)
       if (input.tool !== "task") return
       const args = asRecord(input.args)
       const worker = asString(args?.subagent_type)
@@ -592,7 +592,7 @@ export default (async (input) => {
     },
 
     event: async ({ event }) => {
-      await maxHooks.event?.({ event })
+      await topologyHooks.event?.({ event })
       if (event.type === "session.status") {
         const taskID = event.properties.sessionID
         if (event.properties.status.type === "busy") {
@@ -637,7 +637,7 @@ export default (async (input) => {
     },
 
     dispose: async () => {
-      await maxHooks.dispose?.()
+      await topologyHooks.dispose?.()
       cards.clear()
       busySessions.clear()
       terminalBeforeRegistration.clear()
