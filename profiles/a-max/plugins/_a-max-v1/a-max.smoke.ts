@@ -50,7 +50,7 @@ if (!hooks.tool?.a_max_board || !hooks.tool?.a_max_move || !hooks.tool?.a_max_in
 const config = {
   agent: {
     HTOrchestrator: {
-      prompt: "MAX_BASE_PROMPT",
+      prompt: "A_MAX_BASE_PROMPT",
       permission: { task: { terraworker: "allow", runner: "allow" } },
     },
     terraworker: { prompt: "TERRA_BASE_PROMPT", permission: {} },
@@ -64,7 +64,7 @@ if (config.model !== undefined) {
 }
 
 const ht = config.agent.HTOrchestrator
-if (!ht.prompt.startsWith("MAX_BASE_PROMPT")) throw new Error("a-max replaced the Max prompt")
+if (!ht.prompt.startsWith("A_MAX_BASE_PROMPT")) throw new Error("a-max replaced the configured prompt")
 if (!ht.prompt.includes("## A-Max asynchronous delegation")) throw new Error("a-max async contract is missing")
 if (
   ht.permission.a_max_board !== "allow" ||
@@ -591,7 +591,7 @@ try {
   const inheritedConfig = () => ({
     model: "inherited/top-model",
     agent: {
-      HTOrchestrator: { prompt: "MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
+      HTOrchestrator: { prompt: "A_MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
       terraworker: { prompt: "TERRA_BASE_PROMPT", model: "zai-coding-plan/glm-5.3-flash", reasoningEffort: "high" },
       runner: { prompt: "RUNNER_BASE_PROMPT", model: "opencode-go/gpt-5.6-luna", reasoningEffort: "medium" },
     },
@@ -616,8 +616,8 @@ try {
           throw new Error(`external model config did not override ${agentName}: ${JSON.stringify(agent)}`)
         }
       }
-      if (!cfg.agent.HTOrchestrator.prompt.startsWith("MAX_BASE_PROMPT")) {
-        throw new Error("external model config displaced the inherited HTOrchestrator prompt")
+      if (!cfg.agent.HTOrchestrator.prompt.startsWith("A_MAX_BASE_PROMPT")) {
+        throw new Error("external model config displaced the configured HTOrchestrator prompt")
       }
     })
   }
@@ -685,7 +685,7 @@ try {
     { model: "xdg/external-model", effort: "low" },
   )
 
-  // A missing default file is a no-op: inherited Max values remain untouched.
+  // A missing default file is a no-op: configured A-Max defaults remain untouched.
   await withEnv(
     { OPENCODE_O_A_MAX_MODEL_CONFIG: "", XDG_CONFIG_HOME: emptyDir, HOME: emptyDir },
     async () => {
@@ -699,7 +699,7 @@ try {
         cfg.agent.runner.model !== "opencode-go/gpt-5.6-luna" ||
         cfg.agent.runner.reasoningEffort !== "medium"
       ) {
-        throw new Error("a missing default file did not preserve Max inheritance")
+        throw new Error("a missing default file did not preserve A-Max defaults")
       }
     },
   )
@@ -754,7 +754,7 @@ try {
     const cfg = {
       model: "inherited/top-model",
       agent: {
-        HTOrchestrator: { prompt: "MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
+        HTOrchestrator: { prompt: "A_MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
         terraworker: { prompt: "TERRA_BASE_PROMPT", model: "zai-coding-plan/glm-5.3-flash", reasoningEffort: "high" },
       },
     } as { model: string; agent: Record<string, Record<string, unknown>> }

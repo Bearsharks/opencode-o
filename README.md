@@ -235,6 +235,34 @@ The file must contain exactly:
 - Config is read once at startup: restart `oc-amax` after creating or editing
   the file. `./scripts/doctor/a-max.sh` validates the currently active file.
 
+## Install B-Max separately
+
+B-Max is an intentionally thin, optimistic A-Max-derived profile. It keeps the
+same background Terra workflow and existing `a_max_board`, `a_max_move`,
+`a_max_inspect`, and `a_max_interrupt` tools, while its profile-local
+Manager directs work rather than independently performing workers'
+technical verification.
+
+Terra keeps implementation and validation in one worker-owned unit; after work
+finishes, Manager creates the commit and PR and calls `completeJob`.
+
+```bash
+./scripts/install/b-max.sh
+oc-bmax
+oc-bmax run "Hello"
+```
+
+Its config plus Terra and Runner agents are relative symlinks to
+[`profiles/max/`](profiles/max/); only Manager is B-Max-specific. The
+wrapper enables experimental background subagents and uses the dedicated
+`opencode-b-max.db` database, so its sessions remain separate from other
+profiles. Resolved B-Max uses `manager` as its default.
+
+```bash
+./scripts/doctor/b-max.sh --preflight
+./scripts/doctor/b-max.sh
+```
+
 ## Install the agent-only profile separately
 
 The agent-only profile provides `freefy-secretary`, which turns Freefy requests
@@ -291,6 +319,8 @@ opencode-o debug agent orchestrator
 ./scripts/doctor/default.sh
 ./scripts/doctor/a-max.sh --preflight
 ./scripts/doctor/a-max.sh
+./scripts/doctor/b-max.sh --preflight
+./scripts/doctor/b-max.sh
 ./scripts/doctor/max.sh --preflight
 ./scripts/doctor/max.sh
 ./scripts/doctor/oc-lite.sh --preflight
@@ -337,6 +367,17 @@ OPENCODE_DB=opencode-a-max.db \
   opencode
 ```
 
+For B-Max without installing its wrapper:
+
+```bash
+bun run check:b-max
+OPENCODE_DB=opencode-b-max.db \
+  OPENCODE_EXPERIMENTAL_LSP_TOOL=true \
+  OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true \
+  OPENCODE_CONFIG_DIR="$PWD/profiles/b-max" \
+  opencode
+```
+
 To validate resolved agents:
 
 ```bash
@@ -352,6 +393,9 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" 
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent HTOrchestrator
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent terraworker
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent runner
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/b-max" opencode debug agent manager
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/b-max" opencode debug agent terraworker
+OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/b-max" opencode debug agent runner
 ```
 
 ## Project-local use

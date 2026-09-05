@@ -1,14 +1,11 @@
 # A-Max runtime
 
-A-Max extends the current Max profile without copying its agent definitions.
-`profiles/a-max/opencode.jsonc` and every file under `profiles/a-max/agents/`
-are relative symlinks to `profiles/max`, so future Max prompt, model, permission,
-browser, Runner, and self-improvement handoff improvements are inherited.
+A-Max is a standalone profile. Its configuration, agent definitions, topology,
+and asynchronous orchestration plugin are all owned under `profiles/a-max`.
 
 The `a-max.ts` plugin adds only the A-Max delta:
 
-- the existing Max topology by composing `profiles/max/plugins/max-topology.ts`
-  rather than copying its hooks;
+- profile-local topology enforcement for the three A-Max agents;
 - multiple concurrent background `terraworker` tasks with no fixed count cap;
 - foreground-only Runner enforcement;
 - a process-local Kanban keyed by background Terra session ID;
@@ -21,8 +18,8 @@ The `a-max.ts` plugin adds only the A-Max delta:
   mutating the child;
 - `a_max_interrupt` for parent-controlled interruption before continuing the
   same child session with its existing `task_id`;
-- an external model/effort config applied inside the `config` hook (after the
-  composed Max hooks): the plugin reads
+- an external model/effort config applied inside the `config` hook: the plugin
+  reads
   `$XDG_CONFIG_HOME/opencode/a-max-model.json`, or
   `$HOME/.config/opencode/a-max-model.json` when `XDG_CONFIG_HOME` is unset,
   or the file named by `OPENCODE_O_A_MAX_MODEL_CONFIG`.
@@ -36,11 +33,11 @@ and a trimmed non-empty `effort` rather than a hardcoded provider enum.
 
 Application semantics:
 
-- The Max topology `config` hook runs first; the external values are applied
+- The A-Max topology hook is initialized first; the external values are applied
   afterwards at the same config-resolution point, before agent resolution.
 - When present and valid, the file sets the top-level `config.model` and
   `model`/`reasoningEffort` on `HTOrchestrator`, `terraworker`, and `runner`,
-  winning over inherited Max frontmatter. Nothing else in the config changes.
+  winning over A-Max's configured defaults. Nothing else in the config changes.
 - If the file requires application but one of the three A-Max agent records is
   unavailable, the hook fails with a named error instead of partially
   applying.
@@ -49,7 +46,7 @@ Application semantics:
   be an absolute path that exists and reads successfully, otherwise the hook
   fails with a concise `A-Max model config error` naming the path.
 - A missing auto-discovered default file is a no-op, so an absent file
-  preserves the current Max inheritance unchanged.
+  preserves A-Max's configured defaults unchanged.
 - The file is read once at startup; restart OpenCode after editing it.
 
 OpenCode's built-in `task(background: true)` owns execution and completion

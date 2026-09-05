@@ -36,6 +36,6 @@ export default (async () => ({
     if (!parent || !agents.has(parent)) return
     const child = asString(asRecord(result.args)?.subagent_type)
     if (!child) return
-    if (!allowedChild(parent, child)) throw new Error(`max topology blocks ${parent} -> ${child}`)
+    if (!allowedChild(parent, child)) throw new Error(`a-max topology blocks ${parent} -> ${child}`)
   },
 })) satisfies Plugin
