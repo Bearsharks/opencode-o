@@ -2,8 +2,8 @@
 
 A lightweight OpenCode orchestration harness with one coordinator, two
 implementation workers, and one reusable investigation Probe per caller
-session. Independently installed Max, A-Max, oc-lite, and agent-only profiles
-are also available.
+session. Independently installed Max, A-Max, oc-lite, oc-meta, and agent-only
+profiles are also available.
 
 ```text
 orchestrator --task--------> terraworker | lunaworker
@@ -145,6 +145,79 @@ strategy, and completion conditions; Runner keeps the read-only Max contract.
 ```bash
 ./scripts/doctor/oc-lite.sh --preflight
 ./scripts/doctor/oc-lite.sh
+```
+
+## Install oc-meta separately
+
+oc-meta is a single-primary Meta coordinator profile with one read-only
+Runner. MetaOrchestrator owns a user-authorized multi-job outcome and
+coordinates existing separate job sessions through their own orchestrators via
+Orca; it does not perform leaf implementation. It has its own profile,
+topology plugin, installer, doctor, and wrapper, and does not include Terra
+or Verifier as profile subagents. It requires the Orca development CLI on
+PATH (`./scripts/doctor/oc-meta.sh` reports the selected executable and
+install guidance); Meta operates it through the existing `orca-cli` skill.
+
+```bash
+./scripts/install/oc-meta.sh
+oc-meta
+oc-meta run "Hello"
+```
+
+Unlike the other profiles, the installer copies a self-contained snapshot
+(`opencode.jsonc`, both agents, and the topology plugin) into
+`~/.config/opencode/profiles/oc-meta` and pre-materializes the plugin
+dependencies inside that directory (OpenCode manages config-dir plugin
+dependencies itself). The `~/.local/bin/oc-meta` wrapper references that
+installed copy, never this checkout, and keeps working when the repository is
+absent. Override the target locations with `OPENCODE_O_META_CONFIG_HOME` (the
+OpenCode config home) and `OPENCODE_O_BIN_DIR`; an unset
+`OPENCODE_O_META_CONFIG_HOME` follows `XDG_CONFIG_HOME` and then the default
+`~/.config/opencode`.
+
+```text
+MetaOrchestrator --task--> runner
+runner                    --------> none
+```
+
+- `MetaOrchestrator` owns outcome boundaries, shared contracts, the two-level
+  plan, cross-job join verification, and the user response. Job orchestrators
+  own their internal DAG, delegation, sequencing, and same-job rework; Meta
+  does not micromanage or repeat leaf review. An independently reviewed,
+  merged result is accepted after confirming actual merge, target base, and
+  reviewed head identity. Newly discovered post-merge defects require a new
+  job.
+- `runner` is a read-only Luna-fast subagent with medium reasoning. It performs
+  broad file or external research and high-output test or verification commands,
+  then returns compact results. For exploration, local claims require `path:line`
+  evidence; web and MCP claims require direct source URLs or resource identifiers.
+  Runner never runs Orca, mutates source, or creates jobs.
+
+The oc-meta plugin registers no tools; it only enforces
+`MetaOrchestrator -> runner`. Coordination uses one initial plan document
+per outcome (purpose, dependencies, job links, user decision gates) with
+the job tracker as the actual status source and no duplicate state ledger;
+Orca is operated through the existing `orca-cli` skill. The profile lives
+under [`profiles/oc-meta/`](profiles/oc-meta/) so OpenCode never auto-loads
+it beside the default harness plugin.
+
+OpenCode still merges global and project plugins by design. `scripts/doctor/oc-meta.sh` rejects
+known harness-agent and local-plugin conflicts, validates the installed
+snapshot (exact asset set, dependency resolution from the installed tree, no
+source-checkout references) when present, verifies exactly one oc-meta plugin
+origin, and verifies that the default harness, Max, A-Max, and oc-lite plugins
+did not leak into oc-meta mode:
+
+```bash
+./scripts/doctor/oc-meta.sh --preflight
+./scripts/doctor/oc-meta.sh
+```
+
+To remove only the oc-meta-owned wrapper and snapshot without touching
+configuration or other profiles:
+
+```bash
+./scripts/uninstall/oc-meta.sh
 ```
 
 ## Install A-Max separately
@@ -325,6 +398,8 @@ opencode-o debug agent orchestrator
 ./scripts/doctor/max.sh
 ./scripts/doctor/oc-lite.sh --preflight
 ./scripts/doctor/oc-lite.sh
+./scripts/doctor/oc-meta.sh --preflight
+./scripts/doctor/oc-meta.sh
 ```
 
 Preflight checks prerequisites, repository layout, and global/project
@@ -354,6 +429,13 @@ For oc-lite without installing its wrapper:
 ```bash
 bun run check:oc-lite
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode
+```
+
+For oc-meta without installing its wrappers:
+
+```bash
+bun run check:oc-meta
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-meta" opencode
 ```
 
 For A-Max without installing its wrapper:
@@ -390,6 +472,8 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" open
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent runner
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent worker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent runner
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-meta" opencode debug agent MetaOrchestrator
+OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-meta" opencode debug agent runner
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent HTOrchestrator
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent terraworker
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent runner

@@ -512,6 +512,10 @@ if command -v opencode >/dev/null 2>&1; then
       agent.permission?.some((rule) =>
         rule.permission === permission && rule.pattern === pattern && rule.action === "allow",
       )
+    const denied = (permission, pattern) =>
+      agent.permission?.some((rule) =>
+        rule.permission === permission && rule.pattern === pattern && rule.action === "deny",
+      )
     if (agent.tools?.task === true || agent.tools?.apply_patch === true) process.exit(1)
     if (agent.tools?.read !== true || agent.tools?.bash !== true) process.exit(1)
     if (!allowed("codex-self-improvement_skill_view", "*")) process.exit(1)
@@ -523,8 +527,67 @@ if command -v opencode >/dev/null 2>&1; then
     if (!allowed("bash", "python3 -m unittest Tools/*")) process.exit(1)
     if (!allowed("bash", "pgrep -fal *")) process.exit(1)
     if (!allowed("bash", "make help")) process.exit(1)
+    if (!allowed("bash", "make docs-check")) process.exit(1)
     if (!allowed("bash", "make verify-*")) process.exit(1)
     if (!allowed("bash", "make *-test")) process.exit(1)
+    if (!denied("edit", "*")) process.exit(1)
+    if (!denied("write", "*")) process.exit(1)
+    if (!denied("apply_patch", "*")) process.exit(1)
+    if (!denied("task", "*")) process.exit(1)
+    if (!denied("bash", "*")) process.exit(1)
+    if (!denied("bash", "orca *")) process.exit(1)
+    if (!denied("bash", "orca-dev *")) process.exit(1)
+    if (!denied("bash", "orca-ide *")) process.exit(1)
+    if (!denied("read", "*.env")) process.exit(1)
+    if (!denied("read", "*.env.*")) process.exit(1)
+    if (!allowed("read", "*.env.example")) process.exit(1)
+    if (allowed("bash", "*")) process.exit(1)
+    if (allowed("bash", "make *")) process.exit(1)
+    if (allowed("bash", "make docs-*")) process.exit(1)
+    const escapeRegExp = (part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+    const globToRegExp = (glob) => new RegExp("^" + String(glob).split("*").map(escapeRegExp).join(".*") + "$")
+    const rulesFor = (permission) => (agent.permission ?? []).filter((rule) => rule.permission === permission)
+    const effective = (rules, command) => {
+      let decision
+      for (const rule of rules) {
+        let pattern
+        try {
+          pattern = globToRegExp(rule.pattern)
+        } catch {
+          continue
+        }
+        if (pattern.test(command)) decision = rule.action
+      }
+      return decision
+    }
+    const bashRules = rulesFor("bash")
+    const readRules = rulesFor("read")
+    for (const command of ["make docs-check", "make help", "make verify-docs", "make unit-test"]) {
+      if (effective(bashRules, command) !== "allow") process.exit(1)
+    }
+    for (
+      const command of [
+        "make docs-index",
+        "make install",
+        "make custom-target",
+        "git add .",
+        "git commit -m check",
+        "git push",
+        "rm -rf /tmp/a-max-doctor-probe",
+        "python3 -c print(1)",
+        "python3 arbitrary.py",
+        "orca probe",
+        "orca-dev probe",
+        "orca-ide probe",
+        "find /tmp -delete",
+      ]
+    ) {
+      if (effective(bashRules, command) !== "deny") process.exit(1)
+    }
+    if (effective(bashRules, "find . -type f") !== "allow") process.exit(1)
+    if (effective(readRules, "secrets.env") !== "deny") process.exit(1)
+    if (effective(readRules, "secrets.env.backup") !== "deny") process.exit(1)
+    if (effective(readRules, ".env.example") !== "allow") process.exit(1)
     if (!allowed("bash", "git rev-parse*")) process.exit(1)
     if (!allowed("bash", "git rev-list*")) process.exit(1)
     if (!allowed("bash", "git fetch origin main")) process.exit(1)
