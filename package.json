@@ -9,15 +9,18 @@
     "check:b-max": "bash -n scripts/install/b-max.sh scripts/doctor/b-max.sh && bun --check profiles/b-max/plugins/b-max.ts && bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "check:max": "bash -n scripts/install/max.sh scripts/doctor/max.sh && bun --check profiles/max/plugins/max-topology.ts && bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "check:oc-lite": "bash -n scripts/install/oc-lite.sh scripts/doctor/oc-lite.sh && bun --check profiles/oc-lite/plugins/oc-lite-topology.ts && bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",
+    "check:oc-meta": "bash -n scripts/install/oc-meta.sh scripts/doctor/oc-meta.sh scripts/doctor/oc-meta-orca.sh scripts/doctor/oc-meta-orca.fixtures.sh scripts/uninstall/oc-meta.sh && bun --check profiles/oc-meta/plugins/oc-meta-topology.ts && bun profiles/oc-meta/plugins/_oc-meta-topology-v1/oc-meta-topology.smoke.ts && bash scripts/doctor/oc-meta-orca.fixtures.sh",
     "doctor": "./scripts/doctor/default.sh",
     "doctor:a-max": "./scripts/doctor/a-max.sh",
     "doctor:b-max": "./scripts/doctor/b-max.sh",
     "doctor:max": "./scripts/doctor/max.sh",
     "doctor:oc-lite": "./scripts/doctor/oc-lite.sh",
+    "doctor:oc-meta": "./scripts/doctor/oc-meta.sh",
     "test:a-max": "bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts",
     "test:b-max": "bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "test:max": "bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "test:oc-lite": "bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",
+    "test:oc-meta": "bun profiles/oc-meta/plugins/_oc-meta-topology-v1/oc-meta-topology.smoke.ts",
     "test": "bun plugins/_harness-state-v1/harness-state.smoke.ts"
   },
   "dependencies": {

@@ -7,14 +7,14 @@ const asyncContract = `
 ## A-Max asynchronous delegation
 
 - Preserve every A-Max delegation, evidence, permission, self-improvement skill, and completion contract above.
-- Exercise judgment over decomposition, delegation prompts, verification, and acceptance. Use freely formatted task instructions with sufficient understandable scope and constraints for safe execution.
+- This contract governs asynchronous cards and tools; the agent's base prompt governs general quality and handoff.
 - Execute ready independent implementation units as separate \`terraworker\` calls with \`background: true\` when edit scopes, fixed contracts, mutable resources, and verification are independent. Do not default to serial work when safe independent work exists; do not artificially split work or require unsafe parallelism.
-- Give each parallel Terra task a disjoint edit scope. Serialize overlapping work, unresolved shared contracts, shared mutable resources, or work that cannot be independently verified; continue the existing card with its \`task_id\` when appropriate and never launch duplicate work against the same files or topic.
-- Omit \`task_id\` to create a new parallel card. Reuse the original \`task_id\` for follow-up context, rework, or continuation of that card.
+- Give each parallel Terra task a disjoint edit scope. Serialize overlapping work, unresolved shared contracts, shared mutable resources, or work that cannot be independently verified; never launch duplicate work against the same files or topic.
+- Omit \`task_id\` to create a new card for a new independent scope. Reuse the original \`task_id\` only for continuation or rework of the same Terra scope.
 - For a suspected stuck background Terra, use \`a_max_inspect\`, then \`a_max_interrupt\` if intervention is needed; inspect file changes before continuing with the same \`task_id\` and an instruction not to duplicate prior work.
 - Runner is synchronous only. Never set \`background: true\` for \`runner\`, whether Runner is called by HTOrchestrator or Terra.
 - After dispatching background work, briefly tell the user what is running and continue the conversation or other non-overlapping work. Do not sleep, poll, ask workers for status, or duplicate their work.
-- A background worker result moves its card to Review, not Done. Review the result and use proportionate evidence-based verification before calling \`a_max_move\` with \`status: "done"\`; mark genuine failures or decision blockers as \`blocked\`.
+- A background worker ending moves its card to Review, not Done. Call \`a_max_move\` with \`status: "done"\` only after proportionate evidence-based review accepts the card; mark genuine failures or decision blockers as \`blocked\`. Card acceptance does not establish the user goal complete.
 - Use \`a_max_board\` when the user asks for status, when coordinating parallel scopes, and before making a final completion claim.
 `.trim()
 
