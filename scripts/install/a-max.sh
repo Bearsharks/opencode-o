@@ -29,10 +29,20 @@ write_wrapper() {
     printf '# opencode-o-a-max-root: %s\n' "$ROOT"
     printf 'set -euo pipefail\n'
     printf 'OPENCODE_O_A_MAX_ROOT=%q\n' "$ROOT"
-    printf 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true\n'
-    printf 'export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true\n'
     printf 'export OPENCODE_DB=opencode-a-max.db\n'
-    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_A_MAX_ROOT/profiles/a-max" exec opencode "$@"\n'
+    printf 'if [[ -z "${OPENCODE_O_A_MAX_MODEL_CONFIG+x}" ]]; then\n'
+    printf '  old_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"\n'
+    printf '  external_model="$old_config_home/opencode/a-max-model.json"\n'
+    printf '  if [[ -f "$external_model" ]]; then export OPENCODE_O_A_MAX_MODEL_CONFIG="$external_model"\n'
+    printf '  else export OPENCODE_O_A_MAX_MODEL_CONFIG=""; fi\n'
+    printf 'fi\n'
+    printf 'export XDG_CONFIG_HOME="$OPENCODE_O_A_MAX_ROOT/profiles/a-max/config-home"\n'
+    printf 'unset OPENCODE_CONFIG_DIR\n'
+    printf 'case "${1:-}" in\n'
+    printf '  run|mini|api|models) command="$1"; shift; exec opencode "$command" --standalone "$@" ;;\n'
+    printf '  debug|plugin|service|auth|mcp|session) exec opencode "$@" ;;\n'
+    printf '  *) exec opencode --standalone "$@" ;;\n'
+    printf 'esac\n'
   } >"$target"
   chmod 755 "$target"
 }
@@ -40,8 +50,14 @@ write_wrapper() {
 printf 'Running A-Max preflight checks...\n'
 "$ROOT/scripts/doctor/a-max.sh" --preflight
 
+if [[ "$(readlink "$A_MAX_ROOT/config-home/opencode")" != ".." ]]; then
+  printf 'A-Max V2 config-home/opencode link is missing or incorrect.\n' >&2
+  exit 1
+fi
+
 printf '\nInstalling locked dependencies...\n'
 (cd "$ROOT" && bun install --frozen-lockfile)
+(cd "$A_MAX_ROOT" && bun install)
 
 printf '\nRunning A-Max checks...\n'
 (cd "$ROOT" && bun run check:a-max)

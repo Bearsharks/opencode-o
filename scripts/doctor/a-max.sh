@@ -3,6 +3,9 @@
 set -u
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
+if [[ "$(opencode --version 2>/dev/null)" == *v2.* ]]; then
+  exec "$ROOT/scripts/doctor/a-max-v2.sh" "$@"
+fi
 A_MAX_ROOT="$ROOT/profiles/a-max"
 CALLER_DIR="$PWD"
 EXPECTED_OPENCODE_VERSION="1.18.4"
@@ -132,16 +135,26 @@ for path in "${profile_local_files[@]}"; do
   fi
 done
 
+if grep -Fqx 'model: zai-coding-plan/glm-5.3-flash' "$A_MAX_ROOT/agents/terraworker.md"; then
+  pass "A-Max Terra model"
+else
+  fail "A-Max Terra must use zai-coding-plan/glm-5.3-flash"
+fi
+
+if grep -Fqx 'model: openai/gpt-5.6-luna-fast' "$A_MAX_ROOT/agents/runner.md"; then
+  pass "A-Max Runner model"
+else
+  fail "A-Max Runner must use openai/gpt-5.6-luna-fast"
+fi
+
 if command -v bun >/dev/null 2>&1; then
   if A_MAX_CONFIG_PATH="$A_MAX_ROOT/opencode.jsonc" bun -e '
     const config = JSON.parse(await Bun.file(process.env.A_MAX_CONFIG_PATH ?? "").text())
     const disabled = ["build", "plan", "general", "explore"]
     if (
-      config.model !== "zai-coding-plan/glm-5.3-flash" ||
       config.subagent_depth !== 2 ||
       config.default_agent !== "HTOrchestrator" ||
       config.compaction?.auto !== true || config.compaction?.reserved !== 25600 ||
-      config.provider?.["opencode-go"]?.models?.["gpt-5.6-luna"]?.limit?.context !== 272000 ||
       disabled.some((name) => config.agent?.[name]?.disable !== true) ||
       config.permission?.harness_state !== "deny" || config.permission?.investigate !== "deny"
     ) process.exit(1)
@@ -238,7 +251,7 @@ if command -v opencode >/dev/null 2>&1; then
   if models="$(opencode models 2>/dev/null)"; then
     model_ids=(
       "openai/gpt-5.6-sol"
-      "openai/gpt-5.6-terra-fast"
+      "zai-coding-plan/glm-5.3-flash"
       "openai/gpt-5.6-luna-fast"
     )
     for model in "${model_ids[@]}"; do

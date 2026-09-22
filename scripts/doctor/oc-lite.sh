@@ -246,6 +246,15 @@ if command -v opencode >/dev/null 2>&1; then
     else
       fail "Default harness plugin leaked into oc-lite"
     fi
+    if bun -e '
+      const config = JSON.parse(await Bun.stdin.text())
+      if (config.default_agent !== "worker" || config.subagent_depth !== 1) process.exit(1)
+      if (config.agent?.worker?.model !== "openai/gpt-5.6-sol" || config.agent?.worker?.reasoningEffort !== "high") process.exit(1)
+    ' <<<"$resolved"; then
+      pass "Oc-lite resolves the Sol/high worker as default with depth-one delegation"
+    else
+      fail "Oc-lite resolved primary model, effort, default agent, or delegation depth is incorrect"
+    fi
   else
     fail "Could not resolve oc-lite config with OPENCODE_CONFIG_DIR=$OC_LITE_ROOT"
   fi
@@ -289,12 +298,41 @@ if command -v opencode >/dev/null 2>&1; then
       OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent worker 2>/dev/null
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
+    const effective = (permission, command) => {
+      let decision
+      for (const rule of agent.permission ?? []) {
+        if (rule.permission !== permission) continue
+        const escaped = String(rule.pattern).split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*")
+        if (new RegExp("^" + escaped + "$").test(command)) decision = rule.action
+      }
+      return decision
+    }
     if (agent.tools?.harness_state === true || agent.tools?.investigate === true) process.exit(1)
     if (agent.tools?.task !== true || agent.tools?.read !== true || agent.tools?.apply_patch !== true) process.exit(1)
+    if (agent.model?.providerID !== "openai" || agent.model?.modelID !== "gpt-5.6-sol") process.exit(1)
+    if (effective("task", "runner") !== "allow" || effective("task", "worker") !== "deny" || effective("task", "terraworker") !== "deny") process.exit(1)
+    for (const command of [
+      "bun test test/unit.test.ts",
+      "git commit -m result",
+      "git merge --no-ff issue-owner",
+      "gh pr merge 96",
+      "orca orchestration check --json",
+    ]) {
+      if (effective("bash", command) !== "allow") process.exit(1)
+    }
+    for (const command of [
+      "rm -rf build",
+      "git clean -fdx",
+      "git reset --hard HEAD~1",
+      "git push --force origin HEAD",
+      "sudo rm file",
+    ]) {
+      if (effective("bash", command) !== "deny") process.exit(1)
+    }
   ' <<<"$worker_agent"; then
-    pass "Worker has task/read/edit/apply_patch capability without harness custom tools"
+    pass "Worker resolves the Sol primary with direct implementation authority, Runner-only delegation, and destructive safeguards"
   else
-    fail "Worker tool isolation or implementation capability is incorrect"
+    fail "Worker topology, implementation authority, or effective permission matrix is incorrect"
   fi
 
   if runner_agent="$(
@@ -302,22 +340,66 @@ if command -v opencode >/dev/null 2>&1; then
       OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$OC_LITE_ROOT" opencode debug agent runner 2>/dev/null
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
-    const allowed = (permission, pattern) =>
-      agent.permission?.some((rule) =>
-        rule.permission === permission && rule.pattern === pattern && rule.action === "allow",
-      )
-    if (agent.tools?.task === true || agent.tools?.apply_patch === true) process.exit(1)
+    const effective = (permission, command) => {
+      let decision
+      for (const rule of agent.permission ?? []) {
+        if (rule.permission !== permission) continue
+        const escaped = String(rule.pattern).split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*")
+        if (new RegExp("^" + escaped + "$").test(command)) decision = rule.action
+      }
+      return decision
+    }
+    const allowed = (permission, command) => effective(permission, command) === "allow"
+    if (agent.tools?.task === true || agent.tools?.apply_patch === true || agent.tools?.edit === true || agent.tools?.write === true) process.exit(1)
     if (agent.tools?.read !== true || agent.tools?.bash !== true) process.exit(1)
     if (!allowed("codex-self-improvement_skill_view", "*")) process.exit(1)
     if (allowed("codex-self-improvement_skill_list", "*")) process.exit(1)
     if (allowed("codex-self-improvement_skill_manage", "*")) process.exit(1)
     if (!allowed("skill", "agent-browser")) process.exit(1)
+    if (!allowed("skill", "orca-cli")) process.exit(1)
     if (!allowed("bash", "agent-browser *")) process.exit(1)
     if (!allowed("bash", "npx agent-browser *")) process.exit(1)
+    for (const command of [
+      "gh pr view 96",
+      "gh api graphql -X POST -f query={viewer{login}}",
+      "curl https://api.example.test/graphql -X POST --data {query:{viewer{login}}}",
+      "git status --short",
+      "bun test test/unit.test.ts --reporter=junit --reporter-outfile=/tmp/runner.xml",
+      "npm install --no-save",
+      "mkdir -p /tmp/runner-report",
+      "agent-browser click @submit",
+      "agent-browser fill @email user@example.com",
+      "opencode --help",
+    ]) {
+      if (effective("bash", command) !== "allow") process.exit(1)
+    }
+    for (const command of [
+      "gh pr merge 96",
+      "gh issue comment 96 --body done",
+      "git fetch origin main",
+      "git commit -m result",
+      "git push origin HEAD",
+      "git reset --hard HEAD~1",
+      "apply_patch source.ts",
+      "orca status --json",
+      "codex exec inspect",
+      "npm publish",
+      "cat .env",
+      "cat ~/.ssh/id_ed25519",
+    ]) {
+      if (effective("bash", command) !== "deny") process.exit(1)
+    }
+    for (const command of ["orca status --json", "orca-dev status --json", "orca-ide status --json"]) {
+      if (effective("bash", command) !== "deny") process.exit(1)
+    }
+    if (effective("read", ".env") !== "deny" || effective("read", ".env.example") !== "allow") process.exit(1)
+    if (effective("read", "config/credentials.json") !== "deny") process.exit(1)
+    if (effective("external_directory", `${process.env.HOME}/.ssh/id_ed25519`) !== "deny") process.exit(1)
+    if (effective("external_directory", "/tmp/runner-report") !== "allow") process.exit(1)
   ' <<<"$runner_agent"; then
-    pass "Runner is read/command-only with agent-browser and directed skill-view capability"
+    pass "Runner allows investigation and verification while retaining authority boundaries"
   else
-    fail "Runner tool isolation, agent-browser, or directed skill-view capability is incorrect"
+    fail "Runner effective permission matrix, tool isolation, or authority boundary is incorrect"
   fi
 fi
 

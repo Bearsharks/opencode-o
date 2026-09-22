@@ -1,83 +1,218 @@
 ---
-description: Read-only exploration and command runner that protects parent context by returning evidence-backed, compact results.
+description: Read-only exploration and command runner that protects parent
+  context by returning evidence-backed, compact results.
 mode: subagent
 hidden: true
-model: opencode-go/muse-spark-1.3-contributor
-reasoningEffort: high
-textVerbosity: low
-permission:
-  codex-self-improvement_skill_list: deny
-  codex-self-improvement_skill_view: allow
-  codex-self-improvement_skill_manage: deny
-  skill:
-    agent-browser: allow
-    orca-cli: allow
-  read:
-    "*": allow
-    "*.env": deny
-    "*.env.*": deny
-    "*.env.example": allow
-  glob: allow
-  grep: allow
-  list: allow
-  lsp: allow
-  bash:
-    "*": deny
-    gh api*: allow
-    gh pr list*: allow
-    gh pr view*: allow
-    gh pr checks*: allow
-    gh issue list*: allow
-    gh issue view*: allow
-    gh run list*: allow
-    gh run view*: allow
-    gh repo view*: allow
-    orca *: deny
-    orca-dev *: deny
-    orca-ide *: deny
-    agent-browser *: allow
-    npx agent-browser *: allow
-    pwd: allow
-    ls*: allow
-    rg*: allow
-    find*: allow
-    wc*: allow
-    git rev-parse*: allow
-    git rev-list*: allow
-    git fetch origin main: allow
-    git branch --show-current: allow
-    git branch --list*: allow
-    git branch -vv: allow
-    git branch -vv *: allow
-    git remote -v: allow
-    git remote get-url*: allow
-    git for-each-ref*: allow
-    git ls-remote*: allow
-    git worktree list*: allow
-    git tag --list*: allow
-    git status*: allow
-    git diff*: allow
-    git show*: allow
-    git log*: allow
-    git ls-files*: allow
-    python3 Tools/read_ai_trace.py *: allow
-    python3 -m unittest Tools/*: allow
-    pgrep -fal *: allow
-    make help: allow
-    make docs-check: allow
-    make verify-*: allow
-    make *-test: allow
-    find * -delete*: deny
-  external_directory:
-    "*": allow
-  edit: deny
-  write: deny
-  apply_patch: deny
-  task: deny
-  webfetch: allow
-  websearch: allow
-  harness_state: deny
-  investigate: deny
+model: openai/gpt-6-luna-fast
+permissions:
+  - action: codex-self-improvement_skill_list
+    resource: "*"
+    effect: deny
+  - action: codex-self-improvement_skill_view
+    resource: "*"
+    effect: allow
+  - action: codex-self-improvement_skill_manage
+    resource: "*"
+    effect: deny
+  - action: skill
+    resource: agent-browser
+    effect: allow
+  - action: skill
+    resource: orca-cli
+    effect: allow
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*.env"
+    effect: deny
+  - action: read
+    resource: "*.env.*"
+    effect: deny
+  - action: read
+    resource: "*.env.example"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: list
+    resource: "*"
+    effect: allow
+  - action: lsp
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "*"
+    effect: deny
+  - action: shell
+    resource: gh api*
+    effect: allow
+  - action: shell
+    resource: gh pr list*
+    effect: allow
+  - action: shell
+    resource: gh pr view*
+    effect: allow
+  - action: shell
+    resource: gh pr checks*
+    effect: allow
+  - action: shell
+    resource: gh issue list*
+    effect: allow
+  - action: shell
+    resource: gh issue view*
+    effect: allow
+  - action: shell
+    resource: gh run list*
+    effect: allow
+  - action: shell
+    resource: gh run view*
+    effect: allow
+  - action: shell
+    resource: gh repo view*
+    effect: allow
+  - action: shell
+    resource: orca *
+    effect: deny
+  - action: shell
+    resource: orca-dev *
+    effect: deny
+  - action: shell
+    resource: orca-ide *
+    effect: deny
+  - action: shell
+    resource: agent-browser *
+    effect: allow
+  - action: shell
+    resource: npx agent-browser *
+    effect: allow
+  - action: shell
+    resource: pwd
+    effect: allow
+  - action: shell
+    resource: ls*
+    effect: allow
+  - action: shell
+    resource: rg*
+    effect: allow
+  - action: shell
+    resource: find*
+    effect: allow
+  - action: shell
+    resource: wc*
+    effect: allow
+  - action: shell
+    resource: git rev-parse*
+    effect: allow
+  - action: shell
+    resource: git rev-list*
+    effect: allow
+  - action: shell
+    resource: git fetch origin main
+    effect: allow
+  - action: shell
+    resource: git branch --show-current
+    effect: allow
+  - action: shell
+    resource: git branch --list*
+    effect: allow
+  - action: shell
+    resource: git branch -vv
+    effect: allow
+  - action: shell
+    resource: git branch -vv *
+    effect: allow
+  - action: shell
+    resource: git remote -v
+    effect: allow
+  - action: shell
+    resource: git remote get-url*
+    effect: allow
+  - action: shell
+    resource: git for-each-ref*
+    effect: allow
+  - action: shell
+    resource: git ls-remote*
+    effect: allow
+  - action: shell
+    resource: git worktree list*
+    effect: allow
+  - action: shell
+    resource: git tag --list*
+    effect: allow
+  - action: shell
+    resource: git status*
+    effect: allow
+  - action: shell
+    resource: git diff*
+    effect: allow
+  - action: shell
+    resource: git show*
+    effect: allow
+  - action: shell
+    resource: git log*
+    effect: allow
+  - action: shell
+    resource: git ls-files*
+    effect: allow
+  - action: shell
+    resource: python3 Tools/read_ai_trace.py *
+    effect: allow
+  - action: shell
+    resource: python3 -m unittest Tools/*
+    effect: allow
+  - action: shell
+    resource: pgrep -fal *
+    effect: allow
+  - action: shell
+    resource: make help
+    effect: allow
+  - action: shell
+    resource: make docs-check
+    effect: allow
+  - action: shell
+    resource: make verify-*
+    effect: allow
+  - action: shell
+    resource: make *-test
+    effect: allow
+  - action: shell
+    resource: find * -delete*
+    effect: deny
+  - action: external_directory
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: webfetch
+    resource: "*"
+    effect: allow
+  - action: websearch
+    resource: "*"
+    effect: allow
+  - action: harness_state
+    resource: "*"
+    effect: deny
+  - action: investigate
+    resource: "*"
+    effect: deny
+request:
+  body:
+    reasoningEffort: high
+    textVerbosity: low
 ---
 
 You are Runner, a read-only subagent that protects the parent agent's context by handling broad local or external exploration, research, and high-volume command output. Return useful, compact results.
