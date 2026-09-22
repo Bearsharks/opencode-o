@@ -222,10 +222,9 @@ configuration or other profiles:
 
 ## Install A-Max separately
 
-A-Max extends the current Max profile with multiple concurrent background Terra
-workers and a process-local Kanban. It has its own profile, plugin, installer,
-doctor, wrapper, and session database; installing it does not modify
-`opencode-o-max`.
+A-Max uses native OpenCode V2 configuration, profile-local Markdown agents, and
+a V2 plugin for concurrent background Terra workers and a process-local Kanban.
+It has a separate wrapper and session database.
 
 ```bash
 ./scripts/install/a-max.sh
@@ -234,36 +233,36 @@ oc-amax run "Hello"
 ```
 
 ```text
-HTOrchestrator --background task--> terraworker (zero or more, concurrently)
-HTOrchestrator --foreground task--> runner
-terraworker    --foreground task--> runner
+HTOrchestrator --background subagent--> terraworker (zero or more, concurrently)
+HTOrchestrator --foreground subagent--> runner
+terraworker    --foreground subagent--> runner
 ```
 
-A-Max does not copy the Max agents. Its config and agent files are relative
-symlinks to [`profiles/max/`](profiles/max/), and the A-Max plugin appends only
-the asynchronous contract and Kanban tool permissions at config resolution
-time. Current and future Max prompts, models, reasoning settings, permissions,
-browser access, Runner handoff shape, and directed self-improvement skill
-contract therefore remain the source of truth. A-Max also composes the Max
-topology plugin directly instead of copying its task-edge enforcement.
+A-Max owns its settings and agents in [`profiles/a-max/`](profiles/a-max/).
+`oc-amax` uses its profile-specific V2 global configuration while working in
+the launched project. Its plugin registers the profile's Markdown agents,
+tool permissions, topology, and Kanban tools.
 
 `a_max_board` displays background Terra cards in Working, Review, Done, and
 Blocked columns. OpenCode completion moves a card to Review; HTOrchestrator
 must verify it before `a_max_move` can mark it Done. There is no fixed worker
 count limit, but parallel edit scopes must be disjoint. Runner is always
 foreground and the plugin rejects `runner` calls with `background: true`.
-Every board call also shows a current per-card `busy`, `retry`, `idle`, or
-`unknown` runtime snapshot without changing the Kanban lifecycle.
+Every board call shows the last observed per-card `busy`, `retry`, `idle`, or
+`unknown` runtime status without changing the Kanban lifecycle. The default
+view omits Done cards; use `include_done: true` when completion history is
+needed. Mutations use exact full session IDs without abbreviation or fuzzy
+matching, and `a_max_move` returns the exact ID, description, and resulting
+state for confirmation.
 
-HTOrchestrator can use `a_max_inspect` to read a Terra child's current OpenCode
+HTOrchestrator can use `a_max_inspect` to read a Terra child's last observed
 session status and latest tool state without changing it. If intervention is
 needed, `a_max_interrupt` stops the current execution without rolling back its
 conversation or file effects; HTOrchestrator can inspect the current changes
-and continue the same child with its existing `task_id`.
+and continue the same child with its existing `sessionID`.
 
-The wrapper enables `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS` and uses
-`opencode-a-max.db`, isolating A-Max sessions while retaining the normal
-OpenCode authentication store:
+The wrapper starts a private V2 server with the A-Max global config and
+`opencode-a-max.db` while retaining the normal OpenCode authentication store:
 
 ```bash
 ./scripts/doctor/a-max.sh --preflight
@@ -272,7 +271,7 @@ OpenCode authentication store:
 
 ### External model/effort override for A-Max
 
-A-Max can override the inherited Max model and reasoning effort from one
+A-Max can override its configured model and reasoning effort from one
 user-owned JSON file. The plugin auto-discovers:
 
 ```text
@@ -291,12 +290,10 @@ The file must contain exactly:
 
 - `model` must be a `provider/model-id` string without whitespace; `effort` is
   any non-empty trimmed string, such as `high`.
-- When the file applies, it overrides the top-level `model` and the
-  `model`/`reasoningEffort` of all three A-Max agents (`HTOrchestrator`,
-  `terraworker`, and `runner`). These external values win over the inherited
-  Max frontmatter and config; prompts, permissions, and tool behavior are
-  unchanged.
-- An absent file changes nothing: A-Max keeps the full Max inheritance.
+- When the file applies, it selects the default model and overrides the
+  `model`/request-time `reasoningEffort` of all three A-Max agents
+  (`HTOrchestrator`, `terraworker`, and `runner`).
+- An absent file leaves A-Max's configured defaults in effect.
 - Set `OPENCODE_O_A_MAX_MODEL_CONFIG=/absolute/path/to/file.json` to load an
   explicit file instead of the default location, or export it as an empty
   string to disable external loading entirely (deterministic tests and
@@ -306,7 +303,7 @@ The file must contain exactly:
   is relative, missing, unreadable, or invalid fails with a concise
   `A-Max model config error` naming the path.
 - Config is read once at startup: restart `oc-amax` after creating or editing
-  the file. `./scripts/doctor/a-max.sh` validates the currently active file.
+  the file. `./scripts/doctor/a-max.sh` validates the V2 profile.
 
 ## Install B-Max separately
 

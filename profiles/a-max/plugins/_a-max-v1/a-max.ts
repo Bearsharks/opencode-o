@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
 import { tool, type Plugin } from "@opencode-ai/plugin"
-import aMaxTopology from "./_a-max-v1/a-max-topology"
+import aMaxTopology from "./a-max-topology"
 
 const asyncContract = `
 ## A-Max asynchronous delegation
@@ -15,7 +15,8 @@ const asyncContract = `
 - Runner is synchronous only. Never set \`background: true\` for \`runner\`, whether Runner is called by HTOrchestrator or Terra.
 - After dispatching background work, briefly tell the user what is running and continue the conversation or other non-overlapping work. Do not sleep, poll, ask workers for status, or duplicate their work.
 - A background worker ending moves its card to Review, not Done. Call \`a_max_move\` with \`status: "done"\` only after proportionate evidence-based review accepts the card; mark genuine failures or decision blockers as \`blocked\`. Card acceptance does not establish the user goal complete.
-- Use \`a_max_board\` when the user asks for status, when coordinating parallel scopes, and before making a final completion claim.
+- For every card mutation or continuation, use the exact full \`task_id\` from the relevant task result or a recent \`a_max_board\` result. Never reconstruct, abbreviate, or fuzzy-match it. Verify the returned task ID, description, and resulting state; if a mutation fails or the ID source is uncertain, query the board and retry only with an exact listed ID.
+- Use \`a_max_board\` when the user asks for status, when coordinating parallel scopes, and before making a final completion claim. Its default view omits Done cards so current work stays concise; set \`include_done: true\` only when completion history is relevant.
 `.trim()
 
 type Json = Record<string, unknown>
@@ -294,7 +295,7 @@ function inspectMessages(messages: unknown) {
   return { activityAt, latestTool }
 }
 
-function renderBoard(cards: Card[], runtimes: Map<string, RuntimeStatus>, includeDone = true) {
+function renderBoard(cards: Card[], runtimes: Map<string, RuntimeStatus>, includeDone = false) {
   const columns: Array<{ status: CardStatus; title: string }> = [
     { status: "working", title: "Working" },
     { status: "review", title: "Review" },
@@ -396,30 +397,31 @@ export default (async (input) => {
 
   const board = tool({
     description:
-      "Show this parent session's A-Max background Terra cards with current runtime snapshots, grouped as Working, Review, Done, and Blocked.",
+      "Show this parent session's A-Max background Terra cards with current runtime snapshots, grouped by state. Done cards are omitted by default.",
     args: {
-      include_done: tool.schema.boolean().optional().describe("Include completed cards. Defaults to true."),
+      include_done: tool.schema.boolean().optional().describe("Include Done cards. Defaults to false."),
     },
     async execute(args, context) {
       if (context.agent !== "HTOrchestrator") {
         throw new Error("a_max_board is available only to HTOrchestrator")
       }
+      const includeDone = args.include_done === true
       const ownCards = [...cards.values()].filter((card) => card.parentSessionID === context.sessionID)
-      const visibleCards = args.include_done === false ? ownCards.filter((card) => card.status !== "done") : ownCards
-      if (visibleCards.length === 0) return renderBoard(visibleCards, new Map(), args.include_done !== false)
+      const visibleCards = includeDone ? ownCards : ownCards.filter((card) => card.status !== "done")
+      if (visibleCards.length === 0) return renderBoard(visibleCards, new Map(), includeDone)
       let runtimes: Map<string, RuntimeStatus>
       try {
         runtimes = runtimeSnapshot(await input.client.session.status(), visibleCards.map((card) => card.taskID))
       } catch {
         runtimes = new Map(visibleCards.map((card) => [card.taskID, "unknown" as const]))
       }
-      return renderBoard(visibleCards, runtimes, args.include_done !== false)
+      return renderBoard(visibleCards, runtimes, includeDone)
     },
   })
 
   const move = tool({
     description:
-      "Move one A-Max card after orchestration review. A working card cannot be marked done before its worker result reaches Review.",
+      "Move one A-Max card by its exact full task ID after orchestration review. Returns the exact ID, description, and resulting state for confirmation. A working card cannot be marked done before its worker result reaches Review.",
     args: {
       task_id: tool.schema.string().describe("Background Terra task/session ID shown by task or a_max_board"),
       status: tool.schema.enum(["review", "done", "blocked"]),
@@ -431,13 +433,15 @@ export default (async (input) => {
       }
       const card = cards.get(args.task_id)
       if (!card || card.parentSessionID !== context.sessionID) {
-        throw new Error(`Unknown A-Max card for this session: ${args.task_id}`)
+        throw new Error(
+          `Unknown exact A-Max card ID for this session: ${args.task_id}. Query a_max_board and copy the full task_id exactly; IDs are not abbreviated or fuzzy-matched.`,
+        )
       }
       if (args.status === "done" && card.status !== "review") {
         throw new Error(`A-Max card ${args.task_id} must be in Review before it can move to Done`)
       }
       transition(args.task_id, args.status, args.note)
-      return `Moved ${args.task_id} to ${args.status}.`
+      return `A-Max card updated: task_id=${card.taskID} | description=${card.description} | status=${card.status}${card.note ? ` | note=${card.note}` : ""}`
     },
   })
 

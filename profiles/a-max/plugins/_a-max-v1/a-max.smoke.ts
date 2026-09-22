@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
-import plugin from "../a-max"
+import plugin from "./a-max"
 
 // Repository-owned smoke checks must be deterministic, so user auto-discovery
 // of the external A-Max model config is disabled up front and restored on exit.
@@ -184,7 +184,17 @@ if (!reviewBoard.includes("## Review (1)") || !reviewBoard.includes("## Blocked 
   throw new Error(`terminal card states are incorrect:\n${reviewBoard}`)
 }
 
-await hooks.tool.a_max_move.execute({ task_id: "task-1", status: "done", note: "verified" }, toolContext)
+const moveConfirmation = String(
+  await hooks.tool.a_max_move.execute({ task_id: "task-1", status: "done", note: "verified" }, toolContext),
+)
+if (
+  !moveConfirmation.includes("task_id=task-1") ||
+  !moveConfirmation.includes("description=first") ||
+  !moveConfirmation.includes("status=done") ||
+  !moveConfirmation.includes("note=verified")
+) {
+  throw new Error(`a_max_move did not return authoritative card confirmation:\n${moveConfirmation}`)
+}
 await hooks.event?.({
   event: { type: "session.error", properties: { sessionID: "task-1", error: { name: "LateError" } } },
 } as never)
@@ -210,6 +220,24 @@ if (!doneBoard.includes("## Done (1)") || !doneBoard.includes("note=verified")) 
 const withoutDoneBoard = String(await hooks.tool.a_max_board.execute({ include_done: false }, toolContext))
 if (withoutDoneBoard.includes("## Done") || withoutDoneBoard.includes("- task-1 |")) {
   throw new Error(`a_max_board did not preserve include_done filtering:\n${withoutDoneBoard}`)
+}
+const defaultBoard = String(await hooks.tool.a_max_board.execute({}, toolContext))
+if (defaultBoard.includes("## Done") || defaultBoard.includes("- task-1 |")) {
+  throw new Error(`a_max_board did not omit Done cards by default:\n${defaultBoard}`)
+}
+
+let unknownMoveError = ""
+try {
+  await hooks.tool.a_max_move.execute({ task_id: "task-1-typo", status: "done" }, toolContext)
+} catch (error) {
+  unknownMoveError = error instanceof Error ? error.message : String(error)
+}
+if (
+  !unknownMoveError.includes("task-1-typo") ||
+  !unknownMoveError.includes("a_max_board") ||
+  !unknownMoveError.includes("full task_id exactly")
+) {
+  throw new Error(`a_max_move did not reject an inexact ID with recovery guidance: ${unknownMoveError}`)
 }
 
 let prematureDoneBlocked = false
@@ -593,7 +621,7 @@ try {
     agent: {
       HTOrchestrator: { prompt: "A_MAX_BASE_PROMPT", model: "openai/gpt-5.6-sol", reasoningEffort: "high" },
       terraworker: { prompt: "TERRA_BASE_PROMPT", model: "zai-coding-plan/glm-5.3-flash", reasoningEffort: "high" },
-      runner: { prompt: "RUNNER_BASE_PROMPT", model: "opencode-go/gpt-5.6-luna", reasoningEffort: "medium" },
+      runner: { prompt: "RUNNER_BASE_PROMPT", model: "openai/gpt-5.6-luna-fast", reasoningEffort: "medium" },
     },
   })
 
@@ -696,7 +724,7 @@ try {
         cfg.model !== "inherited/top-model" ||
         cfg.agent.HTOrchestrator.model !== "openai/gpt-5.6-sol" ||
         cfg.agent.terraworker.reasoningEffort !== "high" ||
-        cfg.agent.runner.model !== "opencode-go/gpt-5.6-luna" ||
+        cfg.agent.runner.model !== "openai/gpt-5.6-luna-fast" ||
         cfg.agent.runner.reasoningEffort !== "medium"
       ) {
         throw new Error("a missing default file did not preserve A-Max defaults")
@@ -715,7 +743,7 @@ try {
         cfg.model !== "inherited/top-model" ||
         cfg.agent.HTOrchestrator.model !== "openai/gpt-5.6-sol" ||
         cfg.agent.terraworker.model !== "zai-coding-plan/glm-5.3-flash" ||
-        cfg.agent.runner.model !== "opencode-go/gpt-5.6-luna"
+        cfg.agent.runner.model !== "openai/gpt-5.6-luna-fast"
       ) {
         throw new Error("an empty OPENCODE_O_A_MAX_MODEL_CONFIG did not disable external loading")
       }

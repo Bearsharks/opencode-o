@@ -5,7 +5,7 @@
   "scripts": {
     "check": "bash -n scripts/install/default.sh scripts/doctor/default.sh && bun --check plugins/harness-state.ts && bun plugins/_harness-state-v1/harness-state.smoke.ts",
     "check:all": "bun run check && bun run check:max && bun run check:a-max && bun run check:b-max && bun run check:oc-lite",
-    "check:a-max": "bash -n scripts/install/a-max.sh scripts/doctor/a-max.sh && bun --check profiles/a-max/plugins/a-max.ts && bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts",
+    "check:a-max": "bash -n scripts/install/a-max.sh scripts/doctor/a-max.sh scripts/doctor/a-max-v2.sh && bun --check profiles/a-max/plugins/_a-max-v1/a-max.ts && bun --check profiles/a-max/plugins/a-max-v2/index.ts && bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts && bun profiles/a-max/plugins/a-max-v2/a-max.smoke.ts",
     "check:b-max": "bash -n scripts/install/b-max.sh scripts/doctor/b-max.sh && bun --check profiles/b-max/plugins/b-max.ts && bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "check:max": "bash -n scripts/install/max.sh scripts/doctor/max.sh && bun --check profiles/max/plugins/max-topology.ts && bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "check:oc-lite": "bash -n scripts/install/oc-lite.sh scripts/doctor/oc-lite.sh && bun --check profiles/oc-lite/plugins/oc-lite-topology.ts && bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",
@@ -16,7 +16,7 @@
     "doctor:max": "./scripts/doctor/max.sh",
     "doctor:oc-lite": "./scripts/doctor/oc-lite.sh",
     "doctor:oc-meta": "./scripts/doctor/oc-meta.sh",
-    "test:a-max": "bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts",
+    "test:a-max": "bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts && bun profiles/a-max/plugins/a-max-v2/a-max.smoke.ts",
     "test:b-max": "bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "test:max": "bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
     "test:oc-lite": "bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",

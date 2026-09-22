@@ -318,10 +318,21 @@ fi
 
 if command -v opencode >/dev/null 2>&1 && [[ -n "$PROFILE_DIR" ]]; then
   if models="$(opencode models 2>/dev/null)"; then
-    model_ids=(
-      "openai/gpt-5.6-sol"
-      "openai/gpt-5.6-luna-fast"
-    )
+    model_ids=()
+    if configured_models="$(PROFILE_DIR="$PROFILE_DIR" bun -e '
+      const fs = require("fs")
+      for (const name of ["MetaOrchestrator", "runner"]) {
+        const text = fs.readFileSync(`${process.env.PROFILE_DIR}/agents/${name}.md`, "utf8")
+        const header = text.split(/^---\s*$/m)[1] ?? ""
+        const model = header.match(/^model:\s*(\S+)\s*$/m)?.[1]?.replace(/^["\x27]|["\x27]$/g, "")
+        if (!model || !model.includes("/")) process.exit(1)
+        console.log(model)
+      }
+    ')"; then
+      while IFS= read -r model; do model_ids+=("$model"); done <<<"$configured_models"
+    else
+      fail "Could not read configured oc-meta agent models"
+    fi
     for model in "${model_ids[@]}"; do
       if grep -Fq "$model" <<<"$models"; then
         pass "Model $model"
@@ -389,11 +400,17 @@ if command -v opencode >/dev/null 2>&1 && [[ -n "$PROFILE_DIR" ]]; then
       pass "Resolved oc-meta agent $agent ($PROFILE_LABEL profile)"
       if bun -e '
         const agent = JSON.parse(await Bun.stdin.text())
-        const allowed = (pattern) =>
-          agent.permission?.some((rule) =>
-            rule.permission === "bash" && rule.pattern === pattern && rule.action === "allow",
-          )
-        if (!allowed("agent-browser *") || !allowed("npx agent-browser *")) process.exit(1)
+        const effective = (command) => {
+          let decision
+          for (const rule of agent.permission ?? []) {
+            if (rule.permission !== "bash") continue
+            const escaped = String(rule.pattern).split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*")
+            if (new RegExp("^" + escaped + "$").test(command)) decision = rule.action
+          }
+          return decision
+        }
+        if (effective("agent-browser open https://example.com") !== "allow") process.exit(1)
+        if (effective("npx agent-browser open https://example.com") !== "allow") process.exit(1)
       ' <<<"$agent_config"; then
         pass "Oc-meta agent $agent allows agent-browser without approval"
       else
@@ -421,15 +438,22 @@ if command -v opencode >/dev/null 2>&1 && [[ -n "$PROFILE_DIR" ]]; then
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
     if (agent.tools?.harness_state === true || agent.tools?.investigate === true) process.exit(1)
-    if (agent.tools?.task !== true || agent.tools?.read !== true || agent.tools?.apply_patch !== true) process.exit(1)
+    if (agent.tools?.task !== true || agent.tools?.read !== true) process.exit(1)
+    if (agent.tools?.apply_patch !== true && agent.tools?.edit !== true) process.exit(1)
     for (const key of Object.keys(agent.tools ?? {})) {
       if (key.startsWith("a_max_")) process.exit(1)
     }
-    const allowed = (permission, pattern) =>
-      agent.permission?.some((rule) =>
-        rule.permission === permission && rule.pattern === pattern && rule.action === "allow",
-      )
-    if (!allowed("bash", "orca *")) process.exit(1)
+    const effective = (permission, command) => {
+      let decision
+      for (const rule of agent.permission ?? []) {
+        if (rule.permission !== permission) continue
+        const escaped = String(rule.pattern).split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*")
+        if (new RegExp("^" + escaped + "$").test(command)) decision = rule.action
+      }
+      return decision
+    }
+    if (effective("bash", "orca status --json") !== "allow") process.exit(1)
+    if (effective("task", "runner") !== "allow" || effective("task", "terraworker") !== "deny") process.exit(1)
   ' <<<"$meta_agent"; then
     pass "MetaOrchestrator has task/read/edit/apply_patch capability without harness or A-Max tools"
   else
@@ -441,11 +465,57 @@ if command -v opencode >/dev/null 2>&1 && [[ -n "$PROFILE_DIR" ]]; then
       OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PROFILE_DIR" opencode debug agent runner 2>/dev/null
   )" && bun -e '
     const agent = JSON.parse(await Bun.stdin.text())
-    const allowed = (permission, pattern) =>
-      agent.permission?.some((rule) =>
-        rule.permission === permission && rule.pattern === pattern && rule.action === "allow",
-      )
-    if (agent.tools?.task === true || agent.tools?.apply_patch === true) process.exit(1)
+    const effective = (permission, command) => {
+      let decision
+      for (const rule of agent.permission ?? []) {
+        if (rule.permission !== permission) continue
+        const escaped = String(rule.pattern).split("*").map(s => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*")
+        if (new RegExp("^" + escaped + "$").test(command)) decision = rule.action
+      }
+      return decision
+    }
+    const allowed = (permission, command) => effective(permission, command) === "allow"
+    const expected = new Map([
+      ["gh pr view 96", "allow"],
+      ["gh api repos/example/project/pulls/96", "allow"],
+      ["gh api graphql -X POST -f query={viewer{login}}", "allow"],
+      ["curl https://api.example.test/graphql -X POST --data {query:{viewer{login}}}", "allow"],
+      ["gh auth status", "allow"],
+      ["git status --short", "allow"],
+      ["git diff --stat", "allow"],
+      ["git show --stat HEAD", "allow"],
+      ["git log -5 --oneline", "allow"],
+      ["bun test test/unit.test.ts --reporter=junit --reporter-outfile=/tmp/runner.xml", "allow"],
+      ["npm install --no-save", "allow"],
+      ["pnpm install --frozen-lockfile", "allow"],
+      ["bun install --frozen-lockfile", "allow"],
+      ["pip install --target /tmp/runner-deps pytest", "allow"],
+      ["mkdir -p /tmp/runner-report", "allow"],
+      ["cp report.xml /tmp/runner-report/report.xml", "allow"],
+      ["tee /tmp/runner-report/summary.txt", "allow"],
+      ["make help", "allow"],
+      ["opencode --help", "allow"],
+      ["agent-browser snapshot", "allow"],
+      ["agent-browser click @submit", "allow"],
+      ["agent-browser fill @email user@example.com", "allow"],
+      ["agent-browser type @search evidence", "allow"],
+      ["agent-browser eval document.title", "allow"],
+      ["gh pr merge 96", "deny"],
+      ["gh issue comment 96 --body done", "deny"],
+      ["gh release create v1.0.0", "deny"],
+      ["gh pr checkout 96", "deny"],
+      ["git fetch origin main", "deny"],
+      ["git commit -m result", "deny"],
+      ["git push origin HEAD", "deny"],
+      ["git reset --hard HEAD~1", "deny"],
+      ["apply_patch source.ts", "deny"],
+      ["orca status --json", "deny"],
+      ["codex exec inspect", "deny"],
+      ["npm publish", "deny"],
+      ["cat .env", "deny"],
+      ["cat ~/.ssh/id_ed25519", "deny"],
+    ])
+    if (agent.tools?.task === true || agent.tools?.apply_patch === true || agent.tools?.edit === true || agent.tools?.write === true) process.exit(1)
     if (agent.tools?.read !== true || agent.tools?.bash !== true) process.exit(1)
     for (const key of Object.keys(agent.tools ?? {})) {
       if (key.startsWith("a_max_")) process.exit(1)
@@ -454,16 +524,18 @@ if command -v opencode >/dev/null 2>&1 && [[ -n "$PROFILE_DIR" ]]; then
     if (allowed("codex-self-improvement_skill_list", "*")) process.exit(1)
     if (allowed("codex-self-improvement_skill_manage", "*")) process.exit(1)
     if (!allowed("skill", "agent-browser")) process.exit(1)
-    if (allowed("skill", "orca-cli")) process.exit(1)
     if (!allowed("bash", "agent-browser *")) process.exit(1)
     if (!allowed("bash", "npx agent-browser *")) process.exit(1)
-    if (allowed("bash", "orca *")) process.exit(1)
-    if (allowed("bash", "orca-dev *")) process.exit(1)
-    if (allowed("bash", "orca-ide *")) process.exit(1)
+    for (const command of ["orca status --json", "orca-dev status --json", "orca-ide status --json"]) {
+      if (effective("bash", command) !== "deny") process.exit(1)
+    }
+    for (const [command, action] of expected) {
+      if (effective("bash", command) !== action) process.exit(1)
+    }
   ' <<<"$runner_agent"; then
-    pass "Runner is read/command-only with agent-browser and directed skill-view capability, without Orca or A-Max tools"
+    pass "Runner permissions allow scoped investigation/preparation and retain authority boundaries"
   else
-    fail "Runner tool isolation, agent-browser, directed skill-view capability, or Orca denial is incorrect"
+    fail "Runner effective permission matrix, tool isolation, or inherited/default rule ordering is incorrect"
   fi
 fi
 
