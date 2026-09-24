@@ -103,6 +103,15 @@ try {
   assert.match(ht.system, /Own the user's goal/)
   assert.match(ht.system, /## A-Max asynchronous delegation/)
   assert.match(terra.system, /implementation worker/)
+  for (const system of [ht.system, terra.system]) {
+    assert.match(system, /accepted goal/)
+    assert.match(system, /entrypoint/)
+    assert.match(system, /restriction/)
+    assert.match(system, /build outputs\/static assets/)
+  }
+  for (const heading of ["Changes", "Verification", "Unresolved", "Contract deviations", "Parent action"])
+    assert.ok(terra.system.includes(heading), `Terra report missing ${heading}`)
+  assert.match(ht.system, /Review, not Done/)
   const runnerSource = await readFile(new URL("../../agents/runner.md", import.meta.url), "utf8")
   assert.equal(runner.hidden, /^hidden:\s*true\s*$/m.test(runnerSource))
   assert.equal(
@@ -117,6 +126,69 @@ try {
     ),
     true,
   )
+  // The plugin's agent.transform above loads these real Markdown permissions.
+  // Mirror V2's documented ordered, whole-value wildcard resolution, not a
+  // grep for the presence of an allow rule (a later deny would override it).
+  function permission(action: string, resource: string) {
+    let result = "ask"
+    for (const rule of runner.permissions) {
+      if (rule.action !== action) continue
+      const pattern = String(rule.resource)
+      const expression = new RegExp("^" + pattern.split(/([*?])/).map((part: string) =>
+        part === "*" ? ".*" : part === "?" ? "." :
+          part.replace(/[|\\{}()[\]^$+?.]/g, "\\$&")).join("") + "$")
+      if (expression.test(resource) ||
+        (action === "shell" && pattern.endsWith(" *") && resource === pattern.slice(0, -2)))
+        result = rule.effect
+    }
+    return result
+  }
+  const manyTests = `node --test ${Array.from({ length: 11 }, (_, index) =>
+    `Runtime/dist/test/case-${index + 1}.test.js`).join(" ")}`
+  const permitted = [
+    "npm run check", "npm run docs:check", "npm run lint", "npm run build",
+    "npm run build:runtime", "npm test", "npm run test:launcher",
+    "npm run check:a-max", "npm run test:a-max",
+    "npm --prefix Runtime run compile:core", "npm --prefix Runtime test",
+    "bun run check:a-max",
+    "node --test Tools/launcher.test.mjs",
+    "node --test Runtime/dist/test/combat.test.js",
+    "node --test Runtime/dist/test/ai/combat.test.js",
+    "node --test Runtime/dist/test/combat.test.js Runtime/dist/test/inventory.test.js",
+    "node --test Runtime/dist/test/a.test.js Runtime/dist/test/b.test.js Runtime/dist/test/c.test.js",
+    manyTests,
+    "node --test dist/test/combat.test.js",
+    "node --test dist/test/ai/combat.test.js dist/test/ai/state/inventory.test.js",
+    "node --test dist/test/combat.test.js dist/test/inventory.test.js",
+    "node --test dist/test/a.test.js dist/test/b.test.js dist/test/c.test.js",
+    "node --test Runtime/dist/test/a.test.js dist/test/b.test.js Runtime/dist/test/c.test.js",
+    "node Runtime/scripts/check-boundary.mjs", "git status --short",
+  ]
+  const prohibited = [
+    "npm install", "npm ci", "npm uninstall", "npm update", "npm publish",
+    "npm exec tsc", "npx tsc", "npm run setup", "npm run play",
+    "npm run image:generate", "npm run build -- --watch",
+    "node -e 'console.log(1)'", "node --eval '1'", "node <<EOF",
+    "node arbitrary.js", "bun run install", "bun run arbitrary", "python3 -c print(1)",
+    "node --test Runtime/dist/test/a.test.js --import=./evil.mjs Runtime/dist/test/b.test.js",
+    "node --test Runtime/dist/test/a.test.js -e 1 Runtime/dist/test/b.test.js",
+    "node --test dist/test/a.test.js --require=./evil.js dist/test/b.test.js",
+    "git add .", "git commit -m x", "git push", "git reset --hard",
+    "git clean -fd", "kill -9 123", "launchctl restart service",
+    "curl -fsS http://127.0.0.1:3000/health",
+  ]
+  for (const command of permitted)
+    assert.equal(permission("shell", command), "allow", `runner shell: ${command}`)
+  for (const command of prohibited)
+    assert.equal(permission("shell", command), "deny", `runner shell: ${command}`)
+  // For separately scanned shell resources, an approved check cannot make
+  // the second prohibited resource authorized (scanner itself is not mocked).
+  assert.equal(permission("shell", "npm run lint"), "allow")
+  assert.equal(permission("shell", "npm install"), "deny")
+  assert.equal(permission("edit", "src/feature.ts"), "deny")
+  assert.equal(permission("subagent", "terraworker"), "deny")
+  for (const heading of ["Findings", "Commands", "Uncertainty", "Contract deviations", "Parent action"])
+    assert.ok(runner.system.includes(heading), `Runner report missing ${heading}`)
   assert.equal(
     ht.permissions.some(
       (rule: any) =>
@@ -135,6 +207,29 @@ try {
 
   const before = hooks.get("tool.execute.before")!
   const after = hooks.get("tool.execute.after")!
+  const runnerShell = (command: string, tool = "shell") => before({
+    tool, agent: "runner", sessionID: "runner-session", id: "shell-call",
+    input: { command },
+  })
+  for (const command of permitted.filter((item) => item.startsWith("node --test")))
+    assert.doesNotThrow(() => runnerShell(command), `runner focused command: ${command}`)
+  assert.doesNotThrow(() => runnerShell("node --test dist/test/combat.test.js", "bash"))
+  for (const command of [
+    "node --test",
+    "node --test ",
+    "node --test --import=./evil.mjs Runtime/dist/test/a.test.js",
+    "node --test Runtime/dist/test/../../outside.test.js",
+    "node --test dist/test/a.test.js --import=./evil.mjs dist/test/b.test.js",
+    "node --test dist/test/a.test.js --require=./evil.js dist/test/b.test.js",
+    "node --test dist/test/a.test.js -r ./evil.js dist/test/b.test.js",
+    "node --test Runtime/dist/test/$(node -e '1').test.js",
+    "node --test Runtime/dist/test/a.test.js && node -e '1'",
+    "node --test Runtime/dist/test/a.test.js | cat",
+    "node --test Runtime/dist/test/a.test.js; node -e '1'",
+    "npm run lint; node --test Runtime/dist/test/a.test.js",
+  ])
+    for (const tool of ["shell", "bash"])
+      assert.throws(() => runnerShell(command, tool), /literal compiled test paths/, `${tool}: ${command}`)
   assert.throws(
     () =>
       before({

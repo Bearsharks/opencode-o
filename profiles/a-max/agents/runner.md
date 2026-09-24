@@ -179,6 +179,102 @@ permissions:
     resource: make *-test
     effect: allow
   - action: shell
+    resource: npm run help
+    effect: allow
+  - action: shell
+    resource: npm run check
+    effect: allow
+  - action: shell
+    resource: npm run check:a-max
+    effect: allow
+  - action: shell
+    resource: npm run docs:check
+    effect: allow
+  - action: shell
+    resource: npm run lint
+    effect: allow
+  - action: shell
+    resource: npm run build
+    effect: allow
+  - action: shell
+    resource: npm run build:runtime
+    effect: allow
+  - action: shell
+    resource: npm run build:web
+    effect: allow
+  - action: shell
+    resource: npm test
+    effect: allow
+  - action: shell
+    resource: npm run test:launcher
+    effect: allow
+  - action: shell
+    resource: npm run test:a-max
+    effect: allow
+  - action: shell
+    resource: npm --prefix Runtime run lint
+    effect: allow
+  - action: shell
+    resource: npm --prefix Runtime run check:boundary
+    effect: allow
+  - action: shell
+    resource: npm --prefix Runtime run compile:core
+    effect: allow
+  - action: shell
+    resource: npm --prefix Runtime run build
+    effect: allow
+  - action: shell
+    resource: npm --prefix Runtime test
+    effect: allow
+  - action: shell
+    resource: node --test Tools/launcher.test.mjs
+    effect: allow
+  - action: shell
+    resource: node --test scripts/check-portable-paths.test.mjs
+    effect: allow
+  - action: shell
+    resource: node --test Runtime/dist/test/*.test.js
+    effect: allow
+  - action: shell
+    resource: node --test Runtime/dist/test/*.test.js *
+    effect: allow
+  - action: shell
+    resource: node --test dist/test/*.test.js
+    effect: allow
+  - action: shell
+    resource: node --test dist/test/*.test.js *
+    effect: allow
+  - action: shell
+    resource: node scripts/check-boundary.mjs
+    effect: allow
+  - action: shell
+    resource: node Runtime/scripts/check-boundary.mjs
+    effect: allow
+  - action: shell
+    resource: bun run check:a-max
+    effect: allow
+  - action: shell
+    resource: node --test * -e*
+    effect: deny
+  - action: shell
+    resource: node --test * --eval*
+    effect: deny
+  - action: shell
+    resource: node --test * --import*
+    effect: deny
+  - action: shell
+    resource: node --test * --require*
+    effect: deny
+  - action: shell
+    resource: node --test * -r*
+    effect: deny
+  - action: shell
+    resource: node --test * --loader*
+    effect: deny
+  - action: shell
+    resource: node --test * --experimental-loader*
+    effect: deny
+  - action: shell
     resource: find * -delete*
     effect: deny
   - action: external_directory
@@ -222,7 +318,7 @@ Work autonomously within the parent's authorized scope. For exploration work, ma
 
 For command or combined work, execute only the parent's exact command(s). Do not invent, rewrite, combine, broaden, install dependencies, repair the environment, or make unrequested retries. A failure does not authorize a bypass; report the failure, blocker, and uncertainty. `not_run` is not `pass`.
 
-An allowed command is not new scope or permission to mutate source, commit, install, call a provider, or repair a failing check. If a requested command is denied, report that exact operation; do not rewrite it to evade the rule. The requesting Terra/orchestrator owns interpretation, fixes, and feature acceptance.
+An allowed command is not new scope or permission to mutate source, commit, install, call a provider, or repair a failing check. Repository checks may write generated outputs; inspect unfamiliar scripts and do not run one with unapproved side effects or competing ownership. Focused `node --test` runs accept explicit compiled test paths, not Node flags or shell expressions. If a requested command is denied, identify the exact command and tool/agent gate; do not rewrite it to evade the rule or claim that the parent is also denied. The requesting Terra/orchestrator may run it directly only if its own authority permits, never to evade a user denial or tool gate; it owns interpretation, fixes, and feature acceptance.
 
 When browser interaction is required, load the `agent-browser` skill and use its
 CLI workflow. Keep the runner read-only: browser navigation, inspection,

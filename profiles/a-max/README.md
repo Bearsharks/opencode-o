@@ -57,6 +57,19 @@ The `oc-amax` wrapper uses a dedicated OpenCode database while sharing the
 normal OpenCode authentication store. This keeps A-Max sessions separate from
 ordinary OpenCode, `opencode-o`, and `opencode-o-max`.
 
+Runner's source-edit permission is denied. Its shell allowlist covers named
+repository check/build/test scripts and a few known Node test/check entrypoints,
+not arbitrary `node`, `npm exec`, installs, or service control. Checks may write
+generated outputs: assign them only where the scripts and output paths are
+trusted and not in use by a parallel worker. An unlisted command or localhost
+HTTP diagnostic remains a requesting agent's decision within its own authority;
+Runner reports the exact gate instead of substituting a broader command.
+For focused compiled Node tests, Runner accepts explicit literal `.test.js`
+paths under `Runtime/dist/test/` from the project root or `dist/test/` from the
+Runtime directory. The plugin rejects flags and shell expressions for these
+direct `node --test` calls. Shell permissions still execute with the host user's
+authority, and named npm/bun scripts are trusted repository code, not a sandbox.
+
 ## External model/effort config
 
 A-Max can override its configured model settings from one user-owned JSON file.
