@@ -122,7 +122,7 @@ mode:
 
 ## Install oc-lite separately
 
-oc-lite is a single-primary-worker profile with one read-only Runner. The
+oc-lite is a native OpenCode V2 single-primary-worker profile with one read-only Runner. The
 Worker implements directly; Runner handles broad exploration and high-output
 verification. It has its own profile, topology plugin, installer, doctor, and
 wrapper, and does not include Terra or A-Max background execution.
@@ -134,11 +134,12 @@ oc-lite run "Hello"
 ```
 
 ```text
-worker --task--> runner
+worker --subagent--> runner
 runner           --------> none
 ```
 
-The oc-lite plugin registers no tools. It only enforces the two-agent task
+The oc-lite plugin registers no tools. It loads Worker and Runner from the
+profile even when launched from another project, and enforces the V2 subagent
 topology. The Worker prompt contains role, context management, reading
 strategy, and completion conditions; Runner keeps the read-only Max contract.
 
@@ -146,6 +147,11 @@ strategy, and completion conditions; Runner keeps the read-only Max contract.
 ./scripts/doctor/oc-lite.sh --preflight
 ./scripts/doctor/oc-lite.sh
 ```
+
+Run preflight from the project directory where you will use oc-lite. It refuses
+conflicting global/project agents, harness plugins, and inherited permissions
+before installation; full diagnostics also check the profile in an isolated V2
+server.
 
 ## Install oc-meta separately
 
@@ -425,7 +431,7 @@ For oc-lite without installing its wrapper:
 
 ```bash
 bun run check:oc-lite
-OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode
+OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode
 ```
 
 For oc-meta without installing its wrappers:
@@ -467,8 +473,7 @@ OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD" opencode debug ag
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent HTOrchestrator
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent terraworker
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/max" opencode debug agent runner
-OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent worker
-OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-lite" opencode debug agent runner
+./scripts/doctor/oc-lite.sh  # V2 API verifies both agents, permissions, and the active plugin in isolation
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-meta" opencode debug agent MetaOrchestrator
 OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_CONFIG_DIR="$PWD/profiles/oc-meta" opencode debug agent runner
 OPENCODE_DB=:memory: OPENCODE_EXPERIMENTAL_LSP_TOOL=true OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true OPENCODE_CONFIG_DIR="$PWD/profiles/a-max" opencode debug agent HTOrchestrator

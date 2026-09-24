@@ -2,7 +2,6 @@
 description: Read-only exploration and command runner that protects parent
   context by returning evidence-backed, compact results.
 mode: subagent
-hidden: true
 model: openai/gpt-6-luna-fast
 permissions:
   - action: codex-self-improvement_skill_list

@@ -1,120 +1,315 @@
 ---
 description: Read-only exploration and command runner that protects the worker's context by returning evidence-backed, compact results.
 mode: subagent
-hidden: true
 model: opencode-go/muse-spark-1.3-contributor
-reasoningEffort: medium
-textVerbosity: low
-permission:
-  codex-self-improvement_skill_list: deny
-  codex-self-improvement_skill_view: allow
-  codex-self-improvement_skill_manage: deny
-  skill:
-    agent-browser: allow
-    orca-cli: allow
-  read:
-    "*": allow
-    "*.env": deny
-    "*.env.*": deny
-    "*.env.example": allow
-    "**/.env": deny
-    "**/.env.*": deny
-    "**/.env.example": allow
-    "**/*credentials*": deny
-    "**/*secret*": deny
-    "~/.ssh/**": deny
-    "~/.gnupg/**": deny
-    "~/.aws/**": deny
-    "~/.config/gh/hosts.yml": deny
-    "~/.local/share/opencode/auth.json": deny
-  glob: allow
-  grep: allow
-  list: allow
-  lsp: allow
-  bash:
-    "*": allow
-    agent-browser *: allow
-    npx agent-browser *: allow
-    orca *: deny
-    orca-dev *: deny
-    orca-ide *: deny
-    patch*: deny
-    apply_patch*: deny
-    git add*: deny
-    git am*: deny
-    git apply*: deny
-    git commit*: deny
-    git merge*: deny
-    git rebase*: deny
-    git cherry-pick*: deny
-    git revert*: deny
-    git push*: deny
-    git pull*: deny
-    git fetch*: deny
-    git switch*: deny
-    git checkout*: deny
-    git reset*: deny
-    git restore*: deny
-    git clean*: deny
-    git stash*: deny
-    git update-ref*: deny
-    git branch *-d*: deny
-    git branch *-D*: deny
-    git tag *-d*: deny
-    gh * create*: deny
-    gh * edit*: deny
-    gh * comment*: deny
-    gh * review*: deny
-    gh * merge*: deny
-    gh * close*: deny
-    gh * reopen*: deny
-    gh * delete*: deny
-    gh * upload*: deny
-    gh pr checkout*: deny
-    gh run cancel*: deny
-    gh run rerun*: deny
-    gh workflow run*: deny
-    gh secret*: deny
-    gh auth login*: deny
-    gh auth logout*: deny
-    gh auth refresh*: deny
-    gh auth setup-git*: deny
-    npm publish*: deny
-    pnpm publish*: deny
-    bun publish*: deny
-    cargo publish*: deny
-    opencode *: deny
-    codex *: deny
-    claude *: deny
-    gemini *: deny
-    aider *: deny
-    opencode --help*: allow
-    codex --help*: allow
-    claude --help*: allow
-    gemini --help*: allow
-    aider --help*: allow
-    cat *.env*: deny
-    cat */.env*: deny
-    cat *credentials*: deny
-    cat *secret*: deny
-    cat ~/.ssh/*: deny
-    cat ~/.gnupg/*: deny
-    cat ~/.aws/*: deny
-  external_directory:
-    "*": allow
-    "~/.ssh/**": deny
-    "~/.gnupg/**": deny
-    "~/.aws/**": deny
-    "~/.config/gh/hosts.yml": deny
-    "~/.local/share/opencode/auth.json": deny
-  edit: deny
-  write: deny
-  apply_patch: deny
-  task: deny
-  webfetch: allow
-  websearch: allow
-  harness_state: deny
-  investigate: deny
+request:
+  body:
+    reasoningEffort: medium
+    textVerbosity: low
+permissions:
+  - action: codex-self-improvement_skill_list
+    resource: "*"
+    effect: deny
+  - action: codex-self-improvement_skill_view
+    resource: "*"
+    effect: allow
+  - action: codex-self-improvement_skill_manage
+    resource: "*"
+    effect: deny
+  - action: skill
+    resource: agent-browser
+    effect: allow
+  - action: skill
+    resource: orca-cli
+    effect: allow
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: read
+    resource: "*.env"
+    effect: deny
+  - action: read
+    resource: "*.env.*"
+    effect: deny
+  - action: read
+    resource: "*.env.example"
+    effect: allow
+  - action: read
+    resource: "**/.env"
+    effect: deny
+  - action: read
+    resource: "**/.env.*"
+    effect: deny
+  - action: read
+    resource: "**/.env.example"
+    effect: allow
+  - action: read
+    resource: "**/*credentials*"
+    effect: deny
+  - action: read
+    resource: "**/*secret*"
+    effect: deny
+  - action: read
+    resource: ~/.ssh/**
+    effect: deny
+  - action: read
+    resource: ~/.gnupg/**
+    effect: deny
+  - action: read
+    resource: ~/.aws/**
+    effect: deny
+  - action: read
+    resource: ~/.config/gh/hosts.yml
+    effect: deny
+  - action: read
+    resource: ~/.local/share/opencode/auth.json
+    effect: deny
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: agent-browser *
+    effect: allow
+  - action: shell
+    resource: npx agent-browser *
+    effect: allow
+  - action: shell
+    resource: orca *
+    effect: deny
+  - action: shell
+    resource: orca-dev *
+    effect: deny
+  - action: shell
+    resource: orca-ide *
+    effect: deny
+  - action: shell
+    resource: patch*
+    effect: deny
+  - action: shell
+    resource: apply_patch*
+    effect: deny
+  - action: shell
+    resource: git add*
+    effect: deny
+  - action: shell
+    resource: git am*
+    effect: deny
+  - action: shell
+    resource: git apply*
+    effect: deny
+  - action: shell
+    resource: git commit*
+    effect: deny
+  - action: shell
+    resource: git merge*
+    effect: deny
+  - action: shell
+    resource: git rebase*
+    effect: deny
+  - action: shell
+    resource: git cherry-pick*
+    effect: deny
+  - action: shell
+    resource: git revert*
+    effect: deny
+  - action: shell
+    resource: git push*
+    effect: deny
+  - action: shell
+    resource: git pull*
+    effect: deny
+  - action: shell
+    resource: git fetch*
+    effect: deny
+  - action: shell
+    resource: git switch*
+    effect: deny
+  - action: shell
+    resource: git checkout*
+    effect: deny
+  - action: shell
+    resource: git reset*
+    effect: deny
+  - action: shell
+    resource: git restore*
+    effect: deny
+  - action: shell
+    resource: git clean*
+    effect: deny
+  - action: shell
+    resource: git stash*
+    effect: deny
+  - action: shell
+    resource: git update-ref*
+    effect: deny
+  - action: shell
+    resource: git branch *-d*
+    effect: deny
+  - action: shell
+    resource: git branch *-D*
+    effect: deny
+  - action: shell
+    resource: git tag *-d*
+    effect: deny
+  - action: shell
+    resource: gh * create*
+    effect: deny
+  - action: shell
+    resource: gh * edit*
+    effect: deny
+  - action: shell
+    resource: gh * comment*
+    effect: deny
+  - action: shell
+    resource: gh * review*
+    effect: deny
+  - action: shell
+    resource: gh * merge*
+    effect: deny
+  - action: shell
+    resource: gh * close*
+    effect: deny
+  - action: shell
+    resource: gh * reopen*
+    effect: deny
+  - action: shell
+    resource: gh * delete*
+    effect: deny
+  - action: shell
+    resource: gh * upload*
+    effect: deny
+  - action: shell
+    resource: gh pr checkout*
+    effect: deny
+  - action: shell
+    resource: gh run cancel*
+    effect: deny
+  - action: shell
+    resource: gh run rerun*
+    effect: deny
+  - action: shell
+    resource: gh workflow run*
+    effect: deny
+  - action: shell
+    resource: gh secret*
+    effect: deny
+  - action: shell
+    resource: gh auth login*
+    effect: deny
+  - action: shell
+    resource: gh auth logout*
+    effect: deny
+  - action: shell
+    resource: gh auth refresh*
+    effect: deny
+  - action: shell
+    resource: gh auth setup-git*
+    effect: deny
+  - action: shell
+    resource: npm publish*
+    effect: deny
+  - action: shell
+    resource: pnpm publish*
+    effect: deny
+  - action: shell
+    resource: bun publish*
+    effect: deny
+  - action: shell
+    resource: cargo publish*
+    effect: deny
+  - action: shell
+    resource: opencode *
+    effect: deny
+  - action: shell
+    resource: codex *
+    effect: deny
+  - action: shell
+    resource: claude *
+    effect: deny
+  - action: shell
+    resource: gemini *
+    effect: deny
+  - action: shell
+    resource: aider *
+    effect: deny
+  - action: shell
+    resource: opencode --help*
+    effect: allow
+  - action: shell
+    resource: codex --help*
+    effect: allow
+  - action: shell
+    resource: claude --help*
+    effect: allow
+  - action: shell
+    resource: gemini --help*
+    effect: allow
+  - action: shell
+    resource: aider --help*
+    effect: allow
+  - action: shell
+    resource: cat *.env*
+    effect: deny
+  - action: shell
+    resource: cat */.env*
+    effect: deny
+  - action: shell
+    resource: cat *credentials*
+    effect: deny
+  - action: shell
+    resource: cat *secret*
+    effect: deny
+  - action: shell
+    resource: cat ~/.ssh/*
+    effect: deny
+  - action: shell
+    resource: cat ~/.gnupg/*
+    effect: deny
+  - action: shell
+    resource: cat ~/.aws/*
+    effect: deny
+  - action: external_directory
+    resource: "*"
+    effect: allow
+  - action: external_directory
+    resource: ~/.ssh/**
+    effect: deny
+  - action: external_directory
+    resource: ~/.gnupg/**
+    effect: deny
+  - action: external_directory
+    resource: ~/.aws/**
+    effect: deny
+  - action: external_directory
+    resource: ~/.config/gh/hosts.yml
+    effect: deny
+  - action: external_directory
+    resource: ~/.local/share/opencode/auth.json
+    effect: deny
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: webfetch
+    resource: "*"
+    effect: allow
+  - action: websearch
+    resource: "*"
+    effect: allow
+  - action: harness_state
+    resource: "*"
+    effect: deny
+  - action: investigate
+    resource: "*"
+    effect: deny
 ---
 
 You are Runner, a read-only subagent that protects the worker's context by handling broad local or external exploration, research, and high-volume command output. Return useful, compact results.

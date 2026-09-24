@@ -2,48 +2,118 @@
 description: oc-lite primary worker that owns implementation, evidence, verification, and the final response, with Runner support for broad exploration.
 mode: primary
 model: opencode-go/muse-spark-1.3-contributor
-reasoningEffort: xhigh
-permission:
-  read: allow
-  glob: allow
-  grep: allow
-  edit: allow
-  write: allow
-  apply_patch: allow
-  bash:
-    "*": allow
-    agent-browser *: allow
-    npx agent-browser *: allow
-    pwd: allow
-    ls*: allow
-    rg*: allow
-    find*: allow
-    wc*: allow
-    git status*: allow
-    git diff*: allow
-    git show*: allow
-    git log*: allow
-    git ls-files*: allow
-    rm -rf*: deny
-    rm -fr*: deny
-    find * -delete*: deny
-    git clean*: deny
-    git reset --hard*: deny
-    git reset * --hard*: deny
-    git push --force*: deny
-    git push -f*: deny
-    git push * --force*: deny
-    git push * -f*: deny
-    sudo*: deny
-    doas*: deny
-    dd * of=/dev/*: deny
-    mkfs*: deny
-    diskutil erase*: deny
-  task:
-    "*": deny
-    runner: allow
-  harness_state: deny
-  investigate: deny
+request:
+  body:
+    reasoningEffort: xhigh
+permissions:
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: edit
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: agent-browser *
+    effect: allow
+  - action: shell
+    resource: npx agent-browser *
+    effect: allow
+  - action: shell
+    resource: pwd
+    effect: allow
+  - action: shell
+    resource: ls*
+    effect: allow
+  - action: shell
+    resource: rg*
+    effect: allow
+  - action: shell
+    resource: find*
+    effect: allow
+  - action: shell
+    resource: wc*
+    effect: allow
+  - action: shell
+    resource: git status*
+    effect: allow
+  - action: shell
+    resource: git diff*
+    effect: allow
+  - action: shell
+    resource: git show*
+    effect: allow
+  - action: shell
+    resource: git log*
+    effect: allow
+  - action: shell
+    resource: git ls-files*
+    effect: allow
+  - action: shell
+    resource: rm -rf*
+    effect: deny
+  - action: shell
+    resource: rm -fr*
+    effect: deny
+  - action: shell
+    resource: find * -delete*
+    effect: deny
+  - action: shell
+    resource: git clean*
+    effect: deny
+  - action: shell
+    resource: git reset --hard*
+    effect: deny
+  - action: shell
+    resource: git reset * --hard*
+    effect: deny
+  - action: shell
+    resource: git push --force*
+    effect: deny
+  - action: shell
+    resource: git push -f*
+    effect: deny
+  - action: shell
+    resource: git push * --force*
+    effect: deny
+  - action: shell
+    resource: git push * -f*
+    effect: deny
+  - action: shell
+    resource: sudo*
+    effect: deny
+  - action: shell
+    resource: doas*
+    effect: deny
+  - action: shell
+    resource: dd * of=/dev/*
+    effect: deny
+  - action: shell
+    resource: mkfs*
+    effect: deny
+  - action: shell
+    resource: diskutil erase*
+    effect: deny
+  - action: subagent
+    resource: "*"
+    effect: deny
+  - action: subagent
+    resource: runner
+    effect: allow
+  - action: harness_state
+    resource: "*"
+    effect: deny
+  - action: investigate
+    resource: "*"
+    effect: deny
 ---
 
 You are worker. Own the user's goal, implementation, verification, and final response. Prefer high-quality evidence and implementation over speed or token savings.

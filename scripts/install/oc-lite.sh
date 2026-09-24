@@ -22,6 +22,14 @@ fi
 WRAPPER="$BIN_DIR/oc-lite"
 created_wrapper=0
 
+# Refuse unmanaged paths before any dependency installation or wrapper write.
+if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
+  if [[ ! -f "$WRAPPER" ]] || ! grep -Fqx "# oc-lite-root: $ROOT" "$WRAPPER"; then
+    printf 'Refusing to overwrite an unmanaged path: %s\n' "$WRAPPER" >&2
+    exit 1
+  fi
+fi
+
 write_wrapper() {
   local target="$1"
   {
@@ -29,7 +37,6 @@ write_wrapper() {
     printf '# oc-lite-root: %s\n' "$ROOT"
     printf 'set -euo pipefail\n'
     printf 'OPENCODE_O_LITE_ROOT=%q\n' "$ROOT"
-    printf 'export OPENCODE_EXPERIMENTAL_LSP_TOOL=true\n'
     printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite" exec opencode "$@"\n'
   } >"$target"
   chmod 755 "$target"
@@ -47,10 +54,6 @@ printf '\nRunning oc-lite checks...\n'
 mkdir -p "$BIN_DIR"
 
 if [[ -e "$WRAPPER" || -L "$WRAPPER" ]]; then
-  if [[ ! -f "$WRAPPER" ]] || ! grep -Fqx "# oc-lite-root: $ROOT" "$WRAPPER"; then
-    printf 'Refusing to overwrite an unmanaged path: %s\n' "$WRAPPER" >&2
-    exit 1
-  fi
   temporary="$(mktemp "$BIN_DIR/.oc-lite.XXXXXX")"
   write_wrapper "$temporary"
   if cmp -s "$temporary" "$WRAPPER"; then

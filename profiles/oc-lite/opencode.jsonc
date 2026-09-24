@@ -1,27 +1,28 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "subagent_depth": 1,
+  "experimental": { "subagent_depth": 1 },
   "default_agent": "worker",
   "compaction": {
     "auto": true,
-    "reserved": 25600
+    "buffer": 25600
   },
-  "agent": {
+  "agents": {
     "build": {
-      "disable": true
+      "disabled": true
     },
     "plan": {
-      "disable": true
+      "disabled": true
     },
     "general": {
-      "disable": true
+      "disabled": true
     },
     "explore": {
-      "disable": true
+      "disabled": true
     }
   },
-  "permission": {
-    "harness_state": "deny",
-    "investigate": "deny"
-  }
+  "plugins": ["./plugins/oc-lite-v2"],
+  "permissions": [
+    { "action": "harness_state", "resource": "*", "effect": "deny" },
+    { "action": "investigate", "resource": "*", "effect": "deny" }
+  ]
 }

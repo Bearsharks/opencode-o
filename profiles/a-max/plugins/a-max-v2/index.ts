@@ -135,6 +135,7 @@ export default Plugin.define({
     const runtimes = new Map<string, RuntimeStatus>()
     const pending = new Map<string, { description: string; scope?: string }>()
     const early = new Map<string, { status: CardStatus; note?: string }>()
+    const active = new Set<string>()
     const wokenFor = new Map<string, string>()
 
     async function recoverParentOnIdle(sessionID: string) {
@@ -273,6 +274,16 @@ export default Plugin.define({
       card.updatedAt = Date.now()
       card.note = note
     }
+    function resume(sessionID: string) {
+      active.add(sessionID)
+      early.delete(sessionID)
+      const card = cards.get(sessionID)
+      if (!card) return
+      // A continuation invalidates even an earlier evidence-based acceptance.
+      card.status = "working"
+      card.note = undefined
+      card.updatedAt = Date.now()
+    }
     function own(sessionID: string, parent: string) {
       const card = cards.get(sessionID)
       if (!card || card.parentSessionID !== parent)
@@ -354,6 +365,11 @@ export default Plugin.define({
           authorized(context.agent)
           const args = record(raw)
           const card = own(String(args.session_id), context.sessionID)
+          if (
+            (args.status === "review" || args.status === "done") &&
+            active.has(card.sessionID)
+          )
+            throw new Error(`${card.sessionID} is still running`)
           if (args.status === "done" && card.status !== "review")
             throw new Error(`${card.sessionID} must be in Review before Done`)
           transition(card.sessionID, args.status as CardStatus, text(args.note))
@@ -429,8 +445,7 @@ export default Plugin.define({
       if (child !== "terraworker") return
       const existing = text(args.sessionID) || text(args.task_id)
       if (existing && cards.has(existing)) {
-        transition(existing, "working")
-        early.delete(existing)
+        resume(existing)
       }
       pending.set(`${event.sessionID}:${event.id}`, {
         description: text(args.description) || "Terra task",
@@ -471,14 +486,22 @@ export default Plugin.define({
       const now = Date.now()
       const previous = cards.get(sessionID)
       const terminal = early.get(sessionID)
+      // The background tool returns before its child finishes. Even if the
+      // started event was missed, this card is active until a terminal event.
+      if (!terminal && (!previous || previous.status === "working"))
+        active.add(sessionID)
       cards.set(sessionID, {
         sessionID,
         parentSessionID: event.sessionID,
         description:
           captured?.description || previous?.description || "Terra task",
         scope: captured?.scope || previous?.scope,
-        status: terminal?.status || "working",
-        note: terminal?.note,
+        status: active.has(sessionID)
+          ? "working"
+          : terminal?.status || previous?.status || "working",
+        note: active.has(sessionID)
+          ? undefined
+          : terminal?.note || previous?.note,
         startedAt: previous?.startedAt || now,
         updatedAt: now,
       })
@@ -493,30 +516,38 @@ export default Plugin.define({
         })) {
           const data = record(event.data)
           const sessionID = text(data.sessionID)
+          if (event.type === "session.execution.started" && sessionID) {
+            if (cards.has(sessionID) || pending.size) resume(sessionID)
+          }
+          if (event.type === "session.execution.succeeded" && sessionID) {
+            active.delete(sessionID)
+            // Completion is a V2 execution event, not a guarantee of an idle
+            // status event. The child may finish before execute.after registers it.
+            if (cards.has(sessionID) || pending.size)
+              transition(sessionID, "review")
+          }
           if (event.type === "session.status" && sessionID) {
             const status = text(record(data.status).type) as RuntimeStatus
             runtimes.set(sessionID, status)
-            if (
-              status === "busy" &&
-              cards.has(sessionID) &&
-              cards.get(sessionID)?.status !== "done"
-            )
-              transition(sessionID, "working")
-            if (status === "idle" && cards.has(sessionID))
-              transition(sessionID, "review")
+            if (status === "busy" && cards.has(sessionID)) resume(sessionID)
           }
           if (event.type === "session.idle" && sessionID) {
             runtimes.set(sessionID, "idle")
-            if (cards.has(sessionID)) transition(sessionID, "review")
-            else if (pending.size) early.set(sessionID, { status: "review" })
             void recoverParentOnIdle(sessionID)
           }
-          if (event.type === "session.execution.failed" && sessionID)
-            transition(
-              sessionID,
-              "blocked",
-              String(data.error || "Background task failed"),
-            )
+          if (
+            (event.type === "session.execution.failed" ||
+              event.type === "session.execution.interrupted") &&
+            sessionID
+          ) {
+            active.delete(sessionID)
+            if (cards.has(sessionID) || pending.size)
+              transition(
+                sessionID,
+                "blocked",
+                String(data.error || data.reason || "Background task failed"),
+              )
+          }
           if (event.type === "session.deleted") {
             const id = text(record(data.info).id) || sessionID
             if (id && cards.has(id))
@@ -534,6 +565,7 @@ export default Plugin.define({
       runtimes.clear()
       pending.clear()
       early.clear()
+      active.clear()
       wokenFor.clear()
     }
   },

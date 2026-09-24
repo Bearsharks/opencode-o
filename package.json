@@ -8,7 +8,7 @@
     "check:a-max": "bash -n scripts/install/a-max.sh scripts/doctor/a-max.sh scripts/doctor/a-max-v2.sh && bun --check profiles/a-max/plugins/_a-max-v1/a-max.ts && bun --check profiles/a-max/plugins/a-max-v2/index.ts && bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts && bun profiles/a-max/plugins/a-max-v2/a-max.smoke.ts",
     "check:b-max": "bash -n scripts/install/b-max.sh scripts/doctor/b-max.sh && bun --check profiles/b-max/plugins/b-max.ts && bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "check:max": "bash -n scripts/install/max.sh scripts/doctor/max.sh && bun --check profiles/max/plugins/max-topology.ts && bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
-    "check:oc-lite": "bash -n scripts/install/oc-lite.sh scripts/doctor/oc-lite.sh && bun --check profiles/oc-lite/plugins/oc-lite-topology.ts && bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",
+    "check:oc-lite": "bash -n scripts/install/oc-lite.sh scripts/doctor/oc-lite.sh profiles/oc-lite/preflight.fixtures.sh && bun --check profiles/oc-lite/plugins/oc-lite-v2/index.ts && bun profiles/oc-lite/plugins/oc-lite-v2/oc-lite.smoke.ts && bash profiles/oc-lite/preflight.fixtures.sh",
     "check:oc-meta": "bash -n scripts/install/oc-meta.sh scripts/doctor/oc-meta.sh scripts/doctor/oc-meta-orca.sh scripts/doctor/oc-meta-orca.fixtures.sh scripts/uninstall/oc-meta.sh && bun --check profiles/oc-meta/plugins/oc-meta-topology.ts && bun profiles/oc-meta/plugins/_oc-meta-topology-v1/oc-meta-topology.smoke.ts && bash scripts/doctor/oc-meta-orca.fixtures.sh",
     "doctor": "./scripts/doctor/default.sh",
     "doctor:a-max": "./scripts/doctor/a-max.sh",
@@ -19,11 +19,13 @@
     "test:a-max": "bun profiles/a-max/plugins/_a-max-v1/a-max.smoke.ts && bun profiles/a-max/plugins/a-max-v2/a-max.smoke.ts",
     "test:b-max": "bun profiles/b-max/plugins/_b-max-v1/b-max.smoke.ts",
     "test:max": "bun profiles/max/plugins/_max-topology-v1/max-topology.smoke.ts",
-    "test:oc-lite": "bun profiles/oc-lite/plugins/_oc-lite-topology-v1/oc-lite-topology.smoke.ts",
+    "test:oc-lite": "bun profiles/oc-lite/plugins/oc-lite-v2/oc-lite.smoke.ts",
     "test:oc-meta": "bun profiles/oc-meta/plugins/_oc-meta-topology-v1/oc-meta-topology.smoke.ts",
     "test": "bun plugins/_harness-state-v1/harness-state.smoke.ts"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "1.18.4"
+    "@opencode-ai/plugin": "1.18.4",
+    "@opencode/plugin": "2.0.14",
+    "yaml": "2.9.1"
   }
 }
