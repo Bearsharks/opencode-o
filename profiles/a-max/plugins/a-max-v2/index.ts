@@ -23,6 +23,16 @@ const children: Record<string, readonly string[]> = {
   terraworker: ["runner"],
   runner: [],
 }
+// Shell wildcards match arbitrary characters, not filename tokens. Keep the
+// Runner's focused Node test exception to literal compiled test filenames.
+const focusedTestPath = String.raw`(?:Runtime/)?dist/test/(?:[A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\.test\.js`
+const focusedTestCommand = new RegExp(
+  `^node --test ${focusedTestPath}(?: ${focusedTestPath})*$`,
+)
+const knownNodeTests = new Set([
+  "node --test Tools/launcher.test.mjs",
+  "node --test scripts/check-portable-paths.test.mjs",
+])
 const contract = `## A-Max asynchronous delegation
 
 - Dispatch independent terraworker scopes using the subagent tool with background: true and disjoint edit scopes. Runner is foreground only.
@@ -433,6 +443,14 @@ export default Plugin.define({
     })
 
     await ctx.tool.hook("execute.before", (event) => {
+      if ((event.tool === "shell" || event.tool === "bash") && event.agent === "runner") {
+        const command = record(event.input).command
+        if (
+          typeof command === "string" && command.includes("node --test") &&
+          !knownNodeTests.has(command) && !focusedTestCommand.test(command)
+        )
+          throw new Error("Runner node --test accepts explicit literal compiled test paths only")
+      }
       if (event.tool !== "subagent") return
       const args = record(event.input)
       const parent = event.agent
