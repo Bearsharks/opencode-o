@@ -196,6 +196,9 @@ permissions:
   - action: shell
     resource: kill -KILL -1*
     effect: deny
+  - action: shell
+    resource: npm run graft:setup
+    effect: ask
   - action: subagent
     resource: "*"
     effect: deny
