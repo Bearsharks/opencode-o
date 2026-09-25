@@ -47,6 +47,24 @@ permissions:
     resource: "*"
     effect: deny
   - action: shell
+    resource: npm run graft -- build *
+    effect: allow
+  - action: shell
+    resource: npm run graft -- ask *
+    effect: allow
+  - action: shell
+    resource: npm run graft -- grep *
+    effect: allow
+  - action: shell
+    resource: npm run graft -- skeleton *
+    effect: allow
+  - action: shell
+    resource: npm run graft -- callers *
+    effect: allow
+  - action: shell
+    resource: npm run graft -- check *
+    effect: allow
+  - action: shell
     resource: gh api*
     effect: allow
   - action: shell

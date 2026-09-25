@@ -129,9 +129,9 @@ try {
   // The plugin's agent.transform above loads these real Markdown permissions.
   // Mirror V2's documented ordered, whole-value wildcard resolution, not a
   // grep for the presence of an allow rule (a later deny would override it).
-  function permission(action: string, resource: string) {
+  function permission(agent: any, action: string, resource: string) {
     let result = "ask"
-    for (const rule of runner.permissions) {
+    for (const rule of agent.permissions) {
       if (rule.action !== action) continue
       const pattern = String(rule.resource)
       const expression = new RegExp("^" + pattern.split(/([*?])/).map((part: string) =>
@@ -178,15 +178,47 @@ try {
     "curl -fsS http://127.0.0.1:3000/health",
   ]
   for (const command of permitted)
-    assert.equal(permission("shell", command), "allow", `runner shell: ${command}`)
+    assert.equal(permission(runner, "shell", command), "allow", `runner shell: ${command}`)
   for (const command of prohibited)
-    assert.equal(permission("shell", command), "deny", `runner shell: ${command}`)
+    assert.equal(permission(runner, "shell", command), "deny", `runner shell: ${command}`)
+  const graftCommands = ["build", "ask", "grep", "skeleton", "callers", "check"]
+  for (const [name, agent] of [["runner", runner], ["terraworker", terra]] as const)
+    assert.deepEqual(
+      agent.permissions.filter((rule: any) => rule.action === "shell" &&
+        String(rule.resource).startsWith("npm run graft -- "))
+        .map((rule: any) => [rule.resource, rule.effect]),
+      graftCommands.map((command) => [`npm run graft -- ${command} *`, "allow"]),
+      `${name} explicit Graft allows`,
+    )
+  for (const [name, agent] of [["runner", runner], ["terraworker", terra], ["HTOrchestrator", ht]] as const)
+    for (const command of graftCommands)
+      for (const suffix of ["", " sceneInputForLeave --json"])
+        assert.equal(
+          permission(agent, "shell", `npm run graft -- ${command}${suffix}`),
+          "allow", `${name} graft ${command}${suffix}`,
+        )
+  // The shell wildcard accepts options; the repository wrapper, not this
+  // permission rule, decides whether a particular option is supported.
+  assert.equal(permission(runner, "shell", "npm run graft -- build --deep"), "allow")
+  assert.equal(permission(runner, "shell", "npm run graft:setup"), "deny")
+  for (const [name, agent] of [["terraworker", terra], ["HTOrchestrator", ht]] as const) {
+    assert.ok(agent.permissions.some((rule: any) => rule.action === "shell" &&
+      rule.resource === "npm run graft:setup" && rule.effect === "ask"), `${name} explicit setup ask`)
+    assert.equal(permission(agent, "shell", "npm run graft:setup"), "ask", `${name} graft setup`)
+  }
+  for (const command of [
+    "npm run graft -- map", "npm run graft -- viz", "npm run graft -- blast",
+    "npm run graft -- init", "npm run graft -- callersx", "npm run graft --",
+    "npx graft callers sceneInputForLeave", "npm exec graft -- callers sceneInputForLeave",
+    "node node_modules/.bin/graft callers sceneInputForLeave", "npm install graft",
+  ])
+    assert.equal(permission(runner, "shell", command), "deny", `runner shell: ${command}`)
   // For separately scanned shell resources, an approved check cannot make
   // the second prohibited resource authorized (scanner itself is not mocked).
-  assert.equal(permission("shell", "npm run lint"), "allow")
-  assert.equal(permission("shell", "npm install"), "deny")
-  assert.equal(permission("edit", "src/feature.ts"), "deny")
-  assert.equal(permission("subagent", "terraworker"), "deny")
+  assert.equal(permission(runner, "shell", "npm run lint"), "allow")
+  assert.equal(permission(runner, "shell", "npm install"), "deny")
+  assert.equal(permission(runner, "edit", "src/feature.ts"), "deny")
+  assert.equal(permission(runner, "subagent", "terraworker"), "deny")
   for (const heading of ["Findings", "Commands", "Uncertainty", "Contract deviations", "Parent action"])
     assert.ok(runner.system.includes(heading), `Runner report missing ${heading}`)
   assert.equal(

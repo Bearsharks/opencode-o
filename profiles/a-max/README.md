@@ -70,6 +70,8 @@ Runtime directory. The plugin rejects flags and shell expressions for these
 direct `node --test` calls. Shell permissions still execute with the host user's
 authority, and named npm/bun scripts are trusted repository code, not a sandbox.
 
+Runner and Terra allow the repository's `npm run graft -- build|ask|grep|skeleton|callers|check` commands. Graft may write its local analysis cache; Runner's source-edit restriction still applies. `npm run graft:setup` requires approval for HTOrchestrator and Terra and remains denied for Runner. The repository wrapper owns supported options; these shell rules trust the named script and do not confine it to a particular checkout.
+
 ## External model/effort config
 
 A-Max can override its configured model settings from one user-owned JSON file.
