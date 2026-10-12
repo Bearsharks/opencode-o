@@ -19,6 +19,17 @@ function sameRule(a: { action: string; resource: string; effect: string }, b: ty
   return a.action === b.action && a.resource === b.resource && a.effect === b.effect
 }
 
+export function agentModel(value: unknown, name: string) {
+  if (value === undefined) return undefined
+  if (typeof value !== "string" || !/^[^/#\s]+\/[^#\s]+(?:#[^/#\s]+)?$/.test(value))
+    throw new Error(`oc-lite agent ${name} has invalid model; expected provider/model[#variant]`)
+  try {
+    return Model.Ref.parse(value)
+  } catch (cause) {
+    throw new Error(`oc-lite agent ${name} has invalid model ${value}`, { cause })
+  }
+}
+
 export default Plugin.define({
   id: "oc-lite-topology",
   async setup(ctx) {
@@ -34,13 +45,13 @@ export default Plugin.define({
         const front = YAML.parse(match[1])
         if (!front || !Array.isArray(front.permissions))
           throw new Error(`oc-lite agent ${name} needs native V2 permissions`)
-        return { name, front, system: markdown.slice(match[0].length).trim() }
+        return { name, front, model: agentModel(front.model, name), system: markdown.slice(match[0].length).trim() }
       }),
     )
 
     await ctx.agent.transform((editor) => {
       editor.default("worker")
-      for (const { name, front, system } of definitions) {
+      for (const { name, front, model, system } of definitions) {
         editor.update(name, (agent) => {
           if (agent.system && agent.system !== system)
             throw new Error(`oc-lite refuses conflicting ${name} agent instructions`)
@@ -58,7 +69,10 @@ export default Plugin.define({
           agent.description = front.description
           agent.mode = front.mode
           agent.hidden = front.hidden === true
-          agent.model = Model.Ref.parse(front.model)
+          // A primary without a model follows the session/UI selection. Do not
+          // leave an earlier transform's override on this agent.
+          if (model === undefined) delete agent.model
+          else agent.model = model
           for (const rule of front.permissions) {
             if (
               !agent.permissions.some((existing) => sameRule(existing, rule))
@@ -71,11 +85,13 @@ export default Plugin.define({
     })
 
     // Agent request.body is retained but not yet sent by the V2 runner.
+    // Only Runner has a request preference; Worker keeps the selected model's
+    // own defaults and variant rather than imposing a reasoning effort.
+    const runnerRequest = definitions.find((definition) => definition.name === "runner")!.front.request?.body
     await ctx.session.hook("context", (event) => {
-      if (event.agent === "worker") event.options.reasoningEffort = "xhigh"
       if (event.agent === "runner") {
-        event.options.reasoningEffort = "medium"
-        event.options.textVerbosity = "low"
+        if (runnerRequest?.reasoningEffort !== undefined) event.options.reasoningEffort = runnerRequest.reasoningEffort
+        if (runnerRequest?.textVerbosity !== undefined) event.options.textVerbosity = runnerRequest.textVerbosity
       }
     })
 

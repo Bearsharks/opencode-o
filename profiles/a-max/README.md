@@ -5,8 +5,8 @@ Run it through `oc-amax`.
 
 ```text
 HTOrchestrator --background subagent--> terraworker (zero or more, concurrently)
-HTOrchestrator --foreground subagent--> runner
-terraworker    --foreground subagent--> runner
+HTOrchestrator --foreground/background subagent--> runner (read-only)
+terraworker    --foreground/background subagent--> runner (read-only)
 ```
 
 The profile owns its `opencode.jsonc`, all three agent files, and its topology
@@ -17,13 +17,16 @@ local topology and adds the asynchronous orchestration contract and tool
 permissions. The external model/effort config described below can override
 the agents' models and reasoning effort when the plugin loads.
 
-A-Max uses OpenCode's background subagent execution. Its
-plugin tracks each background Terra child as a process-local Kanban card:
+A-Max uses OpenCode's background subagent execution. Its plugin tracks each
+background Terra child as a process-local Kanban card:
 
 - `Working`: the child is running;
 - `Review`: the child finished and awaits orchestrator verification;
 - `Done`: the orchestrator verified and accepted the result;
 - `Blocked`: the child failed or needs intervention.
+
+Runner sessions, including background ones, are read-only evidence tasks and
+do not create Terra cards.
 
 The board displays the last observed V2 session status for each card: `busy`,
 `retry`, `idle`, or `unknown`. This is independent from the Kanban lifecycle;
@@ -46,31 +49,49 @@ bodies. This is not a separate queue or persistence layer, and it does not
 cover generic OpenCode sessions without A-Max cards.
 
 There is no fixed A-Max concurrency limit. HTOrchestrator must assign disjoint
-edit scopes to parallel workers. New parallel work omits `sessionID`; continuation
-or rework reuses the card's existing `sessionID`. Runner is never asynchronous.
-Card mutations and continuations use the exact full `sessionID` from a subagent result
-or current board output. IDs are never abbreviated or fuzzy-matched, and
+edit scopes to parallel implementation workers and protect shared generated
+outputs, ports, processes, saves, and provider budgets during parallel work.
+New parallel work omits `sessionID`; continuation or rework reuses the exact
+returned `sessionID`. Runner may run in the foreground or background for bounded
+read-only exploration and checks; HTOrchestrator or Terra owns interpretation
+and implementation. Only background Terra work uses the Kanban lifecycle.
+Terra card mutations and continuations use the exact full `sessionID` from a
+subagent result or current board output. Runner continuations use the exact
+returned `sessionID`. IDs are never abbreviated or fuzzy-matched, and
 `a_max_move` takes `session_id` and returns the exact ID, description, and resulting state for
 confirmation.
 
 The `oc-amax` wrapper uses a dedicated OpenCode database while sharing the
 normal OpenCode authentication store. This keeps A-Max sessions separate from
 ordinary OpenCode, `opencode-o`, and `opencode-o-max`.
+Before isolating `XDG_CONFIG_HOME` for OpenCode, the wrapper preserves a nonempty
+`GH_CONFIG_DIR`. Otherwise, it selects the caller's original
+`$XDG_CONFIG_HOME/gh` when `hosts.yml` or `config.yml` exists there, falling
+back to `$HOME/.config/gh`. This keeps `gh` authentication available to child
+shells without changing the isolation of other XDG consumers. Existing A-Max
+processes must be restarted to inherit an updated wrapper; do not interrupt
+active sessions merely to apply this change.
 
-Runner's source-edit permission is denied. Its shell allowlist covers named
-repository check/build/test scripts and a few known Node test/check entrypoints,
-not arbitrary `node`, `npm exec`, installs, or service control. Checks may write
-generated outputs: assign them only where the scripts and output paths are
-trusted and not in use by a parallel worker. An unlisted command or localhost
-HTTP diagnostic remains a requesting agent's decision within its own authority;
-Runner reports the exact gate instead of substituting a broader command.
-For focused compiled Node tests, Runner accepts explicit literal `.test.js`
-paths under `Runtime/dist/test/` from the project root or `dist/test/` from the
-Runtime directory. The plugin rejects flags and shell expressions for these
-direct `node --test` calls. Shell permissions still execute with the host user's
-authority, and named npm/bun scripts are trusted repository code, not a sandbox.
+To check the installed wrapper without a model call, run
+`bash profiles/a-max/gh-config.fixtures.sh "$HOME/.local/bin/oc-amax" "$PWD" --live-auth`.
+For an optional read-only end-to-end check, run
+`bash profiles/a-max/gh-api.probe.sh`; it starts a private server with disposable
+data, cache, and state, checks the A-Max plugin/agent topology, then checks
+GitHub issue 145 from `/api/shell`. It inherits the caller's original
+`XDG_CONFIG_HOME`, so it can also be run under another profile's XDG setting.
 
-Runner and Terra allow the repository's `npm run graft -- build|ask|grep|skeleton|callers|check` commands. Graft may write its local analysis cache; Runner's source-edit restriction still applies. `npm run graft:setup` requires approval for HTOrchestrator and Terra and remains denied for Runner. The repository wrapper owns supported options; these shell rules trust the named script and do not confine it to a particular checkout.
+Runner is **product-read-only**, not prohibited from local execution or temporary
+writes. It shares oc-lite's [Runner authority policy](../RUNNER-POLICY.md):
+delegated builds/tests, isolated outputs, read-only SQLite diagnostics,
+task-owned loopback servers/browser checks, and requested Git fetches are
+ordinary capabilities. Shell is generally allowed with role-violation
+guardrails; there is no per-script or compiled-test-path allowlist. Core owns
+shell parsing/permissions; this topology plugin does not parse test commands.
+Product edits, Git authoring, credentials, actual provider sends and external
+publication are not authorized. These rules are not a shell/network sandbox;
+in particular shell allow cannot remedy an OS/sandbox `listen EPERM`.
+
+Runner can run delegated Graft analysis under its local verification role; Terra retains explicit allows for `npm run graft -- build|ask|grep|skeleton|callers|check`. Graft may write its local analysis cache; Runner's product-source restriction still applies. `npm run graft:setup` requires approval for HTOrchestrator and Terra and remains denied for Runner because it changes project setup. The repository wrapper owns supported options; shell rules do not confine executable code to a particular checkout.
 
 ## External model/effort config
 

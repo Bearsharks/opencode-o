@@ -1,10 +1,6 @@
 ---
 description: oc-lite primary worker that owns implementation, evidence, verification, and the final response, with Runner support for broad exploration.
 mode: primary
-model: opencode-go/muse-spark-1.3-contributor
-request:
-  body:
-    reasoningEffort: xhigh
 permissions:
   - action: read
     resource: "*"

@@ -6,7 +6,8 @@
   "session": {
     "sidebar": "auto",
     "scrollbar": false,
-    "thinking": "hide"
+    "thinking": "hide",
+    "permissions": "autoaccept"
   },
   "animations": true
 }

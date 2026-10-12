@@ -3,8 +3,6 @@
 set -euo pipefail
 
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
-OC_LITE_ROOT="$ROOT/profiles/oc-lite"
-
 if [[ "$ROOT" == *$'\n'* ]]; then
   printf 'The checkout path must not contain a newline.\n' >&2
   exit 1
@@ -37,7 +35,26 @@ write_wrapper() {
     printf '# oc-lite-root: %s\n' "$ROOT"
     printf 'set -euo pipefail\n'
     printf 'OPENCODE_O_LITE_ROOT=%q\n' "$ROOT"
-    printf 'OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite" exec opencode "$@"\n'
+    # gh follows XDG_CONFIG_HOME unless GH_CONFIG_DIR is explicitly selected.
+    # Save its existing config location before isolating OpenCode's XDG config.
+    printf 'if [[ -z "${GH_CONFIG_DIR:-}" ]]; then\n'
+    printf '  if [[ -n "${XDG_CONFIG_HOME:-}" && ( -f "$XDG_CONFIG_HOME/gh/hosts.yml" || -f "$XDG_CONFIG_HOME/gh/config.yml" ) ]]; then\n'
+    printf '    export GH_CONFIG_DIR="$XDG_CONFIG_HOME/gh"\n'
+    printf '  else\n'
+    printf '    export GH_CONFIG_DIR="$HOME/.config/gh"\n'
+    printf '  fi\n'
+    printf 'fi\n'
+    printf 'export XDG_CONFIG_HOME="$HOME/.config/opencode-o/oc-lite"\n'
+    printf 'export OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite"\n'
+    printf 'case "${1:-}" in\n'
+    printf '  run|mini|api|models) command="$1"; shift; exec opencode "$command" --standalone "$@" ;;\n'
+    printf '  auth) shift; case "${1:-}" in\n'
+    printf '    list|login|logout|switch) command="$1"; shift; exec opencode auth "$command" --standalone "$@" ;;\n'
+    printf '    *) exec opencode auth "$@" ;;\n'
+    printf '  esac ;;\n'
+    printf '  debug|plugin|service|mcp|session|serve|stats|reload|pair|acp|upgrade|update|uninstall) exec opencode "$@" ;;\n'
+    printf '  *) exec opencode --standalone "$@" ;;\n'
+    printf 'esac\n'
   } >"$target"
   chmod 755 "$target"
 }

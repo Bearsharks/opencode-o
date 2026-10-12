@@ -11,15 +11,43 @@
       "models": {
         "gpt-6-sol": {
           "limit": {
-            "context": 872000,
-            "input": 744000,
+            "context": 1000000,
+            "input": 872000,
+            "output": 128000
+          }
+        },
+        "gpt-6-sol-fast": {
+          "limit": {
+            "context": 1000000,
+            "input": 872000,
+            "output": 128000
+          }
+        },
+        "gpt-6.1-sol": {
+          "limit": {
+            "context": 1000000,
+            "input": 872000,
+            "output": 128000
+          }
+        },
+        "gpt-6.1-sol-fast": {
+          "limit": {
+            "context": 1000000,
+            "input": 872000,
             "output": 128000
           }
         },
         "gpt-6-astra": {
           "limit": {
-            "context": 872000,
-            "input": 744000,
+            "context": 728000,
+            "input": 600000,
+            "output": 128000
+          }
+        },
+        "gpt-6-astra-fast": {
+          "limit": {
+            "context": 728000,
+            "input": 600000,
             "output": 128000
           }
         }
@@ -36,5 +64,13 @@
   "permissions": [
     { "action": "harness_state", "resource": "*", "effect": "deny" },
     { "action": "investigate", "resource": "*", "effect": "deny" }
-  ]
+  ],
+  "mcp": {
+    "servers": {
+      "tldraw-dotcom": {
+        "type": "remote",
+        "url": "https://www.tldraw.com/api/app/mcp"
+      }
+    }
+  }
 }

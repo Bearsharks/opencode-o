@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -P)"
 base="$(mktemp -d "${TMPDIR:-/tmp}/oc-lite-preflight.XXXXXX")"
 trap 'rm -rf -- "$base"' EXIT
-mkdir -p "$base"/{home,config/opencode,bin,project/sub}
+mkdir -p "$base"/{home/.config/opencode-o/oc-lite/opencode,config/opencode,bin,project/sub}
 
 check() {
   local directory="$1" expectation="$2" needle="${3:-}"
@@ -30,7 +30,11 @@ check() {
 check "$base/project/sub" clean
 check "$ROOT/profiles/oc-lite" clean # Profile's own agent/plugin files are not conflicts.
 
-global="$base/config/opencode/agents/worker.md"
+# An inherited XDG config from another profile is irrelevant to the wrapper.
+printf '%s\n' '{"default_agent":"HTOrchestrator","plugins":["./plugins/a-max"]}' > "$base/config/opencode/opencode.jsonc"
+check "$base/project/sub" clean
+
+global="$base/home/.config/opencode-o/oc-lite/opencode/agents/worker.md"
 mkdir -p "$(dirname "$global")"
 printf '%s\n' '---' 'Global worker remains untouched' > "$global"
 cp "$global" "$base/sentinel"
@@ -56,7 +60,7 @@ check "$base/project/sub" conflict 'Project agent conflict'
 cmp -s "$project" "$base/sentinel"
 rm "$project"
 
-global_config="$base/config/opencode/opencode.jsonc"
+global_config="$base/home/.config/opencode-o/oc-lite/opencode/opencode.jsonc"
 printf '%s\n' '{"agents":{"worker":{"mode":"primary"}}}' > "$global_config"
 cp "$global_config" "$base/sentinel"
 check "$base/project/sub" conflict 'configured worker conflict'
@@ -82,4 +86,4 @@ check "$base/project/sub" conflict 'Project harness plugin conflict'
 rm "$base/project/.opencode/plugins/harness-state.ts"
 
 check "$base/project/sub" clean
-echo 'oc-lite-preflight-fixtures-ok: 3 clean + 8 conflict cases; installer refuses conflict; sentinels unchanged'
+echo 'oc-lite-preflight-fixtures-ok: 4 clean + 8 conflict cases; installer refuses conflict; sentinels unchanged'

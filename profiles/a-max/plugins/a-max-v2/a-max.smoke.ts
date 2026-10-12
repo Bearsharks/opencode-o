@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import plugin from "./index"
+import { checkRunnerPolicy } from "../../../runner-policy.check"
 
 const previous = process.env.OPENCODE_O_A_MAX_MODEL_CONFIG
 process.env.OPENCODE_O_A_MAX_MODEL_CONFIG = ""
@@ -135,7 +136,7 @@ try {
       if (rule.action !== action) continue
       const pattern = String(rule.resource)
       const expression = new RegExp("^" + pattern.split(/([*?])/).map((part: string) =>
-        part === "*" ? ".*" : part === "?" ? "." :
+        part === "*" ? "[\\s\\S]*" : part === "?" ? "[\\s\\S]" :
           part.replace(/[|\\{}()[\]^$+?.]/g, "\\$&")).join("") + "$")
       if (expression.test(resource) ||
         (action === "shell" && pattern.endsWith(" *") && resource === pattern.slice(0, -2)))
@@ -148,6 +149,9 @@ try {
   const permitted = [
     "npm run check", "npm run docs:check", "npm run lint", "npm run build",
     "npm run build:runtime", "npm test", "npm run test:launcher",
+    "npm run test:sqlite-start", "npm run test:sqlite-gap-resume", "npm run test:trace-gap",
+    "npm run test:historical-world", "npm run test:sqlite-migrate", "npm run test:new-check",
+    "npm run test:historical-world -- --reporter=dot",
     "npm run check:a-max", "npm run test:a-max",
     "npm --prefix Runtime run compile:core", "npm --prefix Runtime test",
     "bun run check:a-max",
@@ -162,27 +166,55 @@ try {
     "node --test dist/test/combat.test.js dist/test/inventory.test.js",
     "node --test dist/test/a.test.js dist/test/b.test.js dist/test/c.test.js",
     "node --test Runtime/dist/test/a.test.js dist/test/b.test.js Runtime/dist/test/c.test.js",
+    "node --experimental-sqlite --test Runtime/dist/test/historical-world.test.js",
+    "node --experimental-sqlite --test --test-name-pattern='P5b SQLite forks' Runtime/dist/test/sqlite-gap-resume.test.js",
+    "node --experimental-sqlite --test --test-name-pattern='P5b.* SQLite forks' Runtime/dist/test/sqlite-gap-resume.test.js",
     "node Runtime/scripts/check-boundary.mjs", "git status --short",
+    "git check-ignore -v docs/opencodegoapikey.md docs/cloudflarekey.md",
+    "git check-ignore -v docs/cloudflarekey.md docs/opencodegoapikey.md",
+    "git ls-files --error-unmatch docs/opencodegoapikey.md docs/cloudflarekey.md",
+    String.raw`git config --local --name-only --get-regexp '^(lfs|filter\.lfs|remote\..*\.lfs)'`,
+    "node -e 'console.log(1)'", "node --eval '1'", "node --eval='1'", "python3 -c 'print(1)'",
+    "python3 - <<'PY'\nprint('scan')\nPY",
+    `node -e 'Promise.all(["health","status"].map(async p => { const d = await (await fetch("http://localhost:5129/api/" + p)).json(); console.log(p, d.status); }))'`,
+    "curl -fsS http://127.0.0.1:5129/api/health", "jq '{status}'",
+    "find Runtime/dist/saves-node/images -type f -print", "sort", "head -30", "wc -l",
+    "find docs/archive docs/archieve -type f -print0",
+    "xargs -0 grep -Il '^version https://git-lfs.github.com/spec/v1$'",
+    "cd /Users/example/game", "cat Runtime/dist/report.json", "tail -n 30 Runtime/dist/runtime.log",
+    "stat Runtime/dist/saves-node/images", "lsof -nP -iTCP:5129", "ps -p 123 -o pid,stat",
   ]
   const prohibited = [
-    "npm install", "npm ci", "npm uninstall", "npm update", "npm publish",
-    "npm exec tsc", "npx tsc", "npm run setup", "npm run play",
-    "npm run image:generate", "npm run build -- --watch",
-    "node -e 'console.log(1)'", "node --eval '1'", "node <<EOF",
-    "node arbitrary.js", "bun run install", "bun run arbitrary", "python3 -c print(1)",
-    "node --test Runtime/dist/test/a.test.js --import=./evil.mjs Runtime/dist/test/b.test.js",
-    "node --test Runtime/dist/test/a.test.js -e 1 Runtime/dist/test/b.test.js",
-    "node --test dist/test/a.test.js --require=./evil.js dist/test/b.test.js",
+    "npm publish",
     "git add .", "git commit -m x", "git push", "git reset --hard",
-    "git clean -fd", "kill -9 123", "launchctl restart service",
-    "curl -fsS http://127.0.0.1:3000/health",
+    "git clean -fd", "launchctl restart service",
+    "git config --local filter.lfs.required true", "git config --local --unset lfs.url",
+    "cat .env", "cat config/credentials.json", "cat config/secrets.json",
   ]
   for (const command of permitted)
     assert.equal(permission(runner, "shell", command), "allow", `runner shell: ${command}`)
   for (const command of prohibited)
     assert.equal(permission(runner, "shell", command), "deny", `runner shell: ${command}`)
+  // V2 scans compounds into separate shell resources. This checks the rules
+  // on each expected resource, not the Core scanner itself (not mocked here).
+  const compoundResources = ["cd /Users/ck/Documents/freefy", "npm run build:runtime"]
+  assert.deepEqual(compoundResources.map((resource) => permission(runner, "shell", resource)), ["allow", "allow"])
+  const lfsPointerResources = [
+    "find docs/archive docs/archieve -type f -print0",
+    "xargs -0 grep -Il '^version https://git-lfs.github.com/spec/v1$'",
+  ]
+  assert.deepEqual(lfsPointerResources.map((resource) => permission(runner, "shell", resource)), ["allow", "allow"])
+  const historicalResources = [
+    "npm run build",
+    "node --experimental-sqlite --test --test-name-pattern='P5b SQLite forks' Runtime/dist/test/sqlite-gap-resume.test.js",
+    "npm run test:trace-gap",
+  ]
+  assert.deepEqual(historicalResources.map((resource) => permission(runner, "shell", resource)), ["allow", "allow", "allow"])
+  assert.deepEqual(["cd /Users/ck/Documents/freefy", "git push"].map((resource) =>
+    permission(runner, "shell", resource)), ["allow", "deny"])
+  assert.equal(permission(runner, "external_directory", "/Users/ck/Documents/freefy/*"), "allow")
   const graftCommands = ["build", "ask", "grep", "skeleton", "callers", "check"]
-  for (const [name, agent] of [["runner", runner], ["terraworker", terra]] as const)
+  for (const [name, agent] of [["terraworker", terra]] as const)
     assert.deepEqual(
       agent.permissions.filter((rule: any) => rule.action === "shell" &&
         String(rule.resource).startsWith("npm run graft -- "))
@@ -206,19 +238,16 @@ try {
       rule.resource === "npm run graft:setup" && rule.effect === "ask"), `${name} explicit setup ask`)
     assert.equal(permission(agent, "shell", "npm run graft:setup"), "ask", `${name} graft setup`)
   }
-  for (const command of [
-    "npm run graft -- map", "npm run graft -- viz", "npm run graft -- blast",
-    "npm run graft -- init", "npm run graft -- callersx", "npm run graft --",
-    "npx graft callers sceneInputForLeave", "npm exec graft -- callers sceneInputForLeave",
-    "node node_modules/.bin/graft callers sceneInputForLeave", "npm install graft",
-  ])
-    assert.equal(permission(runner, "shell", command), "deny", `runner shell: ${command}`)
   // For separately scanned shell resources, an approved check cannot make
   // the second prohibited resource authorized (scanner itself is not mocked).
   assert.equal(permission(runner, "shell", "npm run lint"), "allow")
-  assert.equal(permission(runner, "shell", "npm install"), "deny")
+  assert.equal(permission(runner, "shell", "git push"), "deny")
   assert.equal(permission(runner, "edit", "src/feature.ts"), "deny")
   assert.equal(permission(runner, "subagent", "terraworker"), "deny")
+  assert.equal(permission(runner, "subagent", "runner"), "deny")
+  assert.equal(permission(terra, "subagent", "runner"), "allow")
+  assert.equal(permission(terra, "subagent", "terraworker"), "deny")
+  assert.equal(permission(ht, "subagent", "runner"), "allow")
   for (const heading of ["Findings", "Commands", "Uncertainty", "Contract deviations", "Parent action"])
     assert.ok(runner.system.includes(heading), `Runner report missing ${heading}`)
   assert.equal(
@@ -243,47 +272,43 @@ try {
     tool, agent: "runner", sessionID: "runner-session", id: "shell-call",
     input: { command },
   })
+  for (const command of permitted.filter((item) => !item.startsWith("node --test")))
+    assert.doesNotThrow(() => runnerShell(command), `runner diagnostic command: ${command}`)
+  assert.doesNotThrow(() => runnerShell("find Runtime/dist/saves-node/images -type f -print | sort | head -30"))
   for (const command of permitted.filter((item) => item.startsWith("node --test")))
     assert.doesNotThrow(() => runnerShell(command), `runner focused command: ${command}`)
   assert.doesNotThrow(() => runnerShell("node --test dist/test/combat.test.js", "bash"))
-  for (const command of [
-    "node --test",
-    "node --test ",
-    "node --test --import=./evil.mjs Runtime/dist/test/a.test.js",
-    "node --test Runtime/dist/test/../../outside.test.js",
-    "node --test dist/test/a.test.js --import=./evil.mjs dist/test/b.test.js",
-    "node --test dist/test/a.test.js --require=./evil.js dist/test/b.test.js",
-    "node --test dist/test/a.test.js -r ./evil.js dist/test/b.test.js",
-    "node --test Runtime/dist/test/$(node -e '1').test.js",
-    "node --test Runtime/dist/test/a.test.js && node -e '1'",
-    "node --test Runtime/dist/test/a.test.js | cat",
-    "node --test Runtime/dist/test/a.test.js; node -e '1'",
-    "npm run lint; node --test Runtime/dist/test/a.test.js",
-  ])
-    for (const tool of ["shell", "bash"])
-      assert.throws(() => runnerShell(command, tool), /literal compiled test paths/, `${tool}: ${command}`)
-  assert.throws(
-    () =>
-      before({
-        tool: "subagent",
-        agent: "runner",
-        sessionID: "parent",
-        input: { agent: "terraworker" },
-        id: "call-no",
-      }),
-    /topology blocks/,
-  )
-  assert.throws(
-    () =>
-      before({
-        tool: "subagent",
-        agent: "HTOrchestrator",
-        sessionID: "parent",
-        input: { agent: "runner", background: true },
-        id: "call-runner",
-      }),
-    /foreground/,
-  )
+  assert.doesNotThrow(() => runnerShell(historicalResources.join(" && ")))
+  await checkRunnerPolicy((action, resource) => permission(runner, action, resource), runnerShell)
+  for (const child of ["terraworker", "runner"])
+    for (const background of [false, true])
+      assert.throws(
+        () => before({
+          tool: "subagent", agent: "runner", sessionID: "runner-session",
+          input: { agent: child, background }, id: `call-no-${child}-${background}`,
+        }),
+        /topology blocks/,
+      )
+  // Both authorized parents can use Runner synchronously or asynchronously;
+  // the native subagent tool owns execution, while A-Max cards remain Terra-only.
+  for (const [agent, sessionID] of [["HTOrchestrator", "parent"], ["terraworker", "terra-parent"]]) {
+    for (const background of [false, true]) {
+      const id = `call-runner-${agent}-${background}`
+      const input = { agent: "runner", background, description: "Read-only search" }
+      assert.doesNotThrow(() => before({ tool: "subagent", agent, sessionID, input, id }))
+      after({
+        tool: "subagent", agent, sessionID, id, status: "completed", input,
+        result: { content: "Background sessionID: ses_runner", metadata: { sessionID: "ses_runner" } },
+      })
+    }
+  }
+  await emit("session.execution.started", { sessionID: "ses_runner" })
+  await emit("session.execution.succeeded", { sessionID: "ses_runner" })
+  const noRunnerCard = await tools.get("a_max_board").execute({ include_done: true }, {
+    agent: "HTOrchestrator", sessionID: "parent",
+  })
+  assert.match(noRunnerCard.content, /A-Max Kanban \(0 cards\)/)
+  assert.doesNotMatch(noRunnerCard.content, /ses_runner/)
   before({
     tool: "subagent",
     agent: "HTOrchestrator",
