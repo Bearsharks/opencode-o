@@ -30,6 +30,14 @@ write_wrapper() {
     printf 'set -euo pipefail\n'
     printf 'OPENCODE_O_A_MAX_ROOT=%q\n' "$ROOT"
     printf 'export OPENCODE_DB=opencode-a-max.db\n'
+    # gh otherwise follows the XDG home below and loses the caller's auth.
+    printf 'if [[ -z "${GH_CONFIG_DIR:-}" ]]; then\n'
+    printf '  if [[ -n "${XDG_CONFIG_HOME:-}" && ( -f "$XDG_CONFIG_HOME/gh/hosts.yml" || -f "$XDG_CONFIG_HOME/gh/config.yml" ) ]]; then\n'
+    printf '    export GH_CONFIG_DIR="$XDG_CONFIG_HOME/gh"\n'
+    printf '  else\n'
+    printf '    export GH_CONFIG_DIR="$HOME/.config/gh"\n'
+    printf '  fi\n'
+    printf 'fi\n'
     printf 'if [[ -z "${OPENCODE_O_A_MAX_MODEL_CONFIG+x}" ]]; then\n'
     printf '  old_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"\n'
     printf '  external_model="$old_config_home/opencode/a-max-model.json"\n'
@@ -40,7 +48,7 @@ write_wrapper() {
     printf 'unset OPENCODE_CONFIG_DIR\n'
     printf 'case "${1:-}" in\n'
     printf '  run|mini|api|models) command="$1"; shift; exec opencode "$command" --standalone "$@" ;;\n'
-    printf '  debug|plugin|service|auth|mcp|session) exec opencode "$@" ;;\n'
+    printf '  debug|plugin|service|auth|mcp|session|serve) exec opencode "$@" ;;\n'
     printf '  *) exec opencode --standalone "$@" ;;\n'
     printf 'esac\n'
   } >"$target"

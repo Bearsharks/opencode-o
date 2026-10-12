@@ -9,14 +9,16 @@
 
 Today, A-Max uses process-local cards for background Terra work. A card moves
 through `Working`, `Review`, `Done`, or `Blocked`; the orchestrator reviews a
-result before marking it `Done`. Terra may run in the background, while Runner
-is always a foreground task. Parallel work relies on prompt-level disjoint edit
-scopes, and A-Max has no fixed concurrency cap. These are current behavioral
-contracts, not features supplied by the proposed design.
+result before marking it `Done`. Terra may run in the background; Runner may
+run foreground or background for bounded read-only evidence tasks without
+creating Terra cards. Parallel work relies on disjoint edit scopes and protected
+shared build outputs, ports, saves, and provider budgets. A-Max has no fixed
+concurrency cap. These are current behavioral contracts, not features supplied
+by the proposed design.
 
 The proposal preserves those contracts. In particular, a future strategy must
 not treat a background completion as accepted work, assume isolated worktrees,
-or make Runner asynchronous.
+or treat Runner's evidence tasks as Terra implementation cards.
 
 ## Proposed records
 
@@ -152,9 +154,9 @@ Each proposed packet should contain only the information needed by its role:
 - **Terra:** one bounded edit or investigation scope, applicable non-negotiable
   rules, relevant files and evidence, handoff expectations, and its required
   verification. It receives no authority to accept its own result.
-- **Runner:** a foreground verification question, acceptance criteria,
-  relevant changed scope, and commands or observations to collect. It is not a
-  background worker in this proposal.
+- **Runner:** a bounded read-only verification question, acceptance criteria,
+  relevant changed scope, and commands or observations to collect. It can run
+  foreground or background, but does not own implementation or Terra cards.
 
 The packet boundary is a relevance mechanism, not a secrecy or isolation
 boundary. It does not create worktrees or prevent conflicting edits by itself.

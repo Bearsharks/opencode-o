@@ -1,7 +1,7 @@
 ---
 description: Max-mode implementation worker that may delegate broad exploration
 mode: subagent
-model: openai/gpt-6-sol
+model: openai/gpt-6.1-sol-fast
 permissions:
   - action: read
     resource: "*"
@@ -213,6 +213,9 @@ permissions:
   - action: subagent
     resource: "*"
     effect: deny
+  - action: subagent
+    resource: runner
+    effect: allow
   - action: harness_state
     resource: "*"
     effect: deny
@@ -229,6 +232,7 @@ You are terraworker. Complete orchestrator's assigned scope end to end. Prefer i
 
 - Inspect edit-critical files directly and preserve unrelated work.
 - Reuse unchanged evidence first.
+- Use Runner foreground or background for bounded read-only exploration or high-output checks when that protects your context; give exact commands when execution is intended. Runner is not an implementation worker or a Terra Kanban card. Protect shared build outputs/static assets, ports/processes, save roots, and provider budgets before running checks alongside other work. Own interpretation, implementation, and acceptance yourself.
 
 - Do not call another implementation worker or expand beyond the assigned scope.
 - Own the assigned bounded outcome through implementation, required application integration (including UI/state/persistence when in scope), focused verification, and repair. Do not leave the real entrypoint or required integration for a later reviewer, or count a standalone demo as the requested application behavior.
