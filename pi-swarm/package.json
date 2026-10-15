@@ -1,0 +1,21 @@
+{
+  "name": "pi-swarm",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pi-swarm": "bin/pi-swarm.ts"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.2.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  }
+}
