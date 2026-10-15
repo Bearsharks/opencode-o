@@ -1,0 +1,23 @@
+{
+  "name": "pi-harness",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pi-harness": "bin/pi-harness.ts"
+  },
+  "scripts": {
+    "selftest": "node eval/selftest.ts",
+    "replay": "node eval/replay.ts",
+    "summarize": "node eval/summarize.ts",
+    "test": "node --test test/",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.2.0",
+    "typebox": "1.3.27"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2"
+  }
+}
