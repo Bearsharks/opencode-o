@@ -72,13 +72,5 @@
   "permissions": [
     { "action": "harness_state", "resource": "*", "effect": "deny" },
     { "action": "investigate", "resource": "*", "effect": "deny" }
-  ],
-  "mcp": {
-    "servers": {
-      "tldraw-dotcom": {
-        "type": "remote",
-        "url": "https://www.tldraw.com/api/app/mcp"
-      }
-    }
-  }
+  ]
 }
