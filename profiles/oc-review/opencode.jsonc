@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-6.1-sol",
+  "default_agent": "worker",
+  "compaction": { "auto": true, "buffer": 25600 },
+  "agents": {
+    "build": { "disabled": true },
+    "plan": { "disabled": true },
+    "general": { "disabled": true },
+    "explore": { "disabled": true }
+  },
+  "plugins": ["./plugins/reviewer", "./plugins/review-guard"]
+}

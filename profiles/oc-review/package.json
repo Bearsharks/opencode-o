@@ -1,0 +1,10 @@
+{
+  "name": "oc-review-profile",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opencode/plugin": "2.0.14",
+    "@opencode/schema": "2.0.14",
+    "effect": "4.0.0-rc.112"
+  }
+}
