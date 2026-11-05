@@ -28,10 +28,10 @@ active여야 한다. 실행 제한은 카탈로그뿐 아니라 typed Effect 실
 적용한다. 리뷰어는 고정 파일 읽기·검색·합의한 검사 요청·결과 제출만 수행한다.
 `completeJob`, 제품 편집, 임의 shell, 추가 에이전트, 직접 PR 쓰기는 제공하지 않는다.
 
-결과는 기존 메시지 서비스의 `sendPeerMessage`로 제출한다. 발신자는 런타임의
+요청은 `freefy_review_inbox`로 읽고 결과는 기존 메시지 서비스의 `sendPeerMessage`로 제출한다. Aria용 `completeJob`을 가로채지 않는다. 발신자는 런타임의
 실제 세션에서 결정하고 수신 대상·후보·회차는 제어부 binding에서 가져온다.
 큐 저장 후 짧은 도착 알림만 `steer`한다. 제출은 리뷰 결과 전달이며 공식 작업
-완료 판정이 아니다. `sendPeerMessage`가 없는 운영 서비스에는 아직 연결할 수 없다.
+완료 판정이 아니다. `sendPeerMessage`·`readPeerMessages`가 없는 운영 서비스에는 아직 연결할 수 없다. 도착 알림은 발신자 확인 전 중립적인 작업 메시지로 표시하며 Aria 발신으로 추정하지 않는다.
 
 검사:
 
