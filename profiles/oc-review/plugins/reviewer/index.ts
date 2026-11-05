@@ -20,7 +20,12 @@ export default Plugin.define({
     const modulePath = resolve(root, ".opencode/lib/independent-review.mjs")
     const digest = createHash("sha256").update(await readFile(modulePath)).digest("hex")
     if (digest !== ctx.options.adapterSha256) throw new Error("Review adapter changed")
-    const { installIndependentReviewer } = await import(pathToFileURL(modulePath).href + '?adapter=' + digest)
+    // The shared loader can retain a prior module even after a file URL query
+    // changes. Execute the exact adapter bytes just checked above. Its only
+    // relative import remains pinned to the same controller installation.
+    const adapterSource = (await readFile(modulePath, 'utf8')).replace(
+      "'./review-runtime.mjs'", JSON.stringify(pathToFileURL(resolve(root, '.opencode/lib/review-runtime.mjs')).href))
+    const { installIndependentReviewer } = await import('data:text/javascript;base64,' + Buffer.from(adapterSource).toString('base64'))
     await ctx.agent.transform(editor => {
       for (const agent of editor.list()) if (agent.id !== "worker") editor.remove(agent.id)
       editor.default("worker")
@@ -44,7 +49,8 @@ export default Plugin.define({
       await writeFile(ready, JSON.stringify({ runtimeId: channel.runtimeId, profile: "oc-review",
         version: ctx.app.version, adapterSha256: digest }), { mode: 0o600 })
       if (typeof ctx.options.workflowConfig === "string") {
-        const { installWorkflowHost } = await import(pathToFileURL(resolve(root, ".opencode/lib/workflow-host.mjs")).href)
+        const hostSource = await readFile(resolve(root, '.opencode/lib/workflow-host.mjs'))
+        const { installWorkflowHost } = await import('data:text/javascript;base64,' + hostSource.toString('base64'))
         closeHost = await installWorkflowHost(ctx, { configPath: ctx.options.workflowConfig, channel, role: "review" })
       }
     } })
