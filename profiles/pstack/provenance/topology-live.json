@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-11-10T20:47:17.390Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 15551,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:58081"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "rootManagerWorker": true,
+  "managerCanDelegate": true,
+  "rootCanInspectGrandchild": true,
+  "workerReviewAndInvestigation": true,
+  "workerAgent": "poteto-agent",
+  "limits": "Three local program levels plus review/investigation helper calls, using a loopback model. VM isolation and a large fleet are separate prerequisites, not claimed by this test."
+}

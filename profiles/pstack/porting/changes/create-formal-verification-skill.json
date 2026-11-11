@@ -1,0 +1,8 @@
+[
+  {
+    "file": "skills/create-formal-verification-skill/SKILL.md",
+    "before": "Write a project-local skill with frontmatter that names the area and says when to use it.",
+    "after": "Write a project-local skill at `.opencode/skills/verify-<area>/SKILL.md` with frontmatter that names the area and says when to use it. Choose a concrete area name and include native `metadata: {opencode/autoinvoke: true}` so relevant changes can discover the verification skill.",
+    "reason": "생성 스킬의 프로젝트 저장 위치와 자동 발견 메타데이터를 OpenCode 형식으로 명시한다."
+  }
+]

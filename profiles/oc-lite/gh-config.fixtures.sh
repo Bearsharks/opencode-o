@@ -12,9 +12,10 @@ cat >"$fixture/bin/opencode" <<'SH'
 #!/usr/bin/env bash
 [[ "${GH_CONFIG_DIR:-}" == "$EXPECTED_GH" ]] || exit 1
 [[ "${XDG_CONFIG_HOME:-}" == "$HOME/.config/opencode-o/oc-lite" ]] || exit 1
+[[ "${XDG_STATE_HOME:-}" == "${OC_LITE_STATE_HOME:-$HOME/.local/state/opencode-o/oc-lite}" ]] || exit 1
 [[ "${OPENCODE_CONFIG_DIR:-}" == "$EXPECTED_PROFILE" ]] || exit 1
 [[ "${OPENCODE_DB:-}" == "fixture-db" ]] || exit 1
-[[ "$*" == '--standalone' ]] || exit 1
+[[ $# -eq 0 ]] || exit 1
 if [[ "${VERIFY_GH:-}" == 1 ]]; then gh auth status >/dev/null 2>&1 || exit 1; fi
 SH
 chmod +x "$fixture/bin/opencode"

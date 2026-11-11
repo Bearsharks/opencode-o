@@ -1,0 +1,21 @@
+{
+  "name": "ketchup",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "마지막 사용자 메시지 이후 변경, 아직 대기 중인 과거 사용자 결정까지 수집, 읽기 전용 조사, 실제 상태/수치 확인, 항목을 단어 수 때문에 누락하지 않기, 요약·의사결정·옵션별 비용·시각 자료의 모든 제약을 원문 그대로 보존. 원본이 호출하는 visualize는 native 추가 의존 스킬로 구현하고 등록했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/ketchup/SKILL.md",
+      "sourceSha256": "f2923ffd14f6fc778f75a47aaed1f317fb5fd00b5701ca769d6446c74106dead",
+      "portSha256": "6708feedafeed4e3d2c1bae9fb5230fbcb00dd14e623eb02134c960a6405f489",
+      "bodyUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "typescript-best-practices",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "본문·patterns 참고 파일·paths 메타데이터를 모두 원문 그대로 유지. 타입 원칙·경계 검증·실행 시험 조건을 축소하지 않는다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/typescript-best-practices/SKILL.md",
+      "sourceSha256": "ec1dac086d3708e5940d45d250c30a37dd953b4e3cb2ca0692f5851d7a039e27",
+      "portSha256": "e41bbd1a83288091137a2e1d2dfc41fe553b3363b80e898165846879eb21290f",
+      "mode": 420,
+      "bodyUnchanged": true
+    },
+    {
+      "path": "skills/typescript-best-practices/references/patterns.md",
+      "sourceSha256": "12e70c9419a8b3f5d6a1ab80e272c1f00a43ac0b3bbf72d68199033570e5de77",
+      "portSha256": "12e70c9419a8b3f5d6a1ab80e272c1f00a43ac0b3bbf72d68199033570e5de77",
+      "mode": 420
+    }
+  ]
+}

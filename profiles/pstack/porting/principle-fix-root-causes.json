@@ -1,0 +1,20 @@
+{
+  "name": "principle-fix-root-causes",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "재현부터 최초 잘못된 결정까지 추적하고 정상 상태 처리와 오류 은폐를 구분하는 절차, 재시작 시 영속 상태 검사, 동일 결함 전체 탐색, 관측 신호 제안까지 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-fix-root-causes/SKILL.md",
+      "sourceSha256": "8df3c8c3fe57eb0055a5c8efab8ab144557fdf301da70b1cdc77a3a3ef3f3052",
+      "portSha256": "67d4cfef6f012093d79879fdc9fd466bd7d937b8f45233758846696108425c6c",
+      "bodyUnchanged": true
+    }
+  ]
+}

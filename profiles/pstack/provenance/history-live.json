@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-11-10T20:44:22.980Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13534,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57746"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "scopedList": true,
+  "actualMessageRead": true,
+  "currentChatIdentified": true,
+  "topicSearch": true,
+  "privateFullExport": true,
+  "fullHistoryAfterCompaction": true,
+  "foreignWorkspaceRefused": true,
+  "nestedPersonalModeExplicitOnly": true,
+  "personalModeOptIn": true
+}

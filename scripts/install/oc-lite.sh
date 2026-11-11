@@ -44,17 +44,12 @@ write_wrapper() {
     printf '    export GH_CONFIG_DIR="$HOME/.config/gh"\n'
     printf '  fi\n'
     printf 'fi\n'
+    printf 'export OPENCODE_O_PROFILE=oc-lite\n'
     printf 'export XDG_CONFIG_HOME="$HOME/.config/opencode-o/oc-lite"\n'
-    printf 'export OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite"\n'
-    printf 'case "${1:-}" in\n'
-    printf '  run|mini|api|models) command="$1"; shift; exec opencode "$command" --standalone "$@" ;;\n'
-    printf '  auth) shift; case "${1:-}" in\n'
-    printf '    list|login|logout|switch) command="$1"; shift; exec opencode auth "$command" --standalone "$@" ;;\n'
-    printf '    *) exec opencode auth "$@" ;;\n'
-    printf '  esac ;;\n'
-    printf '  debug|plugin|service|mcp|session|serve|stats|reload|pair|acp|upgrade|update|uninstall) exec opencode "$@" ;;\n'
-    printf '  *) exec opencode --standalone "$@" ;;\n'
-    printf 'esac\n'
+    # Service discovery is keyed by XDG_STATE_HOME, not the config directory.
+    printf 'export XDG_STATE_HOME="${OC_LITE_STATE_HOME:-$HOME/.local/state/opencode-o/oc-lite}"\n'
+    printf 'export OPENCODE_CONFIG_DIR="${OC_LITE_PROFILE_DIR:-$OPENCODE_O_LITE_ROOT/profiles/oc-lite}"\n'
+    printf 'exec opencode "$@"\n'
   } >"$target"
   chmod 755 "$target"
 }
@@ -96,6 +91,8 @@ else
   trap - EXIT
   printf 'Installed wrapper: %s\n' "$WRAPPER"
 fi
+
+bun "$ROOT/scripts/configure-profile-service.ts" "$WRAPPER" "${OC_LITE_PROFILE_DIR:-$ROOT/profiles/oc-lite}" 49375
 
 printf '\nRunning final oc-lite diagnostics...\n'
 if ! "$ROOT/scripts/doctor/oc-lite.sh"; then

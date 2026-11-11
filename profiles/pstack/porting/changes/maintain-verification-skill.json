@@ -1,0 +1,14 @@
+[
+  {
+    "file": "skills/maintain-verification-skill/SKILL.md",
+    "before": "(usually `.cursor/skills/verify-*/`)",
+    "after": "(usually `.opencode/skills/verify-*/`)",
+    "reason": "프로젝트 검증 스킬 탐색 경로를 OpenCode로 옮긴다."
+  },
+  {
+    "file": "skills/maintain-verification-skill/SKILL.md",
+    "before": "2. **Source wave.** One read-only subagent per feature file, launched concurrently.",
+    "after": "2. **Source wave.** One read-only native `subagent` per feature file, launched concurrently with `agent: \"explore\", role: \"how explorer\", background: true`. Choose `difficulty` and `urgent` per the job; the required role applies the stored investigation model. Use completion notifications before reconciliation.",
+    "reason": "기능별 읽기 전용 동시 조사를 실제 조사 역할에 연결한다."
+  }
+]

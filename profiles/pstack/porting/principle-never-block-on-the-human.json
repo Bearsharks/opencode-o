@@ -1,0 +1,20 @@
+{
+  "name": "principle-never-block-on-the-human",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "가역적 작업은 진행 후 보고하되 강제 푸시·운영 데이터 삭제·외부 메시지 같은 비가역 작업은 확인한다는 경계와 제품 방향은 사용자가 정한다는 조건을 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-never-block-on-the-human/SKILL.md",
+      "sourceSha256": "05030a7a083c337676f793881b4e93cd218e8f1dd676529f56e6ac1d3efb8d1f",
+      "portSha256": "cf6f857ed2ae6f8f7ded8b7d86e736830341d59f044c55d3d760d44be00dbd7c",
+      "bodyUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-11-10T20:44:27.824Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13611,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57749"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "modeAcrossTurns": true,
+  "modeAcrossCompaction": true,
+  "modeAcrossRestart": true,
+  "modeOff": true,
+  "todoAcrossRestart": true,
+  "overdueOneShot": true,
+  "nativeEventWake": true,
+  "fixedLoop": true,
+  "stopCancelsFutureWakes": true,
+  "limits": "Deterministic loopback model. Fixed timers, a native session event and restart are exercised; external-service event delivery and crash-at-every-instruction exactly-once semantics are not claimed."
+}

@@ -1,0 +1,20 @@
+{
+  "name": "principle-subtract-before-you-add",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "추가·리팩터링 전 복잡도를 제거하고 관측된 사용을 근거로 설계하며, 불필요한 검증·중복 프롬프트·내용 없는 참조를 제거하는 모든 기준을 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-subtract-before-you-add/SKILL.md",
+      "sourceSha256": "8c93bb9d1a7f38e2ef37655d93f0e790fa59903105af3d500cc8a663ebe45f3f",
+      "portSha256": "f0aaa32f9f26bb289cb469aff21c5db66255da2222fa781534c47bf7f51f6551",
+      "bodyUnchanged": true
+    }
+  ]
+}

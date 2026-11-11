@@ -1,0 +1,20 @@
+{
+  "name": "principle-model-the-domain",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "분기 대신 실제 도메인 데이터 구조를 택하는 지침, 상태 머신·타입·레지스트리·이벤트·큐 등 선택지와 불필요한 추상화를 강제하지 않는 예외를 모두 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-model-the-domain/SKILL.md",
+      "sourceSha256": "52c0d85e0c3827c41c18299b642657d7b47eaf77b7b31609e42e0df42b84c75f",
+      "portSha256": "37f022ce6ef472181588150d65531652fe290efb5aa1fceb77b7a06fc79cb7df",
+      "bodyUnchanged": true
+    }
+  ]
+}

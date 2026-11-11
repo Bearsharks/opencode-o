@@ -1,0 +1,8 @@
+{
+  "name": "comment-sicko",
+  "source": "pstack/agents/comment-sicko.md",
+  "sourceSha256": "3e239e40b7b4b9beb2cf7f3ccc57f2388eb8b69bd1ba8ae888ef87ef6e0e2116",
+  "portSha256": "7ac5f2e44499d02b371397e26f030a3074f7848bee3ee33c1325075bca3a4cf7",
+  "changes": "네이티브 subagent 모드 메타데이터만 추가. 본문 바이트 보존.",
+  "equivalence": "첫 발화, 예외 목록, 억제 주석 검사, how/why 근거 조사, 코드 수정 금지, 범위 내 대상 지목과 보고 형식을 그대로 보존."
+}

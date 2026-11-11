@@ -1,0 +1,20 @@
+{
+  "name": "principle-explain-the-number",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "측정 전 결정·노이즈 기준, 제한 요소의 실측, 오류·미실행·캐시·기본 설정·변동성 배제, 반복 수와 범위의 기록을 보존. benchmark-checklist 전체 절차로 연결하는 링크도 유지.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-explain-the-number/SKILL.md",
+      "sourceSha256": "3c84fbf9a7d9842abcfcd134010782b32092ac3d3fb4aaf9ed5732dca83aa58c",
+      "portSha256": "bc97852a1c556b22d79c94b82f1869b169eef51d4fc8227d893718b789da8717",
+      "bodyUnchanged": true
+    }
+  ]
+}

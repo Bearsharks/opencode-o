@@ -1,0 +1,22 @@
+{
+  "name": "sharpen",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "원본의 4개 사전 질문(전문가가 추가할 깊이, 가장 원초적인 자료, 방법/도구, 외부 검증 기준)과 그 결과로 프롬프트만 다시 쓰는 작업을 보존. 사용자 결정권을 남기는 문장도 본문 바이트 그대로 유지하며 호출 제한 메타데이터만 변환.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/sharpen/SKILL.md",
+      "sourceSha256": "563dfc460c605d311e650726288e2f1cbd61eab817db178d6e7e29643e07e7a2",
+      "portSha256": "ed7f5765b22de49fb34727838302f216822d230a3dd17da623f357bdf00e4940",
+      "mode": 420,
+      "bodyUnchanged": true
+    }
+  ]
+}

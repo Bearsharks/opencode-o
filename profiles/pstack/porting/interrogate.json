@@ -1,0 +1,37 @@
+{
+  "name": "interrogate",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 검토자 전용 패널 설정을 네이티브 역할 선택에 연결한다. 각 공격적 검토를 실제 native subagent의 패널 좌석에 연결한다.",
+  "equivalence": "사용자 지정 범위 또는 merge-base부터 작업 트리까지의 diff, 의도 재진술, 미커밋 변경을 각 작업 트리에 복사, 실제 실행으로만 발견 인정, 부모의 재실행 검증, 공통 근본 원인 병합을 모두 보존. Arena C/D/E를 생략하고 모든 입증된 결함을 남기는 규칙과 수정 금지를 유지. 플랫폼 지시 2구간만 치환.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/interrogate/SKILL.md",
+      "before": "Read the `interrogate reviewers` line in place of `arena runners`.",
+      "after": "Resolve `role: \"interrogate reviewers\"` with `pstack_models` in place of the `arena runners` role, preserving the configured reviewer list and seat count.",
+      "reason": "검토자 전용 패널 설정을 네이티브 역할 선택에 연결한다."
+    },
+    {
+      "file": "skills/interrogate/SKILL.md",
+      "before": "Spawn each adversary as `generalPurpose`.",
+      "after": "Spawn each adversary with native `subagent`, `agent: \"general\"`, `role: \"interrogate reviewers\"`, its returned zero-based `seat`, and `background: true`.",
+      "reason": "각 공격적 검토를 실제 native subagent의 패널 좌석에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/interrogate/SKILL.md",
+      "sourceSha256": "3f3c2e9b8cf6b180dba9f32a4aff85e5691b09805232468e37a0ba45437a9984",
+      "portSha256": "2d7de1f48c5533bb24a658e1e4d0dfa196a929e7c39b628586aa15fc2521d596",
+      "bodyUnchanged": false
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

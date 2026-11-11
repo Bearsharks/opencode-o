@@ -1,0 +1,20 @@
+{
+  "name": "principle-separate-before-serializing-shared-state",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "공유 쓰기 대상 식별→독립 키·파일로 분리→단일 대상이 실제 불변식인 경우에만 구조적 직렬화라는 순서와 지시문은 동시성 제어가 아니라는 경고를 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-separate-before-serializing-shared-state/SKILL.md",
+      "sourceSha256": "05294b40448e927c5da1c7b6f5c6b9fed3744637e3833d2d948b9154a9dd00bb",
+      "portSha256": "7c79487d1c829d6c5de904bd2b6bbe7ae32bd0416d31091f832a4b7ea5f1d5ad",
+      "bodyUnchanged": true
+    }
+  ]
+}

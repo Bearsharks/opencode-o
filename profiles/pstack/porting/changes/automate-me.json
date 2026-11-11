@@ -1,0 +1,56 @@
+[
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "This skill orchestrates three others: an inline mining pass (see step 1), Cursor's built-in `create-skill` (authoring), and the **unslop** skill (prose discipline).",
+    "after": "This skill orchestrates three others: an inline mining pass (see step 1), the bundled `create-skill` skill (authoring), and the **unslop** skill (prose discipline).",
+    "reason": "저작 도구 의존성을 번들 create-skill로 지정한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "Look recursively for `.cursor/skills/**/*-mode/SKILL.md` and `~/.cursor/skills/*-mode/SKILL.md` matching the user's handle. Mode skills can live in a personal category directory (`.cursor/skills/<handle>/`), not only at the top level. If one exists, confirm intent with `AskQuestion` (unless they already said \"update my skill\" or similar):",
+    "after": "Look recursively for `.opencode/skills/**/*-mode/SKILL.md` and `$OPENCODE_CONFIG_DIR/local-skills/**/*-mode/SKILL.md` matching the user's handle. Mode skills can live in a personal category directory (`.opencode/skills/<handle>/`), not only at the top level. If one exists, confirm intent with `question` (unless they already said \"update my skill\" or similar):",
+    "reason": "프로젝트·프로필의 재귀 스킬 탐색과 기존 의도 확인을 OpenCode 경로·question에 연결한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "Locate the active workspace's transcripts before fanning out. The system prompt names the workspace's `agent-transcripts/` directory. Use only that path. Don't glob across `~/.cursor/projects/*/`. That crosses workspace boundaries and reads private chats from unrelated projects.",
+    "after": "Locate the active workspace history with `pstack_history(action: \"list\")` before fanning out. This tool binds reads to the active workspace directory. Read selected conversations with `pstack_history(action: \"read\", sessionID: ...)`. Follow pagination cursors for both the session list and each conversation. The read API includes messages from before compaction. Give delegates the exact in-scope session IDs and message IDs. Do not search or read other projects' conversations.",
+    "reason": "원본의 워크스페이스 경계 제한을 서버 API의 디렉터리 검증으로 강제한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "Survey recent agent conversations within that scope for recurring patterns. Run multiple parallel subagents across slices of history (e.g. last 2-4 weeks, split into 3 slices so each has enough material). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill. Each slice mining subagent reads transcripts from the workspace-scoped path the parent provides, looks for the signals below, and returns a short structured list of patterns it saw with evidence pointers. Default signals worth hunting:",
+    "after": "Survey recent agent conversations within that scope for recurring patterns. Run multiple parallel native `subagent` calls across slices of history (e.g. last 2-4 weeks, split into 3 slices so each has enough material), using `agent: \"general\", role: \"how explorer\", background: true`. Set `difficulty` and `urgent` for the reasoning level and speed prescribed by **poteto-mode**. Each slice mining subagent reads only the in-scope session IDs the parent provides through `pstack_history`, looks for the signals below, and returns a short structured list of patterns with session/message evidence pointers. Default signals worth hunting:",
+    "reason": "병렬 기록 조사의 역할·추론·속도·출처 포인터를 실제 하위 호출과 기록 도구에 연결한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "Use the `AskQuestion` tool (structured multi-choice)",
+    "after": "Use the `question` tool (structured multi-choice)",
+    "reason": "구조화 질문 도구명을 치환한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "`allow_multiple: true`",
+    "after": "`multiple: true`",
+    "reason": "다중 선택 인자를 실제 question 스키마에 맞춘다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "Use Cursor's built-in `create-skill` skill to author the skill. Placement:",
+    "after": "Use the bundled `create-skill` skill to author the skill. Placement:",
+    "reason": "스킬 저작 의존성을 네이티브 번들로 연결한다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "- Path: preserve an existing mode skill's category. For a new mode, use `.cursor/skills/<handle>/<handle>-mode/SKILL.md` when the repo has an established personal category for that handle. Otherwise default to `.cursor/skills/<handle>-mode/SKILL.md` in the project (or `~/.cursor/skills/<handle>-mode/` if the user prefers a personal skill).",
+    "after": "- Path: preserve an existing mode skill's category. For a new mode, use `.opencode/skills/<handle>/<handle>-mode/SKILL.md` when the repo has an established personal category for that handle. Otherwise default to `.opencode/skills/<handle>-mode/SKILL.md` in the project (or `$OPENCODE_CONFIG_DIR/local-skills/<handle>-mode/SKILL.md` if the user prefers a profile-local personal skill).",
+    "reason": "기존 범주를 보존하면서 저장 경로만 프로젝트·프로필 위치로 옮긴다."
+  },
+  {
+    "file": "skills/automate-me/SKILL.md",
+    "before": "- Frontmatter `disable-model-invocation: true` by default. Opt out only if the user explicitly wants their mode to apply on every turn.",
+    "after": "- Generated frontmatter must contain `metadata: {opencode/autoinvoke: false}` by default. This is native invocation metadata, not a description-only warning. Set it to `true` only if the user explicitly wants their mode available for automatic invocation. Validate the generated file in the OpenCode skill catalogue after reload; confirm its invocation flag matches the user's choice.",
+    "reason": "새 개인 모드 생성 파일에 자동 호출 제한 메타데이터를 반드시 기록하고 호스트에서 확인하게 한다."
+  }
+]

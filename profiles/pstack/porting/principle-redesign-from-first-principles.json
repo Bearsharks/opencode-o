@@ -1,0 +1,20 @@
+{
+  "name": "principle-redesign-from-first-principles",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "새 요구를 처음부터 전제로 삼아 설계하고 모든 영향 파일·타입·문서·예제·설계 근거로 전파한 뒤 점진적으로 전달하는 네 단계와 목적을 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-redesign-from-first-principles/SKILL.md",
+      "sourceSha256": "170e0a658783e43fee8ec5a8c2422a4abb8f69cef621dd1819a95910b8207034",
+      "portSha256": "cd4c49be238c916f33930f31150f531825d0df72d99519df7514fd6a49f76d38",
+      "bodyUnchanged": true
+    }
+  ]
+}

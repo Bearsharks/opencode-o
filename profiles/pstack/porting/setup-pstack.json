@@ -1,0 +1,87 @@
+{
+  "name": "setup-pstack",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 자동 발견 의도는 유지하고 native 역할 설정 저장을 설명한다. 역할 설정의 실제 저장 경로와 실행 시 적용을 연결한다. 실제 native 모델/variant 카탈로그를 페이지별로 확인하고 추측한 ID 저장을 금지한다. 기존/부분 설정과 폐기된 역할을 구분해 읽고 계획 단계의 무변경을 보장한다. 질문 도구명을 native 형식으로 변경한다. 4단계 예산과 모든 역할/패널 적용, alias 보존, 가용 추론량 제한 및 선택 필요 상태를 구현한다. 전체 17개 역할 확인·패널 길이/순서·다른 계열 심사·작업자 비교 선택을 보존한다. 저장 전 실제 카탈로그 검증과 누락 역할의 기본값 의미를 유지한다. 17개 원본 역할과 기본값을 전부 제시하고 native JSON의 원자적 저장·충돌 검사를 연결한다. 적용 시점을 실제 native 실행 방식과 일치시킨다.",
+  "equivalence": "8단계와 네 예산의 정확한 선택 라벨, 현재 설정 로드, 폐기 역할 보고, 모든 역할·패널에 예산 적용, 17행 확인·승인, 가용성 검증, 전체 저장, 선택적 검증/형식 검증 스킬 제안을 보존. 고정 provider ID를 꾸며 쓰지 않고 카탈로그의 실제 참조로 계획·저장한다. 기본값 누락은 부모 상속으로 몰래 바꾸지 않으며, alias·패널 순서/중복·부분 설정을 지원한다. 실제 호스트에서 저장한 설정이 native 자식의 제공자 모델/추론량까지 전달됨을 검증했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "description: Configure which models pstack uses per role and at what reasoning budget. Detects your available models and writes an always-applied rule that overrides the skill defaults. Use for /setup-pstack, \"configure pstack models\", \"pstack budget\", or changing pstack's model choices.",
+      "after": "description: Configure which native models pstack uses per role and at what reasoning budget. Detect available models and save role overrides applied to subagent execution. Use for /setup-pstack, \"configure pstack models\", \"pstack budget\", or changing pstack's model choices.",
+      "reason": "자동 발견 의도는 유지하고 native 역할 설정 저장을 설명한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "Write `~/.cursor/rules/pstack-models.mdc`, an always-applied rule that sets pstack's model per role.",
+      "after": "Write `$OPENCODE_CONFIG_DIR/pstack-models.json`, the native per-role configuration read at subagent execution. Use `pstack_models` to plan, validate and atomically save the exact choices the user approves.",
+      "reason": "역할 설정의 실제 저장 경로와 실행 시 적용을 연결한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "Enumerate the model slugs you can pass to a `Task` subagent in this session. That is the dependable source. If Cursor also exposes a models API or CLI that lists the user's entitled models, prefer it for completeness. If you cannot detect any, ask the user to paste the slugs they have access to. Never write a real slug you have not confirmed is available. The aliases `inherit-parent` and `auto` are always valid even though they are not detected slugs.",
+      "after": "Enumerate native chat model references (`provider/model` or `provider/model#variant`) with `pstack_models(action: \"catalog\")`, following `nextOffset` until the requested provider scope is complete. The native `opencode_models` catalogue can supply additional model details. These advertised references are the dependable source. If no models can be detected, ask the user for the IDs they can use. Never save an unconfirmed reference. `inherit-parent` and `auto` remain valid aliases even though they are not catalogue entries.",
+      "reason": "실제 native 모델/variant 카탈로그를 페이지별로 확인하고 추측한 ID 저장을 금지한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "The default role-to-model mapping is the rule shape shown in step 5 below. If `~/.cursor/rules/pstack-models.mdc` already exists, read it and treat its `# budget` line and its role values as the current choices. Otherwise start from those defaults. A line whose role is not in step 5, such as `how critics`, is from a retired role. Drop it.",
+      "after": "The default mapping is the 17-role table in step 5. Call `pstack_models(action: \"plan\")` to load the current budget and role choices, or defaults when the file/role is missing. The result reports retired roles such as `how critics` in `dropped` and excludes them from the proposed table. It does not write anything. Keep the returned `revision` for the eventual reviewed save.",
+      "reason": "기존/부분 설정과 폐기된 역할을 구분해 읽고 계획 단계의 무변경을 보장한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "**(a) Ask for a budget.** Prefer AskQuestion over free text. Offer these four options with these exact labels, and name the current budget when the rule records one. With no rule, say that `large` matches the skill defaults.",
+      "after": "**(a) Ask for a budget.** Prefer the native `question` tool over free text. Offer these four options with these exact labels, and name the current budget when the rule records one. With no rule, say that `large` matches the skill defaults.",
+      "reason": "질문 도구명을 native 형식으로 변경한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "**(b) Apply it.** Build the working table from the skill defaults, and on a re-run keep any role you changed by family, list, or alias (`inherit-parent`, `auto`). `unlimited`, `large`, `medium`, and `small` set the effort token of every real slug, panel entries included, to `max`, `xhigh`, `high`, or `medium`. The effort token is the last token, or the one before a trailing `fast`, on the ladder `max` > `xhigh` > `high` > `medium` > `low`. If the result is not a detected slug, use the same family's detected slug with the highest effort at or below the target, else mark the role as needing a choice. `inherit-parent` and `auto` do not change. So `unlimited` turns `claude-opus-5-5-xhigh` into `claude-opus-5-5-max`. Grok slugs top out at `xhigh`, so under `unlimited` the fallback puts Grok at `xhigh` and keeps `grok-4.7-xhigh-fast` as it is. `large` keeps both defaults. `small` turns them into `claude-opus-5-5-medium` and `grok-4.7-medium-fast`.",
+      "after": "**(b) Apply it.** Call `pstack_models(action: \"plan\", budget: <chosen label>)`. Start from the skill defaults and preserve existing model/provider choices, ordered lists, duplicate seats and aliases. The four budgets set the starting reasoning target of every real entry, panels included, to `max`, `xhigh`, `high`, or `medium`. Use advertised variants on the selected native model, preferring its highest effort at or below the target, then an advertised same-family alternative when needed; never fabricate an ID or choose effort above the budget. If none is available, mark that role as needing a choice. Aliases do not change. `unlimited` raises Claude Opus 5.5 to max when advertised; Grok 4.7 tops out at xhigh in the original defaults. `large` retains xhigh. `small` starts both at medium, preserving each configured fast/standard model where available. Show provider limitations rather than claiming an unsupported effort was applied.",
+      "reason": "4단계 예산과 모든 역할/패널 적용, alias 보존, 가용 추론량 제한 및 선택 필요 상태를 구현한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "**(c) Show the roles and confirm.** Show every role with its model, marking any real slug not in the detected set as needing a choice. Also list each line step 2 dropped. Ask whether to accept as-is or change specific roles, offering the detected models plus `inherit-parent` and `auto` (both mean: this role runs on the parent chat model, which is how Auto users stay on Auto) as the options. Prefer AskQuestion over free text. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. `arena cross-judge pool` is also a list, but Arena runs one judge. It tries only values from a family other than the parent's, in list order, so order it by preference. An `inherit-parent` or `auto` value never judges. `swarm workers` is the default model for every worker unless a race or comparison assigns another model per arm.",
+      "after": "**(c) Show the roles and confirm.** Show every role with its model, marking any native reference not in the detected set as needing a choice. Also list each line step 2 dropped. Ask whether to accept as-is or change specific roles, offering the advertised native references plus `inherit-parent` and `auto` (both mean: this role runs on the parent chat model, preserving the parent chat's current selection) as the options. Prefer `question` over free text. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. `arena cross-judge pool` is also a list, but Arena runs one judge. It tries only values from a family other than the parent's, in list order, so order it by preference. An `inherit-parent` or `auto` value never judges. `swarm workers` is the default model for every worker unless a race or comparison assigns another model per arm.",
+      "reason": "전체 17개 역할 확인·패널 길이/순서·다른 계열 심사·작업자 비교 선택을 보존한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "Every real slug written must be in the detected set. `inherit-parent` and `auto` always pass. If a chosen real slug is not available, stop and ask again.",
+      "after": "Call `pstack_models(action: \"validate\", config: <reviewed candidate>)`. Every real reference must be advertised, including its variant; `inherit-parent` and `auto` always pass. If any choice is unavailable, stop and ask again. Missing role keys are valid and retain defaults, but normal setup reviews all 17 rows.",
+      "reason": "저장 전 실제 카탈로그 검증과 누락 역할의 기본값 의미를 유지한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "Write `~/.cursor/rules/pstack-models.mdc` with `alwaysApply: true`, a `# budget` line with the chosen label and its target effort, and one line per role, using the same labels poteto-mode uses. Overwrite the whole file so re-runs stay idempotent. Shape:\n\n```\n---\ndescription: pstack per-role model choices (overrides skill defaults)\nalwaysApply: true\n---\n# pstack model configuration. One line per role. Delete a line to fall back to the skill default.\n# `inherit-parent` or `auto` as a value: the role runs on the parent chat model (omit Task `model`). Alias entries in a panel list still count toward its fan-out.\n# budget: large (xhigh)\nfeature, refactoring: grok-4.7-xhigh-fast\nbug-fix: grok-4.7-xhigh-fast\nperf-issue: grok-4.7-xhigh-fast\nhillclimb: grok-4.7-xhigh-fast\njudgment and prose: claude-opus-5-5-xhigh\nhardest tasks: claude-opus-5-5-xhigh\nhow explorer: grok-4.7-xhigh-fast\nhow explainer: claude-opus-5-5-xhigh\nwhy investigators: grok-4.7-xhigh-fast\nwhy synthesizer: claude-opus-5-5-xhigh\nreflect tooling: grok-4.7-xhigh-fast\nreflect judgment, divergent, synthesizer: claude-opus-5-5-xhigh\narena runners: claude-opus-5-5-xhigh, grok-4.7-xhigh-fast\narena cross-judge pool: claude-opus-5-5-xhigh, grok-4.7-xhigh-fast\nswarm workers: grok-4.7-xhigh-fast\narchitect runners: claude-opus-5-5-xhigh, grok-4.7-xhigh-fast\ninterrogate reviewers: claude-opus-5-5-xhigh, grok-4.7-xhigh-fast\n```\n\n",
+      "after": "After approval, call `pstack_models(action: \"save\", config: <exact approved object>, expectedRevision: <reviewed revision>)`. A new file uses `expectedRevision: null`. Save overwrites the whole JSON atomically and rejects changed-on-disk settings or unavailable references. If settings changed during review, reread and reconcile the difference; do not silently overwrite another change.\n\nThe JSON contains `version: 1`, `budget`, and `roles`; `families` optionally identifies opaque proxy models for independent-family checks. Single roles hold one reference or alias; panels/pools hold arrays. Delete a role key to restore its default. Do not copy the model descriptions below as native IDs: use the validated catalogue-backed object returned by planning.\n\n| Role key | Original default intent |\n| --- | --- |\n| `feature, refactoring` | Grok 4.7, xhigh, fast |\n| `bug-fix` | Grok 4.7, xhigh, fast |\n| `perf-issue` | Grok 4.7, xhigh, fast |\n| `hillclimb` | Grok 4.7, xhigh, fast |\n| `judgment and prose` | Claude Opus 5.5, xhigh |\n| `hardest tasks` | Claude Opus 5.5, xhigh |\n| `how explorer` | Grok 4.7, xhigh, fast |\n| `how explainer` | Claude Opus 5.5, xhigh |\n| `why investigators` | Grok 4.7, xhigh, fast |\n| `why synthesizer` | Claude Opus 5.5, xhigh |\n| `reflect tooling` | Grok 4.7, xhigh, fast |\n| `reflect judgment, divergent, synthesizer` | Claude Opus 5.5, xhigh |\n| `arena runners` | [Claude Opus 5.5 xhigh, Grok 4.7 xhigh fast] |\n| `arena cross-judge pool` | [Claude Opus 5.5 xhigh, Grok 4.7 xhigh fast], ordered pool |\n| `swarm workers` | Grok 4.7, xhigh, fast |\n| `architect runners` | [Claude Opus 5.5 xhigh, Grok 4.7 xhigh fast] |\n| `interrogate reviewers` | [Claude Opus 5.5 xhigh, Grok 4.7 xhigh fast] |\n\n",
+      "reason": "17개 원본 역할과 기본값을 전부 제시하고 native JSON의 원자적 저장·충돌 검사를 연결한다."
+    },
+    {
+      "file": "skills/setup-pstack/SKILL.md",
+      "before": "Tell the user the rule was written and that it applies to new sessions. Re-running this skill updates it.",
+      "after": "Tell the user the file was saved and applies to fresh subagent invocations, including in the current chat. A reused child keeps its original model. Re-running setup updates the configuration.",
+      "reason": "적용 시점을 실제 native 실행 방식과 일치시킨다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/setup-pstack/SKILL.md",
+      "sourceSha256": "df8ad3638a4dca31fb4b43d58056f0299f23ad0530614166d55ef989062b41ec",
+      "portSha256": "c8ceec1e803f9582ff8ddc77d99f335876d39a9f4c10bb567458daf6e63540f8",
+      "mode": 420,
+      "bodyUnchanged": false
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/setup-live.json",
+    "provenance/models-live.json"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "tdd",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "원문 전체 보존. 저렴한 실패-before 검사를 먼저 실행하고 fix 후 통과 증명하는 6단계, 비실용적 테스트 생략 조건과 정직한 대체 검증 보고까지 동일하다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/tdd/SKILL.md",
+      "sourceSha256": "eeb868e2dfebee528d730a67d7b17498fac4bb85dec2e38bc5c5176aca4d5d2f",
+      "portSha256": "c7a785c80b8ce59ed5ddbd8c7ee2864366f966a89cef63ad2a4438c5c312d6db",
+      "mode": 420,
+      "bodyUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "ketchup-video",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "ketchup의 시간 범위를 현재 호출 직전 사용자 메시지로 유지하고, 저장소 밖 영상 제작만 읽기 전용 예외로 허용하는 원본을 보존. 최대 10개 연결된 슬라이드·자막 위치·추가 단어 3개당 1초 이상 유지·렌더 프레임으로 유지 시간 측정·실패 시 결정 항목만 반환하는 모든 요구가 본문 바이트 동일.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/ketchup-video/SKILL.md",
+      "sourceSha256": "027aed9a01adf208aeac3a134f47d12f7c1e42d6fea03095aedc2bae58cdcfd1",
+      "portSha256": "8c24cdfb8944259a625e63a8e666530385193846b363512cb8f9d070eb2f402f",
+      "bodyUnchanged": true
+    }
+  ]
+}

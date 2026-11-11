@@ -1,0 +1,20 @@
+{
+  "name": "principle-encode-lessons-in-structure",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "판단이 필요해 구조화할 수 없는 경우 지시와 실패 예시를 강화하고, 구조화 가능한 수정은 구조 자체로만 해결한다는 두 조건을 원문 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native invocation flag",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-encode-lessons-in-structure/SKILL.md",
+      "sourceSha256": "228963799189f481827d6f28065f278bc2008ffa37030b1234cbd5814d36b9e9",
+      "portSha256": "b6f5592dd4c353df76181199851fd6a6cb6c53e4831825c8a096efda93baf3c5",
+      "bodyUnchanged": true
+    }
+  ]
+}

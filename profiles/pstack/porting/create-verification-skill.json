@@ -1,0 +1,55 @@
+{
+  "name": "create-verification-skill",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다. 검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다. 검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다.",
+  "equivalence": "프로젝트 조사→Launch/Doctor/Drive/Evidence/Cleanup/Helpers 생성→3~5개 기능 지도→실제 기능 1개의 종단 실행 및 증거 보존→유지보수 안내 5단계를 보존. 플랫폼 종속 생성 경로 3구간만 치환하고 예시 참고 파일 3개는 바이트 그대로 보존. 실제 실행하지 않은 생성 스킬을 산출물로 인정하지 않는 기준도 동일.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/create-verification-skill/SKILL.md",
+      "before": "Every serious project needs a scripted way to drive the real app and prove behavior: launch it, exercise a feature the way a user would, and capture evidence. This skill generates that as a project-local skill (`.cursor/skills/verify-<app>/`) tailored to the repo. You write the generator's output for the next agent, not for a human: it will be read cold, mid-task, by an agent that has never seen the app.",
+      "after": "Every serious project needs a scripted way to drive the real app and prove behavior: launch it, exercise a feature the way a user would, and capture evidence. This skill generates that as a project-local skill (`.opencode/skills/verify-<app>/`) tailored to the repo. You write the generator's output for the next agent, not for a human: it will be read cold, mid-task, by an agent that has never seen the app.",
+      "reason": "검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다."
+    },
+    {
+      "file": "skills/create-verification-skill/SKILL.md",
+      "before": "Write `.cursor/skills/verify-<app>/SKILL.md` with YAML frontmatter (`name: verify-<app>` and a `description` that names the app, the surface, and when to reach for it — without frontmatter the skill never registers) and these sections, each grounded in what the interview actually found (no placeholders left):",
+      "after": "Write `.opencode/skills/verify-<app>/SKILL.md` with YAML frontmatter (`name: verify-<app>` and a `description` that names the app, the surface, and when to reach for it — without frontmatter the skill never registers, plus native `metadata: {opencode/autoinvoke: true}`) and these sections, each grounded in what the interview actually found (no placeholders left):",
+      "reason": "검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다."
+    },
+    {
+      "file": "skills/create-verification-skill/SKILL.md",
+      "before": "Create `.cursor/skills/verify-<app>/features/README.md` plus one file per user-facing feature you can identify (aim for the top 3-5 to start, from routes, commands, menus, or docs). Follow the shape in [`references/feature-map-example/`](references/feature-map-example/), with a README index and one file per feature. Each file answers, from the user's point of view: what the feature is, how to reach it, how to drive it with the harness, and what observable end state proves it works. The four H2s are `Sub-features`, `How to get to it (user POV)`, `Driving it with <harness>`, and `Gotchas`. If the seed data lacks a precondition that a journey needs, the journey reports a failure and the reason goes in that feature's `Gotchas`. Never weaken the journey to make it pass. The map is the repo's maintained verification source; a proof that drives one convenient entry point is incomplete when the map lists others.",
+      "after": "Create `.opencode/skills/verify-<app>/features/README.md` plus one file per user-facing feature you can identify (aim for the top 3-5 to start, from routes, commands, menus, or docs). Follow the shape in [`references/feature-map-example/`](references/feature-map-example/), with a README index and one file per feature. Each file answers, from the user's point of view: what the feature is, how to reach it, how to drive it with the harness, and what observable end state proves it works. The four H2s are `Sub-features`, `How to get to it (user POV)`, `Driving it with <harness>`, and `Gotchas`. If the seed data lacks a precondition that a journey needs, the journey reports a failure and the reason goes in that feature's `Gotchas`. Never weaken the journey to make it pass. The map is the repo's maintained verification source; a proof that drives one convenient entry point is incomplete when the map lists others.",
+      "reason": "검증 스킬·기능 지도 생성 경로를 OpenCode 프로젝트 경로로 옮기고 발견 정책을 보존한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/create-verification-skill/SKILL.md",
+      "sourceSha256": "d353973547bf8ad8977eca645f4cd4feaed0d32f4b43d1448f906b0a76c4d694",
+      "portSha256": "21209a31e66655dff9e6611c65e6b3b49261536c59cf38570ed72fabb9acb87b",
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/create-verification-skill/references/feature-map-example/README.md",
+      "sourceSha256": "cb7bd782cf89968a4ba3d58a5151db837430db92d19a6f52a906973b77b516ba",
+      "portSha256": "cb7bd782cf89968a4ba3d58a5151db837430db92d19a6f52a906973b77b516ba"
+    },
+    {
+      "path": "skills/create-verification-skill/references/feature-map-example/create-note.md",
+      "sourceSha256": "644a44c74f35d38c2feb7cd05a0121fdebbb623e8dc376c185b565a581d1ccf7",
+      "portSha256": "644a44c74f35d38c2feb7cd05a0121fdebbb623e8dc376c185b565a581d1ccf7"
+    },
+    {
+      "path": "skills/create-verification-skill/references/feature-map-example/search.md",
+      "sourceSha256": "6e87b9e7f2791a7776ba1bb83f371cd285c306c67f19d245cc4dd6ca3015c823",
+      "portSha256": "6e87b9e7f2791a7776ba1bb83f371cd285c306c67f19d245cc4dd6ca3015c823"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "file": "skills/no-comments/SKILL.md",
+    "before": "1. Spawn `Task` with `subagent_type: \"comment-sicko\"`. Pass the scope. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill. Do not restate its rules.",
+    "after": "1. Spawn native `subagent` with `agent: \"comment-sicko\", role: \"judgment and prose\", background: true`. Pass the scope. Pick `difficulty` and `urgent` for the reasoning level and speed prescribed by the Subagents section of **poteto-mode**; the role applies the configured judgment model at execution. Do not restate the agent's rules.",
+    "reason": "전용 comment-sicko를 원본 본문 그대로 등록하고 판단 역할·추론/속도·백그라운드 호출에 연결한다."
+  }
+]

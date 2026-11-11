@@ -1,3 +1,6 @@
 node_modules/
 package-lock.json
 .DS_Store
+/profiles/pstack/service.json
+/profiles/pstack/pstack-models.json
+/profiles/pstack/local-skills/

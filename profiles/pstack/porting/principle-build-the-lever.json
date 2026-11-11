@@ -1,0 +1,20 @@
+{
+  "name": "principle-build-the-lever",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "첫 단위 수작업 확인 후 재실행 가능한 도구를 만들고 동일성을 비교하는 순서, 사소한 작업 예외, 위임보다 결정적 도구를 우선하는 조건, 검증 계약의 쓰기 범위 제한을 모두 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native invocation flag",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-build-the-lever/SKILL.md",
+      "sourceSha256": "3434b0ad0c640c6f1d7960be7a8986c3bcdc14e26060360dec29903df60074ff",
+      "portSha256": "2d9e33685d371627c7441dba13f9c4860bc8d2f06adb2c36a62d6ddc204965da",
+      "bodyUnchanged": true
+    }
+  ]
+}

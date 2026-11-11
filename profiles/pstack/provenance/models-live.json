@@ -1,0 +1,130 @@
+{
+  "checkedAt": "2026-11-10T20:44:24.527Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13574,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57791"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "roles": 17,
+  "childRequests": 20,
+  "schemaVerified": true,
+  "commentSickoSystemVerified": true,
+  "potetoSystemVerified": true,
+  "inspectWithoutWake": true,
+  "unownedSessionRejected": true,
+  "holdAndStop": true,
+  "todoWriteRead": true,
+  "untaggedCallCreatedNoChild": true,
+  "wire": [
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 0
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 1
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 3
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 2
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 4
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 7
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 6
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 9
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 8
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 5
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 10
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 11
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 14
+    },
+    {
+      "model": "grok-4.7-fast",
+      "effort": "xhigh",
+      "caseIndex": 15
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 16
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 19
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 17
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 18
+    },
+    {
+      "model": "grok-4.7",
+      "effort": "xhigh",
+      "caseIndex": 13
+    },
+    {
+      "model": "claude-opus-5-5",
+      "effort": "xhigh",
+      "caseIndex": 12
+    }
+  ],
+  "limits": "Deterministic loopback provider; proves all role calls reach native child execution and provider model/effort requests. Does not prove autonomous model compliance with all skill branches."
+}

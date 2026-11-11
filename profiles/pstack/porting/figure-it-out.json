@@ -1,0 +1,34 @@
+{
+  "name": "figure-it-out",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 원본의 첫 todo와 단계 삽입 순서를 영속 todo 도구에 연결한다. 원본의 작업별 모델 선택을 필수 role 및 추론/속도 인자에 연결한다.",
+  "equivalence": "Frame→Design→Run loop→Audit trail→Verify 5단계, 반증 가능한 완료 조건·규모와 엄격도·장시간 작업 체크포인트·검증 기반 선행·단위별 keep/revert·독립 심사·3종 판정·감사 기록·전체 제품 검증을 모두 보존. todo와 위임 호출 연결 2구간만 변경. show-me-your-work와 poteto-mode 전체 절차는 후속 순서에서 계속 포팅한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/figure-it-out/SKILL.md",
+      "before": "Open a todolist whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos.",
+      "after": "Use `pstack_todo(action: \"write\", items: ...)` to open an ordered todo list whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos. Update the stored list as the designed units are added and completed; retain skipped steps with a reason.",
+      "reason": "원본의 첫 todo와 단계 삽입 순서를 영속 todo 도구에 연결한다."
+    },
+    {
+      "file": "skills/figure-it-out/SKILL.md",
+      "before": "- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill. Use native `subagent` with `background: true` and the appropriate required `role`: `feature, refactoring` for ordinary implementation, `hardest tasks` for the hardest work, `judgment and prose` for judgments, or the investigation role named by the routed skill. Set `difficulty` and `urgent` per that job. Resolve panels through `pstack_models` when the designed workflow calls for them; pass their role and seat to each invocation.",
+      "reason": "원본의 작업별 모델 선택을 필수 role 및 추론/속도 인자에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/figure-it-out/SKILL.md",
+      "sourceSha256": "bdb23cdbd82a1e6af094b495691c832a6f7f3ab9706ba9edbeb664ef51a726e1",
+      "portSha256": "c24d13f72cf821766ceb3c80a8aed71443921255446f1c11dc4db2cc3ec90d61",
+      "bodyUnchanged": false
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-11-10T20:35:46.814Z",
+  "simultaneousForegroundRefusals": true,
+  "simultaneousBackgroundRefusals": true,
+  "restoredConfiguredBaselines": true,
+  "strictReuseChecked": true,
+  "ownedReuseRetainsModelAndAgent": true,
+  "normalFollowupIsFresh": true,
+  "explicitSelfAuditBlocked": true,
+  "wire": [
+    {
+      "marker": "FAILURE_CHILD_SYNC_REJECT",
+      "model": "grok-4.7",
+      "effort": "medium"
+    },
+    {
+      "marker": "FAILURE_CHILD_SYNC_REJECT",
+      "model": "claude-opus-5-5",
+      "effort": "high"
+    },
+    {
+      "marker": "FAILURE_CHILD_SYNC_RETRY",
+      "model": "grok-4.7",
+      "effort": "xhigh"
+    },
+    {
+      "marker": "FAILURE_CHILD_SYNC_RETRY",
+      "model": "claude-opus-5-5",
+      "effort": "max"
+    },
+    {
+      "marker": "FAILURE_CHILD_BG_REJECT",
+      "model": "grok-4.7",
+      "effort": "medium"
+    },
+    {
+      "marker": "FAILURE_CHILD_BG_REJECT",
+      "model": "claude-opus-5-5",
+      "effort": "high"
+    },
+    {
+      "marker": "FAILURE_CHILD_BG_RETRY",
+      "model": "claude-opus-5-5",
+      "effort": "max"
+    },
+    {
+      "marker": "FAILURE_CHILD_BG_RETRY",
+      "model": "grok-4.7",
+      "effort": "xhigh"
+    },
+    {
+      "marker": "CONTROL_CHILD_SEED",
+      "model": "grok-4.7",
+      "effort": "xhigh"
+    },
+    {
+      "marker": "CONTROL_CHILD_SEED",
+      "model": "grok-4.7",
+      "effort": "xhigh"
+    },
+    {
+      "marker": "CONTROL_CHILD_FRESH_FIX",
+      "model": "grok-4.7",
+      "effort": "xhigh"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "principle-make-operations-idempotent",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "실제 현재 상태와 목표의 차이만 적용하고 재실행·중간 충돌·오래된 잠금의 모든 중단 지점을 검토하는 조건 및 세 가지 수렴 검사를 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-make-operations-idempotent/SKILL.md",
+      "sourceSha256": "7aa9327cf1f1aa057e95d47a0a78bd88a8f9d556b608866fee939d455a53a019",
+      "portSha256": "8b534407cf2f196b9dd1c0c8e75ab849272ae40bd758d14e2281702f21609d6e",
+      "bodyUnchanged": true
+    }
+  ]
+}

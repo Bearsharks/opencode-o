@@ -1,0 +1,20 @@
+{
+  "name": "principle-prove-it-works",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "프록시·자기 보고 대신 실제 프로세스·값·결과를 직접 관찰하고 검증 실패 시 관측 방법을 점검하며 재실행 가능한 증거를 남기는 규칙을 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-prove-it-works/SKILL.md",
+      "sourceSha256": "ec79a15025bac8d33d62011c54f3b612733fd2a024e623b531b3637aa75070e2",
+      "portSha256": "475b3094d65a301f3e73db77de161dfe7e09eebc66c5b307af6a3efef1391fe7",
+      "bodyUnchanged": true
+    }
+  ]
+}

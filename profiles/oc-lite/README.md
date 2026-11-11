@@ -44,26 +44,36 @@ and exactly one local topology plugin, then checks model availability in the
 caller's database. It does not run a paid model request; when using the wrapper in
 another project, rerun preflight from that project to inspect its merged files.
 
-The wrapper uses a private server for the TUI, `run`, `mini`, `api`, and
-`models`, avoiding another profile's shared background service. It uses a
-dedicated global config under `~/.config/opencode-o/oc-lite/opencode`, so an
-inherited `XDG_CONFIG_HOME` from A-Max cannot change the selected agents.
-Before isolating XDG, the wrapper sets `GH_CONFIG_DIR` for child shell tools:
-it keeps a nonempty caller `GH_CONFIG_DIR`; otherwise it uses the original
-`$XDG_CONFIG_HOME/gh` if `hosts.yml` or `config.yml` exists there, falling back
-to `$HOME/.config/gh`. This lets `gh` reuse an existing login without copying
-credentials or changing global settings. Restart oc-lite to inherit a new
-wrapper environment; already-running servers keep their old environment.
-This is a targeted GitHub CLI fix, not a general remedy for all tools that
-read XDG paths.
-It **preserves `OPENCODE_DB`** (or OpenCode's normal default database), which
-contains both provider connections and sessions. In an A-Max shell with
-`OPENCODE_DB=opencode-a-max.db`, the two profiles share that session history.
-A resumed session can retain its explicitly selected model and agent; use
-`/models` to choose another model, or start a new oc-lite session to use the
-Worker default.
-`api --standalone` can return an empty agent registry before plugins settle;
-the doctor polls a private server for readiness instead.
+The wrapper uses the installed stock CLI and its one managed background service.
+Opening another oc-lite window, creating a SessionManager task, or running `api`,
+`mcp`, or `plugin` reuses that service. Different sessions still run concurrently;
+the engine's existing per-session coordinator prevents two turns in the same
+session from running simultaneously. Do not mix standalone executors into the
+same session DB. Explicit disposable diagnostics can still use `serve` on an
+isolated DB; no management commands are blocked.
+
+The wrapper preserves the caller's `OPENCODE_DB` and `XDG_DATA_HOME`, including
+the normal existing `opencode.db`. It selects a dedicated service registration
+under `~/.local/state/opencode-o/oc-lite` via `XDG_STATE_HOME`; override it with
+`OC_LITE_STATE_HOME`. Config isolation alone does not isolate a background service. On first setup,
+the installer selects service port 49375 when no explicit port is configured.
+Existing user port settings are preserved. It neither copies
+sessions/credentials nor introduces a new engine channel. A managed service keeps
+its startup configuration: changing a profile or database requires a deliberate
+service restart after its active work ends. `OC_LITE_PROFILE_DIR` selects the
+startup profile; all clients sharing a DB must use the same service registration.
+Existing standalone oc-lite windows must be reopened to join the service.
+
+Global oc-lite config remains under `~/.config/opencode-o/oc-lite/opencode`.
+Before changing XDG config, the wrapper preserves `GH_CONFIG_DIR` or the caller's
+existing GitHub config location. Model selection remains per session. The full
+doctor uses a disposable DB for its isolated topology checks and the actual
+managed service for existing-account/model checks; it never runs model inference.
+
+SessionManager registers each task's existing report MCP through the stock
+location-scoped API. A task's worktree and report socket remain its binding; the
+shared process does not inherit a single task's `OPENCODE_CONFIG_CONTENT`.
+Closing a managed task interrupts only its exact session before closing its TUI.
 
 Run `./scripts/doctor/oc-lite.sh` to verify the active topology, Worker model
 inheritance and Runner's exact model availability in the caller's database.

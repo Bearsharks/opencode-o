@@ -1,0 +1,128 @@
+{
+  "name": "why",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. why 조사·종합 역할과 원본 기본값·부분 설정·실패 복귀를 native 실행에 연결한다. 조사·종합의 MCP 접근과 쓰기 금지 지시를 유지하며 실제 OpenCode agent 인자로 바꾼다. 존재하지 않는 플랫폼 전용 mcps 디렉터리 대신 실제 연결 MCP와 도구 스키마를 탐색한다. 조사자 역할을 실제 subagent 입력에 연결한다. 종합자 역할을 실제 subagent 입력에 연결한다.",
+  "equivalence": "원문 5단계·7개 근거 범주·범주별 조사자·전면 조사 기본값·스킵 사유·독립 종합·신뢰도 표현 및 모든 참고 파일을 보존. MCP 탐색과 위임 인자·역할 저장 경로만 native 기능으로 바꾼다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/why/SKILL.md",
+      "before": "Each spawn below names a role line in the `pstack-models.mdc` rule and a default. Set `model` to that line's value, or to the default if the rule or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "Each spawn below names a required native `role` in `$OPENCODE_CONFIG_DIR/pstack-models.json`. Resolve it with `pstack_models(action: \"resolve\", role: ...)` before delegation; the native `subagent` executor rechecks it at execution. A missing role uses its workflow default, and `auto` or `inherit-parent` uses the parent model. Do not pass a fixed `model` that bypasses the role setting. If an adjusted model is refused, restore the configured baseline first, then the original workflow default and an advertised model of that family, reporting the fallback. Pick `difficulty` and `urgent` per the Subagents section of the **poteto-mode** skill.",
+      "reason": "why 조사·종합 역할과 원본 기본값·부분 설정·실패 복귀를 native 실행에 연결한다."
+    },
+    {
+      "file": "skills/why/SKILL.md",
+      "before": "Every spawn is `generalPurpose` with `readonly: false` (agent mode). **Do not use readonly/Ask mode.** It strips MCP access, which disables the MCP-backed investigators and the synthesizer's citation spot-checks. Investigators still shouldn't write anything.",
+      "after": "Every spawn uses `subagent(agent: \"general\", background: true, role: ...)` with full agent tool access. **Do not substitute a restricted read-only agent.** Investigators and the synthesizer need the connected MCP tools for research and citation spot-checks. Investigators still shouldn't write anything.",
+      "reason": "조사·종합의 MCP 접근과 쓰기 금지 지시를 유지하며 실제 OpenCode agent 인자로 바꾼다."
+    },
+    {
+      "file": "skills/why/SKILL.md",
+      "before": "Before spawning investigators, list the available MCPs from the Cursor environment. Use the available-tools map when present. Otherwise inspect the `mcps/` directory Cursor exposes for enabled MCP servers.",
+      "after": "Before spawning investigators, discover enabled MCP servers and their exposed tools from the OpenCode tool inventory and connected server descriptions. Inspect each available tool schema before calling it. Do not assume a server exists from a name in a reference example; record unavailable categories as gaps.",
+      "reason": "존재하지 않는 플랫폼 전용 mcps 디렉터리 대신 실제 연결 MCP와 도구 스키마를 탐색한다."
+    },
+    {
+      "file": "skills/why/SKILL.md",
+      "before": "`model`: the `why investigators` line, default `grok-4.7-xhigh-fast`.",
+      "after": "Pass `role: \"why investigators\"`; its default is Grok 4.7 at xhigh reasoning and fast speed before the per-job speed adjustment.",
+      "reason": "조사자 역할을 실제 subagent 입력에 연결한다."
+    },
+    {
+      "file": "skills/why/SKILL.md",
+      "before": "`model`: the `why synthesizer` line, default `claude-opus-5-5-xhigh`.",
+      "after": "Pass `role: \"why synthesizer\"`; its default is Claude Opus 5.5 at xhigh reasoning before the per-job adjustment.",
+      "reason": "종합자 역할을 실제 subagent 입력에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/why/SKILL.md",
+      "sourceSha256": "144d42e7712723d763e607bc0a969e5f1cdf83ec7228519d87677cc534571bed",
+      "portSha256": "ed2df631ecced1535e97f74a6ddc3397befa5fcced62b047e7bed2a77db71ef4",
+      "mode": 420,
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/why/references/epistemics.md",
+      "sourceSha256": "d54a2361b2d5973bc3fe2edf62f446d87935974d4b40d47f23b9529f956ca758",
+      "portSha256": "d54a2361b2d5973bc3fe2edf62f446d87935974d4b40d47f23b9529f956ca758",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/investigator-prompt.md",
+      "sourceSha256": "c44afba186f899094f3694e6c9d6de5d14ff7c4ce28b787a9f50fc789c9a7fc3",
+      "portSha256": "c44afba186f899094f3694e6c9d6de5d14ff7c4ce28b787a9f50fc789c9a7fc3",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/source-playbook.md",
+      "sourceSha256": "9ae9dcb9d09111c9facc68510331c5aba4aed9b1b057314ff1fc0e166ad3993a",
+      "portSha256": "9ae9dcb9d09111c9facc68510331c5aba4aed9b1b057314ff1fc0e166ad3993a",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/code-archaeology.md",
+      "sourceSha256": "a4a3970e9db448054aed676f3f7feeee667b4b69f0bd57c8fd72b751be687cc7",
+      "portSha256": "a4a3970e9db448054aed676f3f7feeee667b4b69f0bd57c8fd72b751be687cc7",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/databricks.md",
+      "sourceSha256": "236ede7aab6454662a992db088a5393537a5233a4c26719c93188f9e174488f6",
+      "portSha256": "236ede7aab6454662a992db088a5393537a5233a4c26719c93188f9e174488f6",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/datadog.md",
+      "sourceSha256": "b139faac5dc11b8f26c8255dce6033c1a6ac143b038d3dd103f2034c5dbec9cd",
+      "portSha256": "b139faac5dc11b8f26c8255dce6033c1a6ac143b038d3dd103f2034c5dbec9cd",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/incident-postmortem.md",
+      "sourceSha256": "bf2661f1a81c37700884a45b77d6289be0c802b065febced31990e6564510839",
+      "portSha256": "bf2661f1a81c37700884a45b77d6289be0c802b065febced31990e6564510839",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/linear.md",
+      "sourceSha256": "01304e7f1badfcfb78babbb0edcadeb3cc8dd3f713793420cdff24ba190f907c",
+      "portSha256": "01304e7f1badfcfb78babbb0edcadeb3cc8dd3f713793420cdff24ba190f907c",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/notion.md",
+      "sourceSha256": "3bcfa695c49dfad4ac036d5d7181c12585f55ac04f1936198d16ab75a2788997",
+      "portSha256": "3bcfa695c49dfad4ac036d5d7181c12585f55ac04f1936198d16ab75a2788997",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/sentry.md",
+      "sourceSha256": "2d4f83048eac1df530b399e2aed75dd7c9c18577b7665420aaeb96d0ceb0b702",
+      "portSha256": "2d4f83048eac1df530b399e2aed75dd7c9c18577b7665420aaeb96d0ceb0b702",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/sources/slack.md",
+      "sourceSha256": "3bc6309f5c7b26ace3b919dbd7f7b048861dd2020f910fe24f656cc74b3b661c",
+      "portSha256": "3bc6309f5c7b26ace3b919dbd7f7b048861dd2020f910fe24f656cc74b3b661c",
+      "mode": 420
+    },
+    {
+      "path": "skills/why/references/synthesizer-prompt.md",
+      "sourceSha256": "11c62671aa7b7a6e3d36929ffe2b59bf95e6ca664eee4d93e6ee527dd3390ddb",
+      "portSha256": "11c62671aa7b7a6e3d36929ffe2b59bf95e6ca664eee4d93e6ee527dd3390ddb",
+      "mode": 420
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

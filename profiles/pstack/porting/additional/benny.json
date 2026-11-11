@@ -1,0 +1,482 @@
+{
+  "name": "benny",
+  "scope": "automations/benny",
+  "registered": false,
+  "sourceArchive": "provenance/upstream.tar",
+  "archiveSha256": "53da6aaa05c0f1a0f994277878586d4304d752dba162e9ce3250c217277b0a22",
+  "commit": "de8ee15dd1194627d21eb5fcd41cb1873208dabb",
+  "changes": "원본 전체 12개 파일을 보존하고 native 경로·배포 명세·호출 인자를 치환. 3개 스킬은 원본처럼 slash 등록하지 않는다.",
+  "equivalence": "triage 10단계, repro 15단계, setup 8단계·thread 좌표 불변·중복 검사·보상·기존 수정 검증·두 번의 실제 UI 증명·draft 전용·worker credential 제한 유지. 호스팅 Slack 트리거·클라우드 checkout·검토 편집기는 미구현 외부 전제로 BLOCKED를 명시.",
+  "rewrites": [
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "for existing automations, do not use `/automate` to inspect or update them. validate the configuration, then use the concise field checklist in the copied setup file so i can edit each automation directly in its editor. do not create duplicates.\n",
+      "after": "for existing automations, do not use the external provider's reviewed setup workflow to inspect or update them. validate the configuration, then use the concise field checklist in the copied setup file so i can edit each automation directly in its editor. do not create duplicates.\n\n## OpenCode execution prerequisites\n\nThis pack preserves the operational procedures but is dormant. OpenCode does not provide a managed Slack report subscription, a hosted automation editor, fresh cloud checkouts, or credential-stripped workers through this profile. A local webhook routine alone does not supply these capabilities. Do not enable Benny or claim end-to-end automation equivalence without a verified external automation provider implementing those prerequisites.\n\nThe provider must authenticate Slack events, retain the original channel and root timestamp, deduplicate deliveries, select the committed repository revision, launch `oc-pstack`, and expose only the configured integrations. Its setup must include a concrete draft, explicit approval, a readiness check, and a saved editor configuration, one automation at a time. With no such provider, prepare the configuration and report activation as `BLOCKED`. Do not invent a built-in automation command or call an undocumented backend.\n\nNative subagents inherit runtime access; a read-only instruction is not credential isolation. If tools and credentials cannot be excluded as required, keep the work in the coordinator. When delegation is eligible, use `subagent(agent: \"general\", background: true, role: ...)`, consolidate the brief, and retain every no-Slack-write restriction. Use `how explorer` for code investigation, `judgment and prose` for media review, and `bug-fix` for bounded code work. Pass the explicitly configured Benny model as native `model` when assigned, and apply the pstack effort/speed rules. The automation provider selects `models.triage` or `models.reproduce` for its parent session. Models must be advertised native `provider/model#variant` references.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "paraphrase this intent and the finished configuration into each draft. the triage prompt must read and follow `.cursor/automations/benny/skills/triage-issue-reports/SKILL.md`. the repro prompt must read and follow `.cursor/automations/benny/skills/reproduce-and-fix-issues/SKILL.md`. use these repo-relative paths only after `/automate` confirms they are committed in the repository where the automation will run.\n",
+      "after": "paraphrase this intent and the finished configuration into each draft. the triage prompt must read and follow `.opencode/automations/benny/skills/triage-issue-reports/SKILL.md`. the repro prompt must read and follow `.opencode/automations/benny/skills/reproduce-and-fix-issues/SKILL.md`. use these repo-relative paths only after the external provider's reviewed setup workflow confirms they are committed in the repository where the automation will run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "for first-time creation, use built-in `/automate` once for triage and once for repro and fix. complete the draft review, approval, readiness check, and Automations editor handoff for the first automation before starting the second.\n",
+      "after": "for first-time creation, use external provider's reviewed automation setup workflow once for triage and once for repro and fix. complete the draft review, approval, readiness check, and Automations editor handoff for the first automation before starting the second.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "tell me that `.cursor/settings.json`, `.cursor/automations/benny/`, and any referenced secret-free configuration must be committed before either automation is enabled. do not create or update an automation until i explicitly ask.\n",
+      "after": "tell me that `.opencode/benny/runtime.json`, `.opencode/automations/benny/`, and any referenced secret-free configuration must be committed before either automation is enabled. do not create or update an automation until i explicitly ask.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "if project-scoped plugins are unavailable or any shared dependency does not resolve, stop and explain what failed. do not add `.cursor/automations/benny/skills/` to a plugin manifest or expect its files to appear in the slash-skill list.\n",
+      "after": "if project-scoped plugins are unavailable or any shared dependency does not resolve, stop and explain what failed. do not add `.opencode/automations/benny/skills/` to a plugin manifest or expect its files to appear in the slash-skill list.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "preserve every unrelated setting and plugin. preserve comments and valid jsonc syntax when the existing file uses jsonc.\n",
+      "after": "preserve every unrelated deployment setting. validate the manifest and confirm that the external automation provider enforces it. do not change shared project plugin configuration or another profile.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "\t\"plugins\": {\n\t\t\"pstack\": { \"enabled\": true }\n\t}\n",
+      "after": "  \"launcher\": \"oc-pstack\",\n  \"profile\": \"pstack\",\n  \"sourceCommit\": \"de8ee15dd1194627d21eb5fcd41cb1873208dabb\",\n  \"requiredSkills\": [\"how\", \"why\", \"tdd\", \"unslop\"]\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "i want you to merge this entry into the target repository's `.cursor/settings.json`:\n",
+      "after": "record these pinned runtime requirements in the target repository's `.opencode/benny/runtime.json`. this file is an external deployment manifest, not native project-wide plugin configuration:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "7. read and follow `.cursor/automations/benny/skills/setup-benny/SKILL.md` directly from the target repository.\n",
+      "after": "7. read and follow `.opencode/automations/benny/skills/setup-benny/SKILL.md` directly from the target repository.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "3. merge the entire source pack into `<target-repository>/.cursor/automations/benny/`.\n",
+      "after": "3. merge the entire source pack into `<target-repository>/.opencode/automations/benny/`.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "the human enters setup by pointing cursor at this file. do not look for or invoke a discovered benny slash skill.\n",
+      "after": "the human enters setup by pointing the OpenCode agent at this file. do not look for or invoke a discovered benny slash skill.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "start from [`configuration.example.yaml`](./templates/configuration.example.yaml) and [`feature-map.example.md`](./skills/reproduce-and-fix-issues/references/feature-map.example.md). copy and fill them outside this pack, for example under `.cursor/benny/`. keep secret values in a secret manager or environment.\n",
+      "after": "start from [`configuration.example.yaml`](./templates/configuration.example.yaml) and [`feature-map.example.md`](./skills/reproduce-and-fix-issues/references/feature-map.example.md). copy and fill them outside this pack, for example under `.opencode/benny/`. keep secret values in a secret manager or environment.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "- i keep user-owned configuration, feature maps, routing maps, and secrets outside `.cursor/automations/benny/` so pack refreshes cannot overwrite them.\n",
+      "after": "- i keep user-owned configuration, feature maps, routing maps, and secrets outside `.opencode/automations/benny/` so pack refreshes cannot overwrite them.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "- i want this entire pack committed at `.cursor/automations/benny/` in the target repository. its `SKILL.md` files are direct automation instructions, not registered plugin skills.\n- i want pstack enabled through the target repository's committed `.cursor/settings.json` only for shared dependencies such as `how`, `why`, `tdd`, `unslop`, and the required principle skills.\n",
+      "after": "- i want this entire pack committed at `.opencode/automations/benny/` in the target repository. its `SKILL.md` files are direct automation instructions, not registered plugin skills.\n- i want the external automation provider to provision and verify the pinned `oc-pstack` runtime recorded in the target repository's committed `.opencode/benny/runtime.json` for shared dependencies such as `how`, `why`, `tdd`, `unslop`, and the required principle skills.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/FOR_AGENTS.md",
+      "before": "i want two cursor automations that work together in one slack issue channel.\n",
+      "after": "i want two externally hosted OpenCode automations that work together in one slack issue channel.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/README.md",
+      "before": "6. review each new automation draft or update existing automations in their editors. then send a harmless test report and verify every source-channel post stays in the original thread.\n",
+      "after": "6. review each new automation draft or update existing automations in their editors. then send a harmless test report and verify every source-channel post stays in the original thread.\n\n## OpenCode execution prerequisites\n\nThis pack preserves the operational procedures but is dormant. OpenCode does not provide a managed Slack report subscription, a hosted automation editor, fresh cloud checkouts, or credential-stripped workers through this profile. A local webhook routine alone does not supply these capabilities. Do not enable Benny or claim end-to-end automation equivalence without a verified external automation provider implementing those prerequisites.\n\nThe provider must authenticate Slack events, retain the original channel and root timestamp, deduplicate deliveries, select the committed repository revision, launch `oc-pstack`, and expose only the configured integrations. Its setup must include a concrete draft, explicit approval, a readiness check, and a saved editor configuration, one automation at a time. With no such provider, prepare the configuration and report activation as `BLOCKED`. Do not invent a built-in automation command or call an undocumented backend.\n\nNative subagents inherit runtime access; a read-only instruction is not credential isolation. If tools and credentials cannot be excluded as required, keep the work in the coordinator. When delegation is eligible, use `subagent(agent: \"general\", background: true, role: ...)`, consolidate the brief, and retain every no-Slack-write restriction. Use `how explorer` for code investigation, `judgment and prose` for media review, and `bug-fix` for bounded code work. Pass the explicitly configured Benny model as native `model` when assigned, and apply the pstack effort/speed rules. The automation provider selects `models.triage` or `models.reproduce` for its parent session. Models must be advertised native `provider/model#variant` references.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/README.md",
+      "before": "4. keep user-owned configuration outside the copied pack, for example in `.cursor/benny/`. adapt [`configuration.example.yaml`](./templates/configuration.example.yaml) and [`feature-map.example.md`](./skills/reproduce-and-fix-issues/references/feature-map.example.md).\n5. commit `.cursor/settings.json`, `.cursor/automations/benny/`, and any secret-free configuration before enabling either automation.\n",
+      "after": "4. keep user-owned configuration outside the copied pack, for example in `.opencode/benny/`. adapt [`configuration.example.yaml`](./templates/configuration.example.yaml) and [`feature-map.example.md`](./skills/reproduce-and-fix-issues/references/feature-map.example.md).\n5. commit `.opencode/benny/runtime.json`, `.opencode/automations/benny/`, and any secret-free configuration before enabling either automation.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/README.md",
+      "before": "\t\"plugins\": {\n\t\t\"pstack\": { \"enabled\": true }\n\t}\n",
+      "after": "  \"launcher\": \"oc-pstack\",\n  \"profile\": \"pstack\",\n  \"sourceCommit\": \"de8ee15dd1194627d21eb5fcd41cb1873208dabb\",\n  \"requiredSkills\": [\"how\", \"why\", \"tdd\", \"unslop\"]\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/README.md",
+      "before": "1. point cursor at [`FOR_AGENTS.md`](./FOR_AGENTS.md) and name the target repository.\n2. let setup merge this whole directory into the target at `.cursor/automations/benny/`. it must preserve destination-only files and review conflicts instead of overwriting local edits.\n3. let setup enable pstack in the target repository's `.cursor/settings.json` for shared dependencies:\n",
+      "after": "1. point the OpenCode agent at [`FOR_AGENTS.md`](./FOR_AGENTS.md) and name the target repository.\n2. let setup merge this whole directory into the target at `.opencode/automations/benny/`. it must preserve destination-only files and review conflicts instead of overwriting local edits.\n3. let setup record the required pinned `oc-pstack` runtime in `.opencode/benny/runtime.json`. The external automation provider must provision and verify that profile for every run:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/README.md",
+      "before": "benny gives you two cursor automations for slack issue reports. one triages each report. the other reproduces confirmed bugs and may prepare a small draft fix.\n",
+      "after": "benny gives you two externally hosted OpenCode automations for slack issue reports. one triages each report. the other reproduces confirmed bugs and may prepare a small draft fix.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/reproduce-and-fix-issues/SKILL.md",
+      "before": "Always call the control adapter's cleanup capability. Keep artifacts only as long as the configured retention policy allows.\n",
+      "after": "Always call the control adapter's cleanup capability. Keep artifacts only as long as the configured retention policy allows.\n\n## OpenCode execution prerequisites\n\nThis pack preserves the operational procedures but is dormant. OpenCode does not provide a managed Slack report subscription, a hosted automation editor, fresh cloud checkouts, or credential-stripped workers through this profile. A local webhook routine alone does not supply these capabilities. Do not enable Benny or claim end-to-end automation equivalence without a verified external automation provider implementing those prerequisites.\n\nThe provider must authenticate Slack events, retain the original channel and root timestamp, deduplicate deliveries, select the committed repository revision, launch `oc-pstack`, and expose only the configured integrations. Its setup must include a concrete draft, explicit approval, a readiness check, and a saved editor configuration, one automation at a time. With no such provider, prepare the configuration and report activation as `BLOCKED`. Do not invent a built-in automation command or call an undocumented backend.\n\nNative subagents inherit runtime access; a read-only instruction is not credential isolation. If tools and credentials cannot be excluded as required, keep the work in the coordinator. When delegation is eligible, use `subagent(agent: \"general\", background: true, role: ...)`, consolidate the brief, and retain every no-Slack-write restriction. Use `how explorer` for code investigation, `judgment and prose` for media review, and `bug-fix` for bounded code work. Pass the explicitly configured Benny model as native `model` when assigned, and apply the pstack effort/speed rules. The automation provider selects `models.triage` or `models.reproduce` for its parent session. Models must be advertised native `provider/model#variant` references.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/reproduce-and-fix-issues/SKILL.md",
+      "before": "Prefer configured Cursor Slack actions. Use `BENNY_SLACK_BOT_TOKEN` only when the user configured it for a narrow missing capability such as editing this one status message. Never expose the token to a worker.\n",
+      "after": "Prefer configured connected Slack MCP actions. Use `BENNY_SLACK_BOT_TOKEN` only when the user configured it for a narrow missing capability such as editing this one status message. Never expose the token to a worker.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/reproduce-and-fix-issues/references/control-adapter.md",
+      "before": "Set the completed user-facing feature map path in `control.feature_map_path`. Copy and fill [`feature-map.example.md`](./feature-map.example.md) outside `.cursor/automations/benny/` instead of editing the copied example.\n",
+      "after": "Set the completed user-facing feature map path in `control.feature_map_path`. Copy and fill [`feature-map.example.md`](./feature-map.example.md) outside `.opencode/automations/benny/` instead of editing the copied example.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/reproduce-and-fix-issues/references/feature-map.example.md",
+      "before": "Copy this file outside `.cursor/automations/benny/`, for example to `.cursor/benny/feature-map.md`, and set `control.feature_map_path` to the copy. Pack refreshes must not overwrite it.\n",
+      "after": "Copy this file outside `.opencode/automations/benny/`, for example to `.opencode/benny/feature-map.md`, and set `control.feature_map_path` to the copy. Pack refreshes must not overwrite it.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Enable normal traffic only after all seven checks pass.\n",
+      "after": "Enable normal traffic only after all seven checks pass.\n\n## OpenCode execution prerequisites\n\nThis pack preserves the operational procedures but is dormant. OpenCode does not provide a managed Slack report subscription, a hosted automation editor, fresh cloud checkouts, or credential-stripped workers through this profile. A local webhook routine alone does not supply these capabilities. Do not enable Benny or claim end-to-end automation equivalence without a verified external automation provider implementing those prerequisites.\n\nThe provider must authenticate Slack events, retain the original channel and root timestamp, deduplicate deliveries, select the committed repository revision, launch `oc-pstack`, and expose only the configured integrations. Its setup must include a concrete draft, explicit approval, a readiness check, and a saved editor configuration, one automation at a time. With no such provider, prepare the configuration and report activation as `BLOCKED`. Do not invent a built-in automation command or call an undocumented backend.\n\nNative subagents inherit runtime access; a read-only instruction is not credential isolation. If tools and credentials cannot be excluded as required, keep the work in the coordinator. When delegation is eligible, use `subagent(agent: \"general\", background: true, role: ...)`, consolidate the brief, and retain every no-Slack-write restriction. Use `how explorer` for code investigation, `judgment and prose` for media review, and `bug-fix` for bounded code work. Pass the explicitly configured Benny model as native `model` when assigned, and apply the pstack effort/speed rules. The automation provider selects `models.triage` or `models.reproduce` for its parent session. Models must be advertised native `provider/model#variant` references.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Before testing, confirm that the target repository's `.cursor/settings.json`, `.cursor/automations/benny/`, and every referenced secret-free configuration file are committed on the branch used by the automation checkout. Confirm that both live prompts point at their exact committed operational files. If any check fails, stop. Tell the user that the automation cannot be enabled yet.\n",
+      "after": "Before testing, confirm that the target repository's `.opencode/benny/runtime.json`, `.opencode/automations/benny/`, and every referenced secret-free configuration file are committed on the branch used by the automation checkout. Confirm that both live prompts point at their exact committed operational files. If any check fails, stop. Tell the user that the automation cannot be enabled yet.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Never call a direct automation backend service or backend automation tool. Never use a browser URL that carries draft fields. Never build or open a Cursor protocol deep link. For new automations, the only finish path is the built-in `automate` skill's reviewed Automations editor handoff.\n",
+      "after": "Never call a direct automation backend service or backend automation tool. Never use a browser URL that carries draft fields. Never build or open an unverified provider protocol deep link. For new automations, the only finish path is the external provider's reviewed automation setup workflow's reviewed Automations editor handoff.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Direct instruction to read `.cursor/automations/benny/skills/reproduce-and-fix-issues/SKILL.md`\n",
+      "after": "- Direct instruction to read `.opencode/automations/benny/skills/reproduce-and-fix-issues/SKILL.md`\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Direct instruction to read `.cursor/automations/benny/skills/triage-issue-reports/SKILL.md`\n",
+      "after": "- Direct instruction to read `.opencode/automations/benny/skills/triage-issue-reports/SKILL.md`\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "The built-in `automate` skill is creation-only. Do not use it to search for, inspect, or update existing automations.\n",
+      "after": "The external provider's reviewed automation setup workflow is creation-only. Do not use it to search for, inspect, or update existing automations.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Do not duplicate `automate`'s Slack, repository, integration, completeness, authentication, draft-review, approval, readiness, or editor-handoff work.\n",
+      "after": "Do not duplicate the external provider's reviewed setup workflow's Slack, repository, integration, completeness, authentication, draft-review, approval, readiness, or editor-handoff work.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Include pull request creation and the configured tracker, control-adapter, and feature-map requirements. Paraphrase mapped user paths and states unless `automate` confirms an eligible committed file in the same repository.\n",
+      "after": "- Include pull request creation and the configured tracker, control-adapter, and feature-map requirements. Paraphrase mapped user paths and states unless the external provider's reviewed setup workflow confirms an eligible committed file in the same repository.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Read and follow `.cursor/automations/benny/skills/reproduce-and-fix-issues/SKILL.md` for every run.\n",
+      "after": "- Read and follow `.opencode/automations/benny/skills/reproduce-and-fix-issues/SKILL.md` for every run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "After the triage editor handoff is complete, give `automate` this complete repro and fix intent:\n",
+      "after": "After the triage editor handoff is complete, give the external provider's reviewed setup workflow this complete repro and fix intent:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Read and follow `.cursor/automations/benny/skills/triage-issue-reports/SKILL.md` for every run.\n",
+      "after": "- Read and follow `.opencode/automations/benny/skills/triage-issue-reports/SKILL.md` for every run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Give `automate` this complete triage intent, filled from configuration:\n",
+      "after": "Give the external provider's reviewed setup workflow this complete triage intent, filled from configuration:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "5. Read and follow the built-in `automate` skill.\n6. Let `automate` discover Slack channels, the repository, and connected integrations.\n7. Let `automate` confirm that the copied pack and any referenced configuration files are committed in the same repository where the automation will run.\n8. Let `automate` show its draft table, obtain approval, ask readiness, and open the Automations editor.\n",
+      "after": "5. Read and follow the external provider's reviewed automation setup workflow.\n6. Let the external provider's reviewed setup workflow discover Slack channels, the repository, and connected integrations.\n7. Let the external provider's reviewed setup workflow confirm that the copied pack and any referenced configuration files are committed in the same repository where the automation will run.\n8. Let the external provider's reviewed setup workflow show its draft table, obtain approval, ask readiness, and open the Automations editor.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "3. Tell the live prompt to read and follow its exact committed operational file under `.cursor/automations/benny/`.\n",
+      "after": "3. Tell the live prompt to read and follow its exact committed operational file under `.opencode/automations/benny/`.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "1. Copy `../triage-issue-reports/references/routing.example.md` outside `.cursor/automations/benny/`.\n",
+      "after": "1. Copy `../triage-issue-reports/references/routing.example.md` outside `.opencode/automations/benny/`.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Prefer configured Cursor Slack actions for reads and posts. The optional `BENNY_SLACK_BOT_TOKEN` may fill a narrow gap such as editing one operations status message or downloading an attachment. Store the value in a secret manager or environment, not in YAML.\n",
+      "after": "Prefer configured connected Slack MCP actions for reads and posts. The optional `BENNY_SLACK_BOT_TOKEN` may fill a narrow gap such as editing one operations status message or downloading an attachment. Store the value in a secret manager or environment, not in YAML.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Use only model slugs shown as available in the user's Cursor model picker or supported model list. Do not guess a slug and do not carry over a private default.\n",
+      "after": "Use only model slugs shown as available in the native model catalogue returned by `pstack_models(action: \"catalog\")`. Do not guess a slug and do not carry over a private default.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Prefer committed, secret-free files in the target repository when a fresh automation checkout must read them. Otherwise paraphrase the required values into the live prompt. Reference a repository file only after the built-in `/automate` skill confirms that the file is committed in the repository where the automation runs.\n",
+      "after": "Prefer committed, secret-free files in the target repository when a fresh automation checkout must read them. Otherwise paraphrase the required values into the live prompt. Reference a repository file only after the external provider's reviewed automation setup workflow confirms that the file is committed in the repository where the automation runs.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "- Project config, such as `.cursor/benny/configuration.yaml`\n- Project feature map, such as `.cursor/benny/feature-map.md`\n- Project routing map, such as `.cursor/benny/routing.md`\n",
+      "after": "- Project config, such as `.opencode/benny/configuration.yaml`\n- Project feature map, such as `.opencode/benny/feature-map.md`\n- Project routing map, such as `.opencode/benny/routing.md`\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Create user-owned copies outside `.cursor/automations/benny/`. These are configuration files, not pack files. Example locations:\n",
+      "after": "Create user-owned copies outside `.opencode/automations/benny/`. These are configuration files, not pack files. Example locations:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Tell the user that `.cursor/settings.json`, `.cursor/automations/benny/`, and any referenced secret-free configuration must be committed before either automation is enabled. Do not commit them unless the user asks.\n",
+      "after": "Tell the user that `.opencode/benny/runtime.json`, `.opencode/automations/benny/`, and any referenced secret-free configuration must be committed before either automation is enabled. Do not commit them unless the user asks.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "The Benny files are read directly from `.cursor/automations/benny/`. Do not add that directory to a plugin manifest or expect its `SKILL.md` files to appear in the slash-skill list.\n",
+      "after": "The Benny files are read directly from `.opencode/automations/benny/`. Do not add that directory to a plugin manifest or expect its `SKILL.md` files to appear in the slash-skill list.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "If project-scoped plugin installation is unavailable or any shared dependency does not resolve, stop and explain the failure.\n",
+      "after": "If the pinned profile cannot be provisioned in the automation checkout or any shared dependency does not resolve, stop and explain the failure.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Do not count a skill loaded from the current session or a user-scoped plugin. The check must show that a fresh agent in the target repository receives pstack through project settings.\n",
+      "after": "Do not count a skill loaded from the current session or a user-scoped plugin. The check must launch a fresh `oc-pstack` session in the target repository using the committed deployment manifest and verify the loaded skill paths, bodies and invocation flags. A session accidentally using another profile does not pass.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Preserve every unrelated top-level setting and every other plugin entry. If `plugins.pstack` already exists, change only its `enabled` value. Preserve comments and valid JSONC syntax when the file uses JSONC. Validate the file after editing it.\n",
+      "after": "Preserve unrelated manifest settings and validate the JSON after editing. The external automation provider must verify the pinned profile installation in every fresh checkout before starting the run. Merely writing this manifest does not enable anything.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "\t\"plugins\": {\n\t\t\"pstack\": { \"enabled\": true }\n\t}\n",
+      "after": "  \"launcher\": \"oc-pstack\",\n  \"profile\": \"pstack\",\n  \"sourceCommit\": \"de8ee15dd1194627d21eb5fcd41cb1873208dabb\",\n  \"requiredSkills\": [\"how\", \"why\", \"tdd\", \"unslop\"]\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Merge this entry into the existing JSON or JSONC:\n",
+      "after": "Merge these execution requirements into the deployment manifest:\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Add pstack to the target repository's `.cursor/settings.json`. If the file or `.cursor` directory does not exist, create it.\n",
+      "after": "Record the pinned OpenCode execution requirement in the target repository's `.opencode/benny/runtime.json`. Create that directory and file when absent. This is a deployment manifest for the external automation provider, not native project-wide plugin configuration. Do not enable pstack in the shared project configuration or affect other profiles.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Ask which repository will run the automations. The source pack is the directory containing `FOR_AGENTS.md`. The destination is `<target-repository>/.cursor/automations/benny/`.\n",
+      "after": "Ask which repository will run the automations. The source pack is the directory containing `FOR_AGENTS.md`. The destination is `<target-repository>/.opencode/automations/benny/`.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Do this before asking for Benny configuration and before invoking the built-in `/automate` skill.\n",
+      "after": "Do this before asking for Benny configuration and before invoking the external provider's reviewed automation setup workflow.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "Benny needs external configuration and two live Cursor automations.\n",
+      "after": "Benny needs external configuration and two live externally hosted OpenCode automations.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/setup-benny/SKILL.md",
+      "before": "The human enters setup by pointing Cursor at the pack's `FOR_AGENTS.md`. The bootstrap flow copies the whole pack into the target repository, then reads this file directly at `.cursor/automations/benny/skills/setup-benny/SKILL.md`.\n",
+      "after": "The human enters setup by pointing the OpenCode agent at the pack's `FOR_AGENTS.md`. The bootstrap flow copies the whole pack into the target repository, then reads this file directly at `.opencode/automations/benny/skills/setup-benny/SKILL.md`.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/triage-issue-reports/SKILL.md",
+      "before": "Do not extend the window more than once. A new report should start a new run.\n",
+      "after": "Do not extend the window more than once. A new report should start a new run.\n\n## OpenCode execution prerequisites\n\nThis pack preserves the operational procedures but is dormant. OpenCode does not provide a managed Slack report subscription, a hosted automation editor, fresh cloud checkouts, or credential-stripped workers through this profile. A local webhook routine alone does not supply these capabilities. Do not enable Benny or claim end-to-end automation equivalence without a verified external automation provider implementing those prerequisites.\n\nThe provider must authenticate Slack events, retain the original channel and root timestamp, deduplicate deliveries, select the committed repository revision, launch `oc-pstack`, and expose only the configured integrations. Its setup must include a concrete draft, explicit approval, a readiness check, and a saved editor configuration, one automation at a time. With no such provider, prepare the configuration and report activation as `BLOCKED`. Do not invent a built-in automation command or call an undocumented backend.\n\nNative subagents inherit runtime access; a read-only instruction is not credential isolation. If tools and credentials cannot be excluded as required, keep the work in the coordinator. When delegation is eligible, use `subagent(agent: \"general\", background: true, role: ...)`, consolidate the brief, and retain every no-Slack-write restriction. Use `how explorer` for code investigation, `judgment and prose` for media review, and `bug-fix` for bounded code work. Pass the explicitly configured Benny model as native `model` when assigned, and apply the pstack effort/speed rules. The automation provider selects `models.triage` or `models.reproduce` for its parent session. Models must be advertised native `provider/model#variant` references.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/skills/triage-issue-reports/references/routing.example.md",
+      "before": "Copy this file outside `.cursor/automations/benny/`, for example to `.cursor/benny/routing.md`, and replace every placeholder. Point `routing.map_path` at the copy. Pack refreshes must not overwrite it.\n",
+      "after": "Copy this file outside `.opencode/automations/benny/`, for example to `.opencode/benny/routing.md`, and replace every placeholder. Point `routing.map_path` at the copy. Pack refreshes must not overwrite it.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/configuration.example.yaml",
+      "before": "  feature_map_path: \".cursor/benny/feature-map.md\"\n",
+      "after": "  feature_map_path: \".opencode/benny/feature-map.md\"\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/configuration.example.yaml",
+      "before": "  map_path: \".cursor/benny/routing.md\"\n",
+      "after": "  map_path: \".opencode/benny/routing.md\"\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/configuration.example.yaml",
+      "before": "  prefer_cursor_actions: true\n",
+      "after": "  prefer_configured_actions: true\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/reproduce-automation-prompt.md",
+      "before": "Read and follow `.cursor/automations/benny/skills/reproduce-and-fix-issues/SKILL.md` for this run.\n",
+      "after": "Read and follow `.opencode/automations/benny/skills/reproduce-and-fix-issues/SKILL.md` for this run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/reproduce-automation-prompt.md",
+      "before": "> Source material for the copied setup workflow. Paraphrase this intent into a built-in `automate` draft after `automate` confirms that the copied pack is committed in the repository where the automation will run.\n",
+      "after": "> Source material for the copied setup workflow. Paraphrase this intent into a external provider's reviewed automation draft after the external provider's reviewed setup workflow confirms that the copied pack is committed in the repository where the automation will run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/triage-automation-prompt.md",
+      "before": "Read and follow `.cursor/automations/benny/skills/triage-issue-reports/SKILL.md` for this run.\n",
+      "after": "Read and follow `.opencode/automations/benny/skills/triage-issue-reports/SKILL.md` for this run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    },
+    {
+      "file": "automations/benny/templates/triage-automation-prompt.md",
+      "before": "> Source material for the copied setup workflow. Paraphrase this intent into a built-in `automate` draft after `automate` confirms that the copied pack is committed in the repository where the automation will run.\n",
+      "after": "> Source material for the copied setup workflow. Paraphrase this intent into a external provider's reviewed automation draft after the external provider's reviewed setup workflow confirms that the copied pack is committed in the repository where the automation will run.\n",
+      "reason": "OpenCode 경로·역할·배포 명세로 치환하고 미지원 외부 자동화 실행 전제를 명시. 원본 절차·외부 쓰기·검수 조건은 보존."
+    }
+  ],
+  "files": [
+    {
+      "sourcePath": "pstack/automations/benny/FOR_AGENTS.md",
+      "path": "automations/benny/FOR_AGENTS.md",
+      "sourceSha256": "a125e317dec1b8731fdc71f404c669f1127a73af932f7a7b8b8744a5542328a7",
+      "portSha256": "479e89464d39dd1b1e56b12093f43e366283c43228e10ad98b420395743a667d"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/README.md",
+      "path": "automations/benny/README.md",
+      "sourceSha256": "ca3c42cbb7f0bf7068f7407eb355815e6c234d5c2786942f3cbe751a3690024b",
+      "portSha256": "350ae3ce1154699c804c4e6c853b5ca17f4a801735a83aa5ac8a15551034f2de"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/reproduce-and-fix-issues/SKILL.md",
+      "path": "automations/benny/skills/reproduce-and-fix-issues/SKILL.md",
+      "sourceSha256": "1363cc07343fe86aab42853b1bd4563288cbcbdf12f1c265b3b3b1afa25c09cb",
+      "portSha256": "88da7216126e4a97556dc394d3c9cf4ac0cf04191801ee12e59c20c9edb8699a"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/reproduce-and-fix-issues/references/control-adapter.md",
+      "path": "automations/benny/skills/reproduce-and-fix-issues/references/control-adapter.md",
+      "sourceSha256": "58b0615d2fca895f9a20df83266e280042b0d585b5f2fd324e2094a682fd846b",
+      "portSha256": "013f19a4fb6f2e7a5a1988ce1557e67baa8f482715e9c6a8b3870fc9016ce431"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/reproduce-and-fix-issues/references/feature-map.example.md",
+      "path": "automations/benny/skills/reproduce-and-fix-issues/references/feature-map.example.md",
+      "sourceSha256": "1e5c7c8522daec3e43fcc2e73ceb97289ded65b552949ce65a11cc8eb3d2b6ee",
+      "portSha256": "17184e673f815df5a17db8aa54b8f191ef52b1239aa6a78362cd227ddd741c84"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/reproduce-and-fix-issues/references/verify-existing-fix.md",
+      "path": "automations/benny/skills/reproduce-and-fix-issues/references/verify-existing-fix.md",
+      "sourceSha256": "c90eae00abcdec71a58fa8d60f2c495b082a526ad50b8e8e494837609129bf29",
+      "portSha256": "c90eae00abcdec71a58fa8d60f2c495b082a526ad50b8e8e494837609129bf29"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/setup-benny/SKILL.md",
+      "path": "automations/benny/skills/setup-benny/SKILL.md",
+      "sourceSha256": "5a3cbe63360c9f6373b6cb6c79a1eaf7e0eba181bfaa1577e2e6431af3407282",
+      "portSha256": "256f8169dea96baaf5e6b50e9e317d89829d6590196a4b8461eb6f78b3c08b91"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/triage-issue-reports/SKILL.md",
+      "path": "automations/benny/skills/triage-issue-reports/SKILL.md",
+      "sourceSha256": "216a758b8711e64d19a55e6032c496527daac6364d010611040f3c04ef1a448f",
+      "portSha256": "832be6991ed18cf9baec33abb03ba84e3a2d36dc1b2f9389bea638f86b76aeb9"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/skills/triage-issue-reports/references/routing.example.md",
+      "path": "automations/benny/skills/triage-issue-reports/references/routing.example.md",
+      "sourceSha256": "e5e53013692568cf69da8e8b302fff929fe2fbc9aec1a4651fd7997e2c7a4025",
+      "portSha256": "936e5cfe52b3ebaa16dfac34e96ab205d29d7415a94805dc5b968a1d08535d6a"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/templates/configuration.example.yaml",
+      "path": "automations/benny/templates/configuration.example.yaml",
+      "sourceSha256": "13e24b4ce9b9a0913916e85fe3b080b88d45f8e55dccfe8ae38e0751a997b6f5",
+      "portSha256": "b0a3443aa0c7d686e46e3a854ec1c5676b9b8fd296312bbc1d8974102f9e0ff6"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/templates/reproduce-automation-prompt.md",
+      "path": "automations/benny/templates/reproduce-automation-prompt.md",
+      "sourceSha256": "71ec574f1844e379394ae4ef14c48d7df10afbaa319d395c788d7f856f0e6899",
+      "portSha256": "088769b8f2c5c28a710400805da09333a4ecd5f7835400a4b5d7cd5b70a70546"
+    },
+    {
+      "sourcePath": "pstack/automations/benny/templates/triage-automation-prompt.md",
+      "path": "automations/benny/templates/triage-automation-prompt.md",
+      "sourceSha256": "e0bba594547834f013ec805915610eb597e7929efe3ffbe85ae00339ee16d474",
+      "portSha256": "1cad01d1c2805a771fd4c18754bb319fd1bc907658db31e9984c52f5cf09268b"
+    }
+  ],
+  "limitations": [
+    "No bundled Slack trigger subscription or managed editor",
+    "No cloud checkout provisioning",
+    "No automatic worker credential stripping",
+    "No live external automation enabled or tested"
+  ]
+}

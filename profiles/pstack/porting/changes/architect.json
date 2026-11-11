@@ -1,0 +1,14 @@
+[
+  {
+    "file": "skills/architect/SKILL.md",
+    "before": "Open a todolist with one entry per phase before starting.",
+    "after": "Use `pstack_todo` with `action: \"write\"` to open an ordered todo list with one entry per phase before starting. Read it with `action: \"read\"` and update the stored list as phases finish; keep skipped phases with their reason.",
+    "reason": "할 일 목록을 세션별 영속 pstack_todo 도구로 연결한다."
+  },
+  {
+    "file": "skills/architect/SKILL.md",
+    "before": "Take the runners from the `architect runners` line in the `pstack-models.mdc` rule, in place of the `arena runners` line. If the rule or that line is missing, use `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.",
+    "after": "Call `pstack_models` with `action: \"resolve\", role: \"architect runners\"` to take the runners from the profile's `pstack-models.json`, in place of the `arena runners` role. If the file or role is missing, the defaults are Claude Opus 5.5 at xhigh reasoning and Grok 4.7 at xhigh reasoning with fast speed, resolved to advertised OpenCode `provider/model#variant` identities. Use the returned seats in order, preserving duplicates and parent-model alias seats. Pass `role: \"architect runners\"` and each zero-based `seat` to the native `subagent` call; its execution selects the model from the current role configuration and the job's reasoning/speed requirements. Report any fallback notices. Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.",
+    "reason": "architect 전용 패널·원본 기본값을 보존하고 필수 role 및 seat 인자로 실제 subagent 실행에 연결한다."
+  }
+]

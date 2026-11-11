@@ -1,0 +1,524 @@
+{
+  "checkedAt": "2026-11-10T20:44:23.428Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13557,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57751"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "results": [
+    {
+      "name": "architect",
+      "fileSha256": "ac37b3efa2969f38ee12b28f921a2cfd8c31211eaf9198f2bfcf141ad945b8c5",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "arena",
+      "fileSha256": "5ac3753153aab2d50f124d5fcc092ff792d018e332fed1322720b59eb0e1c6a2",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "automate-me",
+      "fileSha256": "902bc41271827ae30d2304512fe4d91cd906f32782c071cfdea8481b6e9a9951",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "benchmark-checklist",
+      "fileSha256": "b4633992c7f3529953b8fa70c8489c72904a29db8fd57f186fadfd1f777ad47a",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "blast-radius",
+      "fileSha256": "4e27b2ad8e57c66821bb95ffee0fcb21a903f810006acd8e13914ff20f63c412",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "bro",
+      "fileSha256": "8e473112e44a8d1ccdc280c3b23baf47decdf70a5ccda3be667d55aa619525b9",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "control-cli",
+      "fileSha256": "c338d1d5f18e3f6b3600e8917c9cf8ef1cd03b95a6eadea5f12947e6b7663c08",
+      "contentEqual": true,
+      "autoinvoke": true,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "control-ui",
+      "fileSha256": "1bfa71f365131ce3dd815e0fa1fe9944126dc4467772c1e544784824178dd141",
+      "contentEqual": true,
+      "autoinvoke": true,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "correct",
+      "fileSha256": "a0dbcd12337aaa6aec7a61fb3582d2ff15d5d88ad1a5b85a733abad078457ecc",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "create-formal-verification-skill",
+      "fileSha256": "b237e27e6ce05c5224fa72b3867f53f48038e6c059d2c4dc6378da3e08d22143",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "create-skill",
+      "fileSha256": "9cbf05e46346b1d4b62ce0e21565fef6e0baf2ae6dbe673adf8b75a6fee15add",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "create-verification-skill",
+      "fileSha256": "21209a31e66655dff9e6611c65e6b3b49261536c59cf38570ed72fabb9acb87b",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "deslop",
+      "fileSha256": "5aa84048424438754571a727402f213635524a8e0316633cbaf3b18f61e6500d",
+      "contentEqual": true,
+      "autoinvoke": true,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "figure-it-out",
+      "fileSha256": "c24d13f72cf821766ceb3c80a8aed71443921255446f1c11dc4db2cc3ec90d61",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "how",
+      "fileSha256": "3cad45d5763463c6e4f62b196401bb35131a6104aefe84e3edcf246a560ed957",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "in-your-own-words",
+      "fileSha256": "87ce6017b12b4c81fda4d0976826485667059b147b2eb8bd7a034d7b1cc9212a",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "interrogate",
+      "fileSha256": "2d7de1f48c5533bb24a658e1e4d0dfa196a929e7c39b628586aa15fc2521d596",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "ketchup",
+      "fileSha256": "6708feedafeed4e3d2c1bae9fb5230fbcb00dd14e623eb02134c960a6405f489",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "ketchup-video",
+      "fileSha256": "8c24cdfb8944259a625e63a8e666530385193846b363512cb8f9d070eb2f402f",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "maintain-formal-verification-skill",
+      "fileSha256": "ee3c62ea399d3981866c2b56ec911516716c6970597c412db389f78dfd4e9a5a",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "maintain-verification-skill",
+      "fileSha256": "87f1cc802ddaa868fbd54d79faf6f8041dba8b6fbdf643caf52733e1aac252c1",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "make-bot-ui",
+      "fileSha256": "35551f3882b7bf358c20d60d1462ba1d017e5c2467910544d142e15231177238",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "no-comments",
+      "fileSha256": "e0a8ad13bddd2792815505dd6a8bd55ae91a44fdc21aa73fae54939317c56715",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "poteto-help",
+      "fileSha256": "23563195d839e34d72959684d1c19a600086f0687e223dfa3097863b244d55b5",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "poteto-mode",
+      "fileSha256": "c10893efa3f9585ff801eb2f978f379dc12d8dd09264f704221ae165fad82f36",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-attack-the-premise",
+      "fileSha256": "f67b0132998198940e21b099c8e2796c8f105ed6bc24a6d86094f35fc2078776",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-boundary-discipline",
+      "fileSha256": "7f7b57998086c38e09fa51f01ae1e994705dfae5ab9b5562d3c17efdfd389aa3",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-build-the-lever",
+      "fileSha256": "2d9e33685d371627c7441dba13f9c4860bc8d2f06adb2c36a62d6ddc204965da",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-encode-lessons-in-structure",
+      "fileSha256": "b6f5592dd4c353df76181199851fd6a6cb6c53e4831825c8a096efda93baf3c5",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-exhaust-the-design-space",
+      "fileSha256": "397d0c759c8af9caf8517c15a8ddaa89d88ab814ac04d711efedd6f29869dab1",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-experience-first",
+      "fileSha256": "61f03ba589941c3fea4177b1b2e98f9d90fad31aa241c6fe769d97c5e3308641",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-explain-the-number",
+      "fileSha256": "bc97852a1c556b22d79c94b82f1869b169eef51d4fc8227d893718b789da8717",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-fix-root-causes",
+      "fileSha256": "67d4cfef6f012093d79879fdc9fd466bd7d937b8f45233758846696108425c6c",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-foundational-thinking",
+      "fileSha256": "312a43814daa2e67f1091b03f50c31c5c7ba671e337bff2c73d84e700607114a",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-guard-the-context-window",
+      "fileSha256": "a09b6513c9df8146b5af8cc36be141c1a5ed5089eda2a2dbf5a3163f83763d44",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-laziness-protocol",
+      "fileSha256": "a8cff542a22125400300d27fda22d832b4e724204b3a0954f864f94b0f6d7ce7",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-make-operations-idempotent",
+      "fileSha256": "8b534407cf2f196b9dd1c0c8e75ab849272ae40bd758d14e2281702f21609d6e",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-migrate-callers-then-delete-legacy-apis",
+      "fileSha256": "42d803dc77ef5b058be7c223928f71c203df9dfb0776cc99d89a7ef8bd498aa2",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-minimize-reader-load",
+      "fileSha256": "0046147d06e5d1148ae7e99d34062ad494c99a2af04fd14e913f394813cee7eb",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-model-the-domain",
+      "fileSha256": "37f022ce6ef472181588150d65531652fe290efb5aa1fceb77b7a06fc79cb7df",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-never-block-on-the-human",
+      "fileSha256": "cf6f857ed2ae6f8f7ded8b7d86e736830341d59f044c55d3d760d44be00dbd7c",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-outcome-oriented-execution",
+      "fileSha256": "1789f996b36b4c145de0a918878ebb31b74da515370535e4205baceff08f8120",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-prove-it-works",
+      "fileSha256": "475b3094d65a301f3e73db77de161dfe7e09eebc66c5b307af6a3efef1391fe7",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-redesign-from-first-principles",
+      "fileSha256": "cd4c49be238c916f33930f31150f531825d0df72d99519df7514fd6a49f76d38",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-separate-before-serializing-shared-state",
+      "fileSha256": "7c79487d1c829d6c5de904bd2b6bbe7ae32bd0416d31091f832a4b7ea5f1d5ad",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-sequence-verifiable-units",
+      "fileSha256": "9c56c031e5f9138194b7c26d0866213675796dee88f3af055067ba48a33fdf13",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-subtract-before-you-add",
+      "fileSha256": "f0aaa32f9f26bb289cb469aff21c5db66255da2222fa781534c47bf7f51f6551",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-test-behavior-not-implementation",
+      "fileSha256": "5c8bac38b641b763e70d38f917f120d2cf31ccc10055f4642bf11c9bf5cf6c33",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "principle-type-system-discipline",
+      "fileSha256": "34bd5fc1ad09b29386eac4659a04222e0fd9f2b0c1139d8b5ad8002b5362fb11",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "recall",
+      "fileSha256": "124f7a25bbea7bb69107051833c8ff48692dcc58425cf9be2cc2ef928b410a5e",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "reflect",
+      "fileSha256": "a20b325a0723bebb91bcf723bec8bb11468d3db47d7024fd02d85c6d7d5c68f7",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "setup-pstack",
+      "fileSha256": "c8ceec1e803f9582ff8ddc77d99f335876d39a9f4c10bb567458daf6e63540f8",
+      "contentEqual": true,
+      "autoinvoke": true,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "sharpen",
+      "fileSha256": "ed7f5765b22de49fb34727838302f216822d230a3dd17da623f357bdf00e4940",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "show-me-your-work",
+      "fileSha256": "4eb7abf3a6f289176dfcc6d2ceaa5cb54fd2b28aac776f04f4b5cb7f79fb33f1",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "statechart",
+      "fileSha256": "f5040ae1ac5d0421e36ae3b4f862fade7e43f8f5093b076a2d59ef88098b684c",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "swarm",
+      "fileSha256": "2c1d212716d3af66dd656fa046b82a866d5529f27e7c12e5fa53a394436a938d",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "tdd",
+      "fileSha256": "c7a785c80b8ce59ed5ddbd8c7ee2864366f966a89cef63ad2a4438c5c312d6db",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "teach",
+      "fileSha256": "526d2bff571702075ec6b0398681a19f8ef3c9be8cfde404f5089d06f5808f78",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "technical-writing",
+      "fileSha256": "ef889e48128a189dfdf14a381a20a6fca2b5e854b8d8fff6080044d3c29df999",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "typescript-best-practices",
+      "fileSha256": "e41bbd1a83288091137a2e1d2dfc41fe553b3363b80e898165846879eb21290f",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "unslop",
+      "fileSha256": "348e095da7fb3f6a0e21d5f279a0408d2e6cdda608ae73db99d106779ba2d617",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "visualize",
+      "fileSha256": "a8740bcf938666724bfc2d2383428b9757669b7d0843343fefe40a9dbb8a438a",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
+    {
+      "name": "why",
+      "fileSha256": "ed2df631ecced1535e97f74a6ddc3397befa5fcced62b047e7bed2a77db71ef4",
+      "contentEqual": true,
+      "autoinvoke": false,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    }
+  ],
+  "limits": "No model inference; proves native catalogue and explicit session instruction loading, not model compliance or task outcomes."
+}

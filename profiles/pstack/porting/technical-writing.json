@@ -1,0 +1,22 @@
+{
+  "name": "technical-writing",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "본문 전체 바이트 동일. Diátaxis·Google developer style·STE·Global English 4계층과 실제 코드 이름, unslop 적용, PR/commit 및 문서/UI 구분까지 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/technical-writing/SKILL.md",
+      "sourceSha256": "61fe9c424a798ebf36ad94941f87be049cb8827bdf86d21474a0dde37b513c43",
+      "portSha256": "ef889e48128a189dfdf14a381a20a6fca2b5e854b8d8fff6080044d3c29df999",
+      "mode": 420,
+      "bodyUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "control-ui",
+  "scope": "dependencies/control-ui",
+  "registered": true,
+  "sourceArchive": "provenance/dependencies.tar",
+  "archiveSha256": "18abe6e1f793004f68f690732511de517f9bc2fdde81b150e0342407ece2a87f",
+  "commit": "de8ee15dd1194627d21eb5fcd41cb1873208dabb",
+  "changes": "자동 호출 메타데이터만 명시. 본문 전체 동일.",
+  "equivalence": "동일 커밋의 동반 스킬 원문과 본문 바이트가 동일하다. 원본 자동 호출 정책을 native metadata로 보존한다.",
+  "rewrites": [],
+  "files": [
+    {
+      "sourcePath": "cursor-team-kit/skills/control-ui/SKILL.md",
+      "path": "skills/control-ui/SKILL.md",
+      "sourceSha256": "410cae25bdb1e5d2323b126abc5047b0213be7fdb0195710213fa8de8a751871",
+      "portSha256": "1bfa71f365131ce3dd815e0fa1fe9944126dc4467772c1e544784824178dd141"
+    }
+  ]
+}

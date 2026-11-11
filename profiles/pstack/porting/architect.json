@@ -1,0 +1,52 @@
+{
+  "name": "architect",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 할 일 목록을 세션별 영속 pstack_todo 도구로 연결한다. architect 전용 패널·원본 기본값을 보존하고 필수 role 및 seat 인자로 실제 subagent 실행에 연결한다.",
+  "equivalence": "Ground→Sketch→Agree→Implement→Scrap 5단계, 최소 2개의 구조적으로 다른 후보, opt-in 승인, 재설계 조건을 모두 보존. SKILL.md에서 todo와 모델 설정 연결 두 구간만 교체했으며 나머지 본문과 참고 파일 3개는 원문과 바이트 일치. 모델 역할·seat의 네이티브 실행 연결은 17개 역할·20개 자식 실행 시험으로 확인. how·arena·why 등 의존 스킬의 전체 워크플로 검증은 이후 단위에서 계속한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/architect/SKILL.md",
+      "before": "Open a todolist with one entry per phase before starting.",
+      "after": "Use `pstack_todo` with `action: \"write\"` to open an ordered todo list with one entry per phase before starting. Read it with `action: \"read\"` and update the stored list as phases finish; keep skipped phases with their reason.",
+      "reason": "할 일 목록을 세션별 영속 pstack_todo 도구로 연결한다."
+    },
+    {
+      "file": "skills/architect/SKILL.md",
+      "before": "Take the runners from the `architect runners` line in the `pstack-models.mdc` rule, in place of the `arena runners` line. If the rule or that line is missing, use `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.",
+      "after": "Call `pstack_models` with `action: \"resolve\", role: \"architect runners\"` to take the runners from the profile's `pstack-models.json`, in place of the `arena runners` role. If the file or role is missing, the defaults are Claude Opus 5.5 at xhigh reasoning and Grok 4.7 at xhigh reasoning with fast speed, resolved to advertised OpenCode `provider/model#variant` identities. Use the returned seats in order, preserving duplicates and parent-model alias seats. Pass `role: \"architect runners\"` and each zero-based `seat` to the native `subagent` call; its execution selects the model from the current role configuration and the job's reasoning/speed requirements. Report any fallback notices. Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.",
+      "reason": "architect 전용 패널·원본 기본값을 보존하고 필수 role 및 seat 인자로 실제 subagent 실행에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/architect/SKILL.md",
+      "sourceSha256": "31f8e97a52bfa5432edd61f68ade2a8632ef0bacbc2d2a6802d7a0e6821944ac",
+      "portSha256": "ac37b3efa2969f38ee12b28f921a2cfd8c31211eaf9198f2bfcf141ad945b8c5",
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/architect/references/design-red-flags.md",
+      "sourceSha256": "d0e639e4cc588ec865f930d3a4111faad60987ae36925917e319d7ceca7c69ce",
+      "portSha256": "d0e639e4cc588ec865f930d3a4111faad60987ae36925917e319d7ceca7c69ce"
+    },
+    {
+      "path": "skills/architect/references/rationale-template.md",
+      "sourceSha256": "0cedfccdc7b47fc881febd5a8293eecbc542c20f8df825639904a8102d2eb5d3",
+      "portSha256": "0cedfccdc7b47fc881febd5a8293eecbc542c20f8df825639904a8102d2eb5d3"
+    },
+    {
+      "path": "skills/architect/references/runner-prompt.md",
+      "sourceSha256": "21dd5314aab778c5007228027a4591d97693fbec6ab86524037772b63f40948e",
+      "portSha256": "21dd5314aab778c5007228027a4591d97693fbec6ab86524037772b63f40948e"
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

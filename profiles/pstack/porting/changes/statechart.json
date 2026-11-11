@@ -1,0 +1,14 @@
+[
+  {
+    "file": "skills/statechart/scripts/package.json",
+    "before": "@cursor-skill/statechart",
+    "after": "@opencode-pstack/statechart",
+    "reason": "비공개 보조 패키지 이름만 native 프로필에 맞춘다."
+  },
+  {
+    "file": "skills/statechart/scripts/test/cli.test.ts",
+    "before": "const links = fs.mkdtempSync(path.join(os.tmpdir(), \"statechart-links-\"));",
+    "after": "const links = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), \"statechart-links-\")));",
+    "reason": "macOS /var→/private/var 별칭에서 상대 symlink fixture가 잘못된 경로를 만들지 않도록 실제 디렉터리 기준으로 계산한다. 제품 런처 동작은 바꾸지 않는다."
+  }
+]

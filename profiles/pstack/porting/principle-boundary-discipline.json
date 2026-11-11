@@ -1,0 +1,20 @@
+{
+  "name": "principle-boundary-discipline",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "경계에서만 검증하고 내부 타입을 신뢰하며 도메인 로직을 순수 함수로 두는 규칙과 모든 적용 예·판정 질문을 그대로 보존. 도구나 플랫폼 전용 실행 지시가 없어 본문 변환 불필요.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native invocation flag",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-boundary-discipline/SKILL.md",
+      "sourceSha256": "62ac2862c2caa22dd14531f51c9c6bb445ceb198ca98a687e25b4d47c1f10a28",
+      "portSha256": "7f7b57998086c38e09fa51f01ae1e994705dfae5ab9b5562d3c17efdfd389aa3",
+      "bodyUnchanged": true
+    }
+  ]
+}

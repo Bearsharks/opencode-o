@@ -1,0 +1,128 @@
+[
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "In a Cursor chat, run:\n\n```text\n/add-plugin pstack\n```\n\nCursor confirms the plugin is installed.\n\nIn Claude Code, run `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. Claude Code prefixes plugin commands, so each command in this guide takes a `pstack:` prefix there, such as `/pstack:setup-pstack`, which writes its model rule to `~/.claude/rules/pstack-models.md`. The [Claude Code adapter](../harness/claude-code.md) covers the other differences.\n\n",
+    "after": "From this repository, install and validate the separate OpenCode profile:\n\n```sh\n./scripts/install/pstack.sh\n./scripts/doctor/pstack.sh\n```\n\nThen run `oc-pstack` in the project you want to work on. It uses this profile's native plugin, skills and isolated session database. The [profile README](../../README.md) states the current installation and verification status; do not treat an unfinished checkout as a released installation.\n\n",
+    "reason": "설치 과정을 저장소의 별도 OpenCode 실행기로 교체한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "[`/setup-pstack`](../../skills/setup-pstack/SKILL.md) detects the models you have access to, asks for a reasoning budget, shows you each role (code delegates, judgment, the review panels), and asks what you want. Answer the questions. It writes `~/.cursor/rules/pstack-models.mdc`, a small rule every pstack skill reads.",
+    "after": "[`/setup-pstack`](../../skills/setup-pstack/SKILL.md) detects available native models, asks for a reasoning budget, shows every role and panel, and asks what you want. Answer the questions. It writes `$OPENCODE_CONFIG_DIR/pstack-models.json`; each native subagent invocation resolves its required role from that file.",
+    "reason": "설정 위치와 실제 호출 시 적용되는 저장 방식을 명시한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "You only override what you care about. A role with no line in the rule keeps the skill's default. To restore a default, delete that role's line. A rerun of `/setup-pstack` keeps any role whose model differs from the default. When a default changes, a rule written before the change still pins the old default, so delete those role lines, or delete the file, then run `/setup-pstack` again.",
+    "after": "You only override what you care about. A missing role key keeps the skill default. To restore a default, delete that role key. Rerunning `/setup-pstack` keeps deliberate changes to model families, lists and aliases. An explicitly saved old default stays pinned; delete its key, or the file, then run setup again to adopt defaults.",
+    "reason": "부분 역할 설정과 삭제를 통한 기본값 복구를 JSON 형식으로 보존한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "You might be wondering what happens if you use Auto. Set a role to `inherit-parent` or `auto` and pstack omits the subagent `model` field, so the subagent inherits your parent chat model. Both values mean the same thing, and neither is a model slug. For a panel role the value is a list, and one subagent runs per entry, so the list length sets the panel size. Setup also configures `swarm workers`, the default model for every `/swarm` worker unless a race names a model for each arm.",
+    "after": "Set a role to `inherit-parent` or `auto` to run on the parent chat model. Both aliases mean the same thing and are not provider model IDs. The native role executor resolves the parent model explicitly so a subagent's own agent default cannot override that choice. Panel lists preserve order and duplicates and create one seat per entry. Setup also configures `swarm workers`, the default unless a comparison assigns a model to an arm.",
+    "reason": "부모 모델 상속과 패널 좌석 의미를 실제 native 동작에 맞게 설명한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "Say yes and it writes `.cursor/skills/verify-<app>/`, a project-local skill that teaches agents to drive your app the way a user does. It proves the skill works once before handing it over. Say no and setup moves on. You can run `/create-verification-skill` yourself any time. [Verify and ship](./06-verify-and-ship.md#create-a-project-verification-skill) covers it in depth.",
+    "after": "Say yes and it writes `.opencode/skills/verify-<app>/`, a project-local skill that teaches agents to drive your app the way a user does. It proves the skill works once before handing it over. Say no and setup moves on. You can run `/create-verification-skill` yourself any time. [Verify and ship](./06-verify-and-ship.md#create-a-project-verification-skill) covers it in depth.",
+    "reason": "생성 스킬 경로만 변경한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "After setup, start a new chat. The model rule applies to new sessions.",
+    "after": "Saved role changes apply to the next fresh subagent invocation, including in an existing chat. A reused child keeps its original model; use a fresh child for new work.",
+    "reason": "설정 핫 리로드와 기존 자식 모델 불변 조건을 명시한다."
+  },
+  {
+    "file": "docs/guide/01-setup.md",
+    "before": "From here you can type normal follow-ups. To keep `/poteto-mode` on for the whole chat, pick it from the `/` menu with Option+Enter (Mac) or Alt+Enter (Windows) instead of Enter. That makes it a [Custom Mode](https://cursor.com/docs/skills#using-a-skill-as-a-custom-mode), which stays in context on every turn until you exit it. Custom Modes are available in the Agents Window and the CLI. Plain Enter attaches the skill to one message, and it fades as the chat moves on.",
+    "after": "From here you can type normal follow-ups. For a persistent mode, run `/pstack-mode on poteto-mode`, then send the task. Native session instructions keep the full skill active on every turn, through compaction and service restarts. `/pstack-mode off` removes it and `/pstack-mode status` reports the selection. Plain `/poteto-mode` loads the skill for that request rather than enabling a persistent mode.",
+    "reason": "사용자 명시적 모드 유지/해제를 실제 명령과 연결한다."
+  },
+  {
+    "file": "docs/guide/02-poteto-mode.md",
+    "before": "Short works because the playbook holds the structure, and a Custom Mode keeps `/poteto-mode` in context on every turn. [Set up pstack](./01-setup.md#run-your-first-task) shows how to start one. Your words carry the intent, and the skill carries the rigor.",
+    "after": "Short works because the playbook holds the structure, and `/pstack-mode on poteto-mode` keeps it active on every turn. [Set up pstack](./01-setup.md#run-your-first-task) shows how. Your words carry the intent, and the skill carries the rigor.",
+    "reason": "모드 유지 지시를 native 명령으로 연결한다."
+  },
+  {
+    "file": "docs/guide/02-poteto-mode.md",
+    "before": "If you run several agents against one repository on one computer, they will fight over the working tree, the ports, and the build output. The cleanest isolation is a [cloud subagent](https://cursor.com/docs/subagents#cloud-subagents). Each one gets its own VM and branch, so it can install dependencies, run your app, and record video of the result without touching your machine. Type `/in-cloud` before the task, or ask the parent chat to hand work to cloud subagents.",
+    "after": "If several agents share one computer, they can collide on the working tree, ports and build output. A separate VM and branch for each worker isolates dependencies, application processes and recordings too. Native OpenCode subagents run on their host; this profile does not provision hosted VMs. When a workflow requires a separate machine, keep that requirement and mark it blocked until an actual remote execution environment is configured. A local worktree is not a VM.",
+    "reason": "별도 VM의 요구를 유지하고 미제공 실행 기반을 명시한다. 로컬 worktree와 동등하다고 주장하지 않는다."
+  },
+  {
+    "file": "docs/guide/05-build-and-clean.md",
+    "before": "The [Opening a PR playbook](../../skills/poteto-mode/playbooks/opening-a-pr.md) runs `/deslop` on the diff before each commit and applies [`/unslop`](../../skills/unslop/SKILL.md) to the PR description and commit bodies. `/deslop` ships in the `cursor-team-kit` plugin, not in pstack. If you don't have it, ask for the same outcome in plain words: remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits.",
+    "after": "The [Opening a PR playbook](../../skills/poteto-mode/playbooks/opening-a-pr.md) runs `/deslop` on the diff before each commit and applies [`/unslop`](../../skills/unslop/SKILL.md) to the PR description and commit bodies. `/deslop` is bundled as a companion skill in this profile. If you don't have it, ask for the same outcome in plain words: remove narrating comments, unsupported guards, dead compatibility paths, and unrelated edits.",
+    "reason": "동봉하는 deslop 의존성 위치를 명시한다."
+  },
+  {
+    "file": "docs/guide/05-build-and-clean.md",
+    "before": "[`/no-comments`](../../skills/no-comments/SKILL.md) spawns [Comment Sicko](../../agents/comment-sicko.md), a read-only reviewer with a short keep list: license headers, doc comments on a public API, links that explain what code can't, behavior forced by an external dependency you can't reshape. Everything else goes. A surprise in your own code gets no such pass. The comment comes back as a refactor flag, and `/no-comments` fixes the flags it accepts at the root cause. When a comment claims a constraint, \"do not remove\", the skill offers to encode the claim as a type, test, or lint. Either way, the comment comes out.",
+    "after": "[`/no-comments`](../../skills/no-comments/SKILL.md) spawns [Comment Sicko](../../agents/comment-sicko.md), a comment-only reviewer with a short keep list: license headers, doc comments on a public API, links that explain what code can't, behavior forced by an external dependency you can't reshape. Everything else goes. A surprise in your own code gets no such pass. The comment comes back as a refactor flag, and `/no-comments` fixes the flags it accepts at the root cause. When a comment claims a constraint, \"do not remove\", the skill offers to encode the claim as a type, test, or lint. Either way, the comment comes out.",
+    "reason": "원본 에이전트의 주석 수정 허용과 일치하도록 안내의 오기를 정정한다."
+  },
+  {
+    "file": "docs/guide/06-verify-and-ship.md",
+    "before": "It writes `.cursor/skills/verify-<app>/`, agent-facing instructions with exact Launch, Doctor, Drive, Evidence, and Cleanup sections, a Helpers section for any script it ships, plus a feature map under `features/` that indexes what the app does and what result proves each feature works. The skill ships a [worked feature-map example](../../skills/create-verification-skill/references/feature-map-example/) with a README index and one file per feature using the four required H2s. Before handing it over, the generator proves the skill once end to end: launch, doctor check, drive one feature, capture evidence, clean up, then confirm the evidence survived the cleanup. If that proof fails, don't use the output.",
+    "after": "It writes `.opencode/skills/verify-<app>/`, agent-facing instructions with exact Launch, Doctor, Drive, Evidence, and Cleanup sections, a Helpers section for any script it ships, plus a feature map under `features/` that indexes what the app does and what result proves each feature works. The skill ships a [worked feature-map example](../../skills/create-verification-skill/references/feature-map-example/) with a README index and one file per feature using the four required H2s. Before handing it over, the generator proves the skill once end to end: launch, doctor check, drive one feature, capture evidence, clean up, then confirm the evidence survived the cleanup. If that proof fails, don't use the output.",
+    "reason": "검증 스킬 경로만 변경한다."
+  },
+  {
+    "file": "docs/guide/07-overnight.md",
+    "before": "- `/loop` is Cursor's built-in wake mechanism, not a pstack skill. The [Autonomous run playbook](../../skills/poteto-mode/playbooks/autonomous-run.md) uses it to re-check the finish condition on events or a heartbeat.",
+    "after": "- `/loop` uses native `pstack_schedule` wakes. A fixed interval repeats on that cadence; without one the agent chooses a useful delay or event. The [Autonomous run playbook](../../skills/poteto-mode/playbooks/autonomous-run.md) rechecks the finish condition on events or a heartbeat. Wakes persist across service restarts, but the host and OpenCode background service must be running. `/loop stop` cancels the session's schedules.",
+    "reason": "반복 실행을 영속 타이머/이벤트와 연결하고 서비스 생존 조건을 명시한다."
+  },
+  {
+    "file": "docs/guide/07-overnight.md",
+    "before": "To stop a run on purpose, tell the agent to pause, or that you're about to go offline or restart Cursor. The [Pause safely playbook](../../skills/poteto-mode/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note. A fresh chat picks the work up from that note through the Session pickup playbook. Saying \"keep going\" never triggers a pause.",
+    "after": "To stop a run on purpose, tell the agent to pause, or that you're about to go offline or restart OpenCode. The [Pause safely playbook](../../skills/poteto-mode/playbooks/pause-safely.md) finishes or backs out of the current step, commits a work-in-progress checkpoint, and writes a resume note. A fresh chat picks the work up from that note through the Session pickup playbook. Saying \"keep going\" never triggers a pause.",
+    "reason": "중단 대상 런타임 명칭만 변경한다."
+  },
+  {
+    "file": "docs/guide/07-overnight.md",
+    "before": "A [Cursor Project](https://cursor.com/blog/projects) gives one coordinator agent a persistent thread. The coordinator doesn't write code. It directs subagents, which run in the cloud by default, so the work continues when your laptop is closed. That's the shape the Orchestrate playbook expects. Start your prompts to the coordinator with `/poteto-mode`, and the subagents it spawns follow the playbooks.",
+    "after": "Use a persistent OpenCode coordinator session for each program. The coordinator directs workers and does not write code. Run the OpenCode service on a host that remains online if work must continue while your laptop is closed. Hosted project dashboards and automatic cloud VM workers are not supplied by this profile; a workflow that requires them must remain blocked until an equivalent environment is available. Start coordinator tasks with `/poteto-mode` and enable a persistent mode with `/pstack-mode on poteto-mode`.",
+    "reason": "상주 조정자와 오프라인 운영 조건을 보존하고 호스팅된 Project/VM의 부재를 명시한다."
+  },
+  {
+    "file": "docs/guide/07-overnight.md",
+    "before": "- Give each body of work its own Project, such as a feature, a migration, a perf push, or a tech-debt cleanup. Several can run side by side.",
+    "after": "- Give each body of work its own persistent coordinator session, such as a feature, migration, perf push or tech-debt cleanup. Keep each program's ownership and state separate.",
+    "reason": "프로그램별 지속 대화를 native 세션으로 연결한다."
+  },
+  {
+    "file": "docs/guide/07-overnight.md",
+    "before": "- Drag related chats into the Project, finished ones included. They become context for every agent in it.",
+    "after": "- Preserve related session IDs and finished work as program evidence. Give workers explicit evidence pointers; do not claim that a hosted project dashboard has automatically shared context. Full workspace history is available through `pstack_history`.",
+    "reason": "프로젝트 UI의 자동 공유를 가정하지 않고 대화 근거를 명시적으로 전달하게 한다."
+  },
+  {
+    "file": "docs/guide/09-make-it-yours.md",
+    "before": "You don't describe your style, because [`/automate-me`](../../skills/automate-me/SKILL.md) reads it out of your history. It mines your recent transcripts in the active workspace for repeated preferences, in how you like replies, delegation, verification, code, prose, and process, then asks you which patterns are really you. It drafts `.cursor/skills/<your-name>-mode/SKILL.md` through Cursor's built-in `create-skill` flow, runs the draft through [`/unslop`](../../skills/unslop/SKILL.md), and opens a PR from a worktree so you review it like any other change.",
+    "after": "You don't describe your style, because [`/automate-me`](../../skills/automate-me/SKILL.md) reads it out of your history. It mines your recent transcripts in the active workspace for repeated preferences, in how you like replies, delegation, verification, code, prose, and process, then asks you which patterns are really you. It drafts `.opencode/skills/<your-name>-mode/SKILL.md` through the bundled native `create-skill` flow, runs the draft through [`/unslop`](../../skills/unslop/SKILL.md), and opens a PR from a worktree so you review it like any other change.",
+    "reason": "개인 스킬 경로와 저작 스킬 의존성을 native 번들에 연결한다."
+  },
+  {
+    "file": "docs/guide/09-make-it-yours.md",
+    "before": "Writing a skill matches the [Authoring or modifying a skill playbook](../../skills/poteto-mode/playbooks/authoring-a-skill.md), which routes through Cursor's built-in `create-skill`, validates the frontmatter and links, and ships the result through the Opening a PR playbook. Agent-facing prose has a higher bar than human prose, because an unhelpful sentence becomes an instruction some future agent follows. Let the playbook hold that bar rather than writing a `SKILL.md` freehand.",
+    "after": "Writing a skill matches the [Authoring or modifying a skill playbook](../../skills/poteto-mode/playbooks/authoring-a-skill.md), which routes through the bundled native `create-skill`, validates the frontmatter and links, and ships the result through the Opening a PR playbook. Agent-facing prose has a higher bar than human prose, because an unhelpful sentence becomes an instruction some future agent follows. Let the playbook hold that bar rather than writing a `SKILL.md` freehand.",
+    "reason": "개인 스킬 경로와 저작 스킬 의존성을 native 번들에 연결한다."
+  },
+  {
+    "file": "docs/guide/09-make-it-yours.md",
+    "before": "One situational skill is for Grok Bot users. [`/make-bot-ui`](../../skills/make-bot-ui/SKILL.md) builds a small page whose buttons wake a bot over a webhook routine. For example, you could swipe through a review queue and have each swipe ask the bot to act on that item. A server on your machine holds the webhook's sender key, so the key never reaches the browser or the chat. The skill also covers exposing the page on Tailscale.",
+    "after": "One situational skill is for OpenCode bot workflows. [`/make-bot-ui`](../../skills/make-bot-ui/SKILL.md) builds a small page whose buttons wake a bot over a webhook routine. For example, you could swipe through a review queue and have each swipe ask the bot to act on that item. A server on your machine holds the webhook's sender key, so the key never reaches the app browser or the chat; the private secret-entry form is a separate user-only channel. The skill also covers exposing the page on Tailscale.",
+    "reason": "bot routine 및 비밀 입력 채널의 native 구현을 설명한다."
+  },
+  {
+    "file": "docs/guide/10-recipes-and-pitfalls.md",
+    "before": "- **Parallel agents in one worktree.** They overwrite each other, and nobody can tell which agent changed what. Run them as cloud agents, or say \"own worktree per attempt\".",
+    "after": "- **Parallel agents in one worktree.** They overwrite each other, and nobody can tell which agent changed what. Use actual separate machines when machine isolation is required, or say \"own worktree per attempt\" when file isolation is enough. Hosted VMs are not provisioned by this profile.",
+    "reason": "VM과 worktree의 격리 수준을 구분한다."
+  }
+]

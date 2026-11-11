@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-11-10T20:44:28.787Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13736,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57818"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "create": true,
+  "privateSecretForm": true,
+  "headersValidated": true,
+  "objectPayloadRequired": true,
+  "privateClientFile": true,
+  "nativeWake": true,
+  "secretAbsentFromModelRequests": true,
+  "restartPreservesURLAndCredential": true,
+  "tailnetSelfReachable": false,
+  "delete": true,
+  "limits": "Native host and loopback provider. Optional tailnet probe reaches this machine's own Tailscale address, not another peer's ACL. User-specific UI design is not exercised by this fixture."
+}

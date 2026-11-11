@@ -1,0 +1,21 @@
+{
+  "name": "correct",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "반복된 실수를 두 번 이상 발생한 유형으로 묶고 아키텍처→타입/린트→행동 테스트→판단용 문서 순서로 제거하는 원본을 그대로 보존. 실제 과거 실수로 검사 실패를 증명하고 규칙/강제수단 표를 유지하는 요구와 예외 승인 조건도 동일.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/correct/SKILL.md",
+      "sourceSha256": "e347045d00c967a0b831ef883cc6ac79d21329aa10b5968637df95de7febf0ba",
+      "portSha256": "a0dbcd12337aaa6aec7a61fb3582d2ff15d5d88ad1a5b85a733abad078457ecc",
+      "bodyUnchanged": true
+    }
+  ]
+}

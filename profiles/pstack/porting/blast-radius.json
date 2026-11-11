@@ -1,0 +1,21 @@
+{
+  "name": "blast-radius",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "증거 수준 5단계와 변경 분석→핵심 안전 조건→검색 밖 영향→위험 분류→실제 코드 실행 증명→큰 변경의 arena 검토라는 6단계를 그대로 보존. 보고서 필드·출처 요구·비공개 자료 제거도 동일. arena 호출은 이미 포팅한 네이티브 스킬을 사용한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/blast-radius/SKILL.md",
+      "sourceSha256": "2e10745b97f5862323dcda3b29ca60d56b5c3c98e37020085d26b48efbe0a436",
+      "portSha256": "4e27b2ad8e57c66821bb95ffee0fcb21a903f810006acd8e13914ff20f63c412",
+      "bodyUnchanged": true
+    }
+  ]
+}

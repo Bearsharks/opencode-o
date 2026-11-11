@@ -1,0 +1,49 @@
+{
+  "name": "arena",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 6단계 할 일을 영속 todo 도구로 연결한다. 원본 패널 수·중복·alias·계열 fallback·탈락 보충·추론/속도 규칙을 native role/seat 선택과 연결한다. 동시 백그라운드 실행을 OpenCode의 subagent·agent·background 및 완료 알림으로 옮긴다. 다른 계열 단일 심사자·풀 우선순위·실패 대안·부모 계열 불명 예외·심사 생략 고지를 보존하고 readonly explore에 연결한다.",
+  "equivalence": "Frame→Fan out→Cross-judge→Pick→Graft→Verify 6단계, 후보 독립 출력·평가 기준 비공개·전체 후보 읽기·강점 이식·합의/발산 처리·검증 실패 시 되돌림을 보존. 플랫폼 종속 todo·모델 설정·하위 호출 4구간만 검토해 치환. 패널·심사 기본값 및 거부 정책은 선택 함수 회귀검사와 native 20개 자식 실행으로 확인. 실제 복합 설계 작업의 판단 품질 검증과 배경 완료/실패 분기 확대 검증은 계속 필요.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/arena/SKILL.md",
+      "before": "Open a todolist with one entry per phase (Frame, Fan out, Cross-judge, Pick, Graft, Verify) before launching anything.",
+      "after": "Use `pstack_todo` with `action: \"write\"` to open an ordered todo list with one entry per phase (Frame, Fan out, Cross-judge, Pick, Graft, Verify) before launching anything. Keep skipped phases with a reason and update the stored statuses as work proceeds.",
+      "reason": "6단계 할 일을 영속 todo 도구로 연결한다."
+    },
+    {
+      "file": "skills/arena/SKILL.md",
+      "before": "3. Pick the runners. Use the `arena runners` line in `~/.cursor/rules/pstack-models.mdc`. If the rule or that line is missing, default to one each on `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. An `auto` or `inherit-parent` entry in this line means the parent model, so omit `model` for it. If the Task tool rejects a configured entry, run that seat on its family's default and say so. Families go by prefix: `claude-*`, and `grok-*` with `cursor-grok-*` and `composer-*`. A refused `composer-*` entry runs on `grok-4.7-xhigh-fast`. If the family has no default, or the Task tool rejects that default, use the closest valid slug of the same family from its error message, or drop the seat and say so when there is none. If dropped seats leave fewer than two runners, add runners until there are two, or one when the line has one entry. Run each added runner on a remaining runner's model, or omit `model` so it runs on the parent model when none remain, and say so. Spawn more runners when the arena covers multiple design directions. Use the same model N times when the work is generation-bound rather than judgment-sensitive. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "3. Pick the runners. Call `pstack_models` with `action: \"resolve\", role: \"arena runners\"`, or the caller's explicitly selected panel role such as `architect runners`. It reads the profile's `pstack-models.json`. If the file or that role is missing, default to one Claude Opus 5.5 at xhigh reasoning and one Grok 4.7 at xhigh reasoning with fast speed, using advertised OpenCode `provider/model#variant` identities. The list's order, length, duplicates and `auto`/`inherit-parent` seats all count; aliases run on the parent chat model. Pass the selected role and each zero-based `seat` to every native `subagent` call. If a configured entry is rejected, use its family's default and say so. The model selector identifies Claude and Grok families from advertised identities or explicit family mappings; Composer belongs to the Grok fallback family. If that default is rejected or unavailable, use the closest advertised valid identity in the same family, or drop the seat and say so when none remains. Never reuse a rejected identity. If dropped seats leave fewer than two runners, replenish to two, or one when the configured list has one entry. Replacements use a remaining runner's model or the parent when none remain; report every fallback and dropped seat. `pstack_models` returns these resolved seats and notices, and native `subagent` execution rechecks them. Spawn additional runners when the arena covers multiple design directions; a seat may be used by multiple fresh runners. Use the same model N times when the work is generation-bound rather than judgment-sensitive. Pick reasoning level and fast or standard speed per the Subagents section of **poteto-mode**, using `difficulty` and `urgent`; an explicit comparison-arm model may be supplied with `model` while retaining the role. An adjusted model refusal returns to the unadjusted role choice before the family fallback above.",
+      "reason": "원본 패널 수·중복·alias·계열 fallback·탈락 보충·추론/속도 규칙을 native role/seat 선택과 연결한다."
+    },
+    {
+      "file": "skills/arena/SKILL.md",
+      "before": "Spawn all N subagents in one message with `run_in_background: true`, each with the task, the path to the shared grounding, its own output path, and instructions to produce the artifact and a short rationale naming the alternatives it considered and what it rejected.",
+      "after": "Spawn all N native `subagent` calls in one message with `background: true`, `agent: \"general\"`, the selected panel `role` and `seat`, each with the task, the path to the shared grounding, its own output path, and instructions to produce the artifact and a short rationale naming the alternatives it considered and what it rejected. Completion notifications resume the parent; do not poll the child sessions.",
+      "reason": "동시 백그라운드 실행을 OpenCode의 subagent·agent·background 및 완료 알림으로 옮긴다."
+    },
+    {
+      "file": "skills/arena/SKILL.md",
+      "before": "After all Phase B candidates complete, choose one model from the `arena cross-judge pool` line in `~/.cursor/rules/pstack-models.mdc`. If the rule or that line is missing, choose from `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. Spawn one readonly judge subagent. The judge is never from the parent's family, as Phase A step 3 defines families. Try only the entries from another family, in pool order. An `auto` or `inherit-parent` entry is the parent model, so it never judges. With the default pool, a Claude parent gets `grok-4.7-xhigh-fast`. A parent from any other family gets `claude-opus-5-5-xhigh` first. If the Task tool rejects an entry, use a valid slug of the same model at the closest level or speed from the error message, or move to the next entry when there is none. If no entry from another family runs, try the default pool's entries from another family the same way. If none of those runs, skip the judge, pick the base alone in Phase D, and say so. If you do not know the parent's model, try the pool's real slugs in pool order and say that the family check did not run. The judge sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with your reading in Phase D. Don't spawn it while candidates are still writing.",
+      "after": "After all Phase B candidates complete, call `pstack_models` with `action: \"resolve\", role: \"arena cross-judge pool\"`. It reads that ordered pool from the profile's `pstack-models.json`; if missing, the pool is Claude Opus 5.5 at xhigh reasoning followed by Grok 4.7 at xhigh reasoning with fast speed, resolved to advertised native model identities. Spawn one readonly judge using `subagent` with `agent: \"explore\", role: \"arena cross-judge pool\", background: true`. The judge is never from the known parent's family. Try eligible entries in pool order; `auto` and `inherit-parent` never judge. With the default pool, a Claude parent gets Grok, and other parents get Claude first. If an entry is rejected, try a valid identity of the same model at the closest level or speed, then move to the next entry. If no configured entry from another family runs, try the default pool's entries from another family in the same way. The selector records refused identities and never sends them again. If neither pool yields a judge, skip this phase, pick the base alone in Phase D, and say so. If the parent's model family is unknown, try the pool's real identities in order and explicitly report that the family check did not run. Report the selector's notices. The judge sees the rubric and candidates by path label, scores every criterion, and recommends a base with rationale. It runs in parallel with your reading in Phase D. Do not launch it while candidates are still writing.",
+      "reason": "다른 계열 단일 심사자·풀 우선순위·실패 대안·부모 계열 불명 예외·심사 생략 고지를 보존하고 readonly explore에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/arena/SKILL.md",
+      "sourceSha256": "d0adeca6c9b19d43d90ed8f0484f0ddd362f05006d628b8f4cc6c9b55fa4d2b3",
+      "portSha256": "5ac3753153aab2d50f124d5fcc092ff792d018e332fed1322720b59eb0e1c6a2",
+      "bodyUnchanged": false
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

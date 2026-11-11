@@ -1,0 +1,136 @@
+{
+  "name": "reflect",
+  "changes": "호출 정책을 native metadata로 보존. 현재 대화의 확정 ID와 압축 전 전체 원문을 비공개 JSONL로 전달한다. 3개 관점의 동시 위임과 MCP 접근을 native 인자에 연결한다. 역할·alias·기본값·실패 복귀·추론/속도를 실제 모델 선택기에 연결한다. 역할 표의 의미를 native 형식으로 표시한다. 원본 판단 모델의 기본 계열·버전·추론량을 보존한다. 원본 도구 평가 모델의 기본 계열·버전·추론량·속도를 보존한다. 원본 대안 관점 기본 모델을 보존한다. 완료 보고 채널만 변경한다. 종합자의 독립 역할과 원문 전체 입력, MCP 재검증을 유지한다. 승인 전 목적지 공개와 승인 후 복사 편집을 유지하고 native 전용 override 위치를 사용한다. 저작 의존성을 native 번들에 연결한다. 실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다. 실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다. 실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다.",
+  "equivalence": "현재 대화 식별→3개 관점 병렬 검토→전체 결과 종합→구조적 강제 가능 항목 Backlog 이동→승인된 부분만 적용→보고의 6단계를 보존. 입력을 신뢰하지 않는 경계와 MCP 조회 범위, 실제 사용 스킬에만 라우팅, Accepted/Rejected/Backlog 형식, 명시 승인 및 PR/push 금지를 유지했다. Native 전체 기록 export와 전용 override 위치, 역할·호출 인자만 교체했으며 synthesizer 템플릿은 바이트 그대로 보존했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "Before fanning out, find this conversation's transcript in the `agent-transcripts/` directory the system prompt names. Do not glob across `~/.cursor/projects/*/`. That crosses workspace boundaries and reads private chats from unrelated projects.\n\n```bash\nls -t <agent-transcripts>/*.jsonl <agent-transcripts>/*/*.jsonl <agent-transcripts>/*/subagents/*.jsonl 2>/dev/null | head -10\n```\n\nThat covers the legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`) layouts. For each candidate, read the first JSONL line. Take the file whose `message.content[0].text` contains the conversation's opening user prompt. If none matches, pass a tight digest of the session instead.\n\n",
+      "after": "Before fanning out, call `pstack_history(action: \"current\")` to identify this conversation exactly. Export its full messages with `pstack_history(action: \"export\", sessionID: ...)`. The returned private JSONL includes messages from before compaction, with native message IDs, types and timestamps. Pass that absolute path to the reviewers; do not inline the raw transcript. Do not search unrelated workspaces. If a full transcript is unavailable, pass a tight digest and state that limitation.\n\n",
+      "reason": "현재 대화의 확정 ID와 압축 전 전체 원문을 비공개 JSONL로 전달한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "One message, three `Task` calls, `subagent_type: generalPurpose`, agent mode (`readonly: false`). Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, and readonly strips MCPs.",
+      "after": "One message, three native `subagent` calls with `agent: \"general\", background: true` and the role named below. Use the full agent mode: reviewers need available MCP tools to check the referenced tickets, chat threads and traces. They must not edit files.",
+      "reason": "3개 관점의 동시 위임과 MCP 접근을 native 인자에 연결한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "Each reviewer and the synthesizer name a role line in the `pstack-models.mdc` rule and a default. Set `model` to that line's value, or to the default if the rule or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "Each reviewer and the synthesizer names a required `role` in the profile's `pstack-models.json`. Resolve through `pstack_models` and pass that role on every native call. Missing roles keep the defaults below; `auto` and `inherit-parent` retain the parent model. Choose `difficulty` and `urgent` per **poteto-mode**. A rejected adjustment returns to the configured baseline, then this workflow's original role default, then the nearest advertised model in that family; report fallbacks and never reuse rejected identities.",
+      "reason": "역할·alias·기본값·실패 복귀·추론/속도를 실제 모델 선택기에 연결한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "| Lens | Role line | Default `model` | Prompt template |",
+      "after": "| Lens | Native role | Default model intent | Prompt template |",
+      "reason": "역할 표의 의미를 native 형식으로 표시한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "| Judgment | `reflect judgment, divergent, synthesizer` | `claude-opus-5-5-xhigh` | `references/judgment-reviewer.md` |",
+      "after": "| Judgment | `reflect judgment, divergent, synthesizer` | Claude Opus 5.5, xhigh reasoning | `references/judgment-reviewer.md` |",
+      "reason": "원본 판단 모델의 기본 계열·버전·추론량을 보존한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "| Tooling | `reflect tooling` | `grok-4.7-xhigh-fast` | `references/tooling-reviewer.md` |",
+      "after": "| Tooling | `reflect tooling` | Grok 4.7, xhigh reasoning, fast speed | `references/tooling-reviewer.md` |",
+      "reason": "원본 도구 평가 모델의 기본 계열·버전·추론량·속도를 보존한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "| Divergent | `reflect judgment, divergent, synthesizer` | `claude-opus-5-5-xhigh` | `references/divergent-reviewer.md` |",
+      "after": "| Divergent | `reflect judgment, divergent, synthesizer` | Claude Opus 5.5, xhigh reasoning | `references/divergent-reviewer.md` |",
+      "reason": "원본 대안 관점 기본 모델을 보존한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "Reviewers return findings in the `Task` response body.",
+      "after": "Reviewers return findings in the native subagent result and completion notification.",
+      "reason": "완료 보고 채널만 변경한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "One `Task` call, `subagent_type: generalPurpose`, `model` from the `reflect judgment, divergent, synthesizer` line (default `claude-opus-5-5-xhigh`), agent mode (`readonly: false`). It spot-verifies citations through MCP, and readonly strips MCPs. Pass `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. It returns an Accepted / Rejected / Backlog list.",
+      "after": "One native `subagent` call with `agent: \"general\", role: \"reflect judgment, divergent, synthesizer\", background: true` (default Claude Opus 5.5 at xhigh reasoning). It spot-verifies citations through available MCP tools, so keep full agent mode. Pass `references/synthesizer.md` verbatim with every reviewer's full output inlined. It returns Accepted / Rejected / Backlog.",
+      "reason": "종합자의 독립 역할과 원문 전체 입력, MCP 재검증을 유지한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "Never edit a skill under `plugins/cache/`. Before approval, show its destination, `.cursor/skills/<skill>/` or `~/.cursor/skills/<skill>/`. After approval, copy the skill folder there and edit the copy. Never open a PR or push.",
+      "after": "Never edit a package cache or the managed `skills/` / `bundled-skills` tree. Before approval, show the destination: `.opencode/pstack/skills/<skill>/` for this project or `$OPENCODE_CONFIG_DIR/local-skills/<skill>/` for this profile. After approval, copy the complete skill folder there and edit the copy. Preserve its native invocation metadata. Validate all relative references after the copy; rebase references outside that folder to their actual native locations rather than leaving broken links. These explicit override locations take precedence over the bundled native skills. Never open a PR or push.",
+      "reason": "승인 전 목적지 공개와 승인 후 복사 편집을 유지하고 native 전용 override 위치를 사용한다."
+    },
+    {
+      "file": "skills/reflect/SKILL.md",
+      "before": "Cursor's built-in `create-skill` skill",
+      "after": "the bundled native `create-skill` skill",
+      "reason": "저작 의존성을 native 번들에 연결한다."
+    },
+    {
+      "file": "skills/reflect/references/tooling-reviewer.md",
+      "before": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.cursor/skills/`, `~/.cursor/skills/`, or `~/.cursor/plugins/`), a `Task` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.",
+      "after": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the native transcript records `read` of its `SKILL.md`, an explicit `skill` load or skill attachment, a native persistent-mode instruction entry naming that skill, a `subagent` brief naming its path, or an actual tool call matching its documented commands. Use the recorded path and message/tool IDs. Speculative routings to skills the parent never opened do not count.",
+      "reason": "실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다."
+    },
+    {
+      "file": "skills/reflect/references/judgment-reviewer.md",
+      "before": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.cursor/skills/`, `~/.cursor/skills/`, or `~/.cursor/plugins/`), a `Task` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.",
+      "after": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the native transcript records `read` of its `SKILL.md`, an explicit `skill` load or skill attachment, a native persistent-mode instruction entry naming that skill, a `subagent` brief naming its path, or an actual tool call matching its documented commands. Use the recorded path and message/tool IDs. Speculative routings to skills the parent never opened do not count.",
+      "reason": "실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다."
+    },
+    {
+      "file": "skills/reflect/references/divergent-reviewer.md",
+      "before": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the transcript shows a `Read` of its `SKILL.md` (under `.cursor/skills/`, `~/.cursor/skills/`, or `~/.cursor/plugins/`), a `Task` prompt naming its path, or a tool call (Shell, Grep, MCP, etc.) matching its documented commands. Speculative routings to skills the parent never opened do not count.",
+      "after": "Route findings only to skills, tools, or MCPs this transcript used. A skill counts as used when the native transcript records `read` of its `SKILL.md`, an explicit `skill` load or skill attachment, a native persistent-mode instruction entry naming that skill, a `subagent` brief naming its path, or an actual tool call matching its documented commands. Use the recorded path and message/tool IDs. Speculative routings to skills the parent never opened do not count.",
+      "reason": "실제 스킬 사용 증거를 native read/skill/첨부/subagent 기록으로 판정한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/reflect/SKILL.md",
+      "sourceSha256": "9648df23cabaae99b78ed59cd93b6f35ebbf02105d228e3d0b5c3a3b3419d753",
+      "portSha256": "a20b325a0723bebb91bcf723bec8bb11468d3db47d7024fd02d85c6d7d5c68f7",
+      "mode": 420,
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/reflect/references/divergent-reviewer.md",
+      "sourceSha256": "f6030d88e20e906ef5e2d9ba44cb013ce610c49c2fe2ef74c377d32e0dc9e939",
+      "portSha256": "7f845417d1855b36837ae3f01a640d3f887cd52ecdeaa553d2177911b85c0c23",
+      "mode": 420
+    },
+    {
+      "path": "skills/reflect/references/judgment-reviewer.md",
+      "sourceSha256": "38f917619fbf346062d643e0ad6b12fc952d58678dfcbbf42ffcf6d8b9c08307",
+      "portSha256": "6b419b84fdcdae48519d52cf0f17258d885869278d06dd6b99bd3ec733b97864",
+      "mode": 420
+    },
+    {
+      "path": "skills/reflect/references/synthesizer.md",
+      "sourceSha256": "6af816963de74d1a1aef4070273c1ff533d2072732e488e159ddc0b299fec3cd",
+      "portSha256": "6af816963de74d1a1aef4070273c1ff533d2072732e488e159ddc0b299fec3cd",
+      "mode": 420
+    },
+    {
+      "path": "skills/reflect/references/tooling-reviewer.md",
+      "sourceSha256": "f81b8697e7366fbbc18feba52c6e3253a101f751091364ebc4396a1d9b5753b4",
+      "portSha256": "d386e4c94585345ee1e53c6af5f846ed14fd4f1b203ea6ef0277ac65b286186c",
+      "mode": 420
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/history-live.json",
+    "provenance/models-live.json",
+    "provenance/overrides-live.json"
+  ]
+}

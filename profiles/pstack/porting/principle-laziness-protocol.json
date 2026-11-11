@@ -1,0 +1,20 @@
+{
+  "name": "principle-laziness-protocol",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "하나의 판단을 여러 곳에서 반복하지 않고 단일 원천으로 모으며, 문제를 해결하는 최소 변경을 선호한다는 규칙을 본문 전체와 함께 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-laziness-protocol/SKILL.md",
+      "sourceSha256": "1be6e7a435f26a75a76eb848b9c3d611b9977d0f5822361753244da25ca3ca45",
+      "portSha256": "a8cff542a22125400300d27fda22d832b4e724204b3a0954f864f94b0f6d7ce7",
+      "bodyUnchanged": true
+    }
+  ]
+}

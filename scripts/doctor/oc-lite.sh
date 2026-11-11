@@ -48,7 +48,7 @@ for executable in bun curl; do
   if command -v "$executable" >/dev/null 2>&1; then pass "$executable available"
   else fail "$executable unavailable"; fi
 done
-for file in package.json bun.lock scripts/install/oc-lite.sh profiles/oc-lite/opencode.jsonc profiles/oc-lite/preflight.ts profiles/oc-lite/preflight.fixtures.sh profiles/oc-lite/gh-config.fixtures.sh profiles/oc-lite/agents/worker.md profiles/oc-lite/agents/runner.md profiles/oc-lite/plugins/oc-lite-v2/index.ts profiles/oc-lite/plugins/oc-lite-v2/oc-lite.smoke.ts; do
+for file in package.json bun.lock scripts/install/oc-lite.sh profiles/oc-lite/opencode.jsonc profiles/oc-lite/preflight.ts profiles/oc-lite/preflight.fixtures.sh profiles/oc-lite/gh-config.fixtures.sh profiles/oc-lite/shared.test.py profiles/oc-lite/agents/worker.md profiles/oc-lite/agents/runner.md profiles/oc-lite/plugins/oc-lite-v2/index.ts profiles/oc-lite/plugins/oc-lite-v2/oc-lite.smoke.ts; do
   if [[ ! -f "$ROOT/$file" ]]; then fail "Missing $file"; fi
 done
 
@@ -87,7 +87,7 @@ fi
 (
   cd "$ROOT" || exit 1
   export HOME="$diagnostic_root" XDG_DATA_HOME="$diagnostic_root/data" \
-    XDG_CACHE_HOME="$diagnostic_root/cache" XDG_STATE_HOME="$diagnostic_root/state" \
+    XDG_CACHE_HOME="$diagnostic_root/cache" XDG_STATE_HOME="$diagnostic_root/state" OC_LITE_STATE_HOME="$diagnostic_root/state" \
     OPENCODE_CONFIG_DIR="$PROFILE"
   if [[ "${server_command[0]}" == opencode ]]; then
     # Pre-install doctor: no wrapper exists yet, so isolate the raw CLI too.
@@ -209,10 +209,9 @@ managed_wrapper=0
 if [[ -f "$bin/oc-lite" ]]; then
   if grep -Fqx "# oc-lite-root: $ROOT" "$bin/oc-lite" &&
     grep -Fqx 'export XDG_CONFIG_HOME="$HOME/.config/opencode-o/oc-lite"' "$bin/oc-lite" &&
-    grep -Fqx 'export OPENCODE_CONFIG_DIR="$OPENCODE_O_LITE_ROOT/profiles/oc-lite"' "$bin/oc-lite" &&
-    grep -Fqx '  run|mini|api|models) command="$1"; shift; exec opencode "$command" --standalone "$@" ;;' "$bin/oc-lite" &&
-    grep -Fqx '    list|login|logout|switch) command="$1"; shift; exec opencode auth "$command" --standalone "$@" ;;' "$bin/oc-lite" &&
-    grep -Fqx '  *) exec opencode --standalone "$@" ;;' "$bin/oc-lite" &&
+    grep -Fqx 'export XDG_STATE_HOME="${OC_LITE_STATE_HOME:-$HOME/.local/state/opencode-o/oc-lite}"' "$bin/oc-lite" &&
+    grep -Fqx 'export OPENCODE_CONFIG_DIR="${OC_LITE_PROFILE_DIR:-$OPENCODE_O_LITE_ROOT/profiles/oc-lite}"' "$bin/oc-lite" &&
+    grep -Fqx 'exec opencode "$@"' "$bin/oc-lite" &&
     ! grep -Fq 'export OPENCODE_DB=' "$bin/oc-lite" &&
     ! grep -Fq 'OPENCODE_EXPERIMENTAL_LSP_TOOL' "$bin/oc-lite"; then
     managed_wrapper=1
@@ -231,24 +230,12 @@ fi
 # The topology test uses a disposable database. Inspect the resolved model
 # registry in the caller-selected DB separately.
 if [[ $managed_wrapper -eq 1 ]]; then
-  (cd "$ROOT" && "$bin/oc-lite" serve --hostname 127.0.0.1 --port 0 >"$diagnostic_root/account.out" 2>"$diagnostic_root/account.err") &
-  account_pid=$!
-  account_url=''
-  account_password=''
-  for ((i=0; i<100; i++)); do
-    account_url="$(sed -n 's/^server listening on \(http:\/\/127\.0\.0\.1:[0-9]*\)$/\1/p' "$diagnostic_root/account.out" | head -n 1)"
-    account_password="$(sed -n 's/^server password \([^[:space:]]*\)$/\1/p' "$diagnostic_root/account.out" | head -n 1)"
-    if [[ -n "$account_url" && -n "$account_password" ]]; then break; fi
-    if ! kill -0 "$account_pid" 2>/dev/null; then break; fi
-    sleep 0.1
-  done
   account_ready=0
-  if [[ -n "$account_url" && -n "$account_password" ]]; then
-    for ((i=0; i<100; i++)); do
-      if curl --silent --fail -u "opencode:$account_password" "$account_url/api/agent" > "$diagnostic_root/account-agent.json" &&
-        curl --silent --fail -u "opencode:$account_password" "$account_url/api/config" > "$diagnostic_root/account-config.json" &&
-        curl --silent --fail -u "opencode:$account_password" "$account_url/api/model" > "$diagnostic_root/account-model.json" &&
-        curl --silent --fail -u "opencode:$account_password" "$account_url/api/plugin" > "$diagnostic_root/account-plugin.json" &&
+  for ((i=0; i<100; i++)); do
+    if (cd "$ROOT" && "$bin/oc-lite" api GET /api/agent) >"$diagnostic_root/account-agent.json" 2>/dev/null &&
+      (cd "$ROOT" && "$bin/oc-lite" api GET /api/config) >"$diagnostic_root/account-config.json" 2>/dev/null &&
+      (cd "$ROOT" && "$bin/oc-lite" api GET /api/model) >"$diagnostic_root/account-model.json" 2>/dev/null &&
+      (cd "$ROOT" && "$bin/oc-lite" api GET /api/plugin) >"$diagnostic_root/account-plugin.json" 2>/dev/null &&
         bun -e '
           const agents = (await Bun.file(process.argv[1]).json()).data
           const config = await Bun.file(process.argv[2]).json()
@@ -265,10 +252,8 @@ if [[ $managed_wrapper -eq 1 ]]; then
               !plugins.some((p) => p.id === "oc-lite-topology" && p.state?.status === "active") ||
               doc?.default_agent !== "worker" || !Array.isArray(models) || models.length === 0) process.exit(1)
         ' "$diagnostic_root/account-agent.json" "$diagnostic_root/account-config.json" "$diagnostic_root/account-model.json" "$PROFILE" "$diagnostic_root/account-plugin.json" 2>/dev/null; then account_ready=1; break; fi
-      if ! kill -0 "$account_pid" 2>/dev/null; then break; fi
-      sleep 0.1
-    done
-  fi
+    sleep 0.1
+  done
   if [[ $account_ready -eq 0 ]]; then
     fail 'Could not resolve Worker/Runner, plugin and settled oc-lite model registry'
   else

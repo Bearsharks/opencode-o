@@ -1,0 +1,21 @@
+{
+  "name": "bro",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "마지막 답변을 전문 용어 없이 간결한 일상어로 다시 쓴다는 단일 동작과 원본 설명을 모두 바이트 동일하게 보존. 명시 호출 정책 메타데이터만 변환.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/bro/SKILL.md",
+      "sourceSha256": "aa329d0ceeeecb6822a7174ad76bb07a7826a3c52ceb6a588dec4138815084bb",
+      "portSha256": "8e473112e44a8d1ccdc280c3b23baf47decdf70a5ccda3be667d55aa619525b9",
+      "bodyUnchanged": true
+    }
+  ]
+}

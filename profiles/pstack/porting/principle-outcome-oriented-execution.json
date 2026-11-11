@@ -1,0 +1,20 @@
+{
+  "name": "principle-outcome-oriented-execution",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "명시적인 단계 경계가 있는 재작성에서 임시 호환 코드보다 목표 상태를 우선하고, 허용된 중간 불안정 범위를 밝히며 완료 시 전체 정적·실행 검증을 요구하는 조건을 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-outcome-oriented-execution/SKILL.md",
+      "sourceSha256": "10eb91633aa570355ba4bb37088fcade2b22e498df7a58edc749e65bc5a78e2d",
+      "portSha256": "1789f996b36b4c145de0a918878ebb31b74da515370535e4205baceff08f8120",
+      "bodyUnchanged": true
+    }
+  ]
+}

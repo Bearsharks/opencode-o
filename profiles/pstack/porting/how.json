@@ -1,0 +1,47 @@
+{
+  "name": "how",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 읽기 전용 조사/설명의 독립 역할과 원본 기본값·실패 복귀 순서를 native subagent에 연결한다. 설명자의 읽기 도구명을 OpenCode 표기로 치환한다.",
+  "equivalence": "단순 범위는 설명자 1개만, 복잡한 범위는 2~4개 조사자 동시 실행 후 설명자 1개 종합이라는 분기를 보존. 전체 결과를 크게 다시 쓰지 않는 제약과 5개 설명 섹션, 조사/설명 템플릿을 보존. 플랫폼 지시 2구간만 치환했고 원래 기본 모델로 복귀하는 스킬별 실패 규칙을 회귀검사에 추가했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/how/SKILL.md",
+      "before": "Every spawn is a Task subagent with `subagent_type: generalPurpose` and `readonly: true`. Explorers use the `how explorer` line in the `pstack-models.mdc` rule (default `grok-4.7-xhigh-fast`), and every explainer uses the `how explainer` line (default `claude-opus-5-5-xhigh`). Set `model` to that line's value, or to the default if the rule or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the Task tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "Every spawn is a native `subagent` with `agent: \"explore\"` for read-only access and `background: true`. Explorers use `role: \"how explorer\"`; every explainer uses `role: \"how explainer\"`. Resolve the role with `pstack_models(action: \"resolve\", role: ...)` and pass the role to every call. The role configuration is in the profile's `pstack-models.json`. Missing explorer and explainer entries retain the defaults of Grok 4.7 at xhigh reasoning with fast speed and Claude Opus 5.5 at xhigh reasoning, respectively, using advertised OpenCode model identities. `auto` and `inherit-parent` entries run on the parent chat model. If an adjusted model is refused, the native selector retries the unadjusted configured model before this workflow's fallback: the role's original default, then the closest available model in that default's family, finally the parent model when none remains. Never reuse refused identities, and report every fallback notice. Pick `difficulty` and `urgent` for each job's reasoning and speed per the Subagents section of **poteto-mode**. Wait for completion notifications before the dependent synthesis; do not poll children.",
+      "reason": "읽기 전용 조사/설명의 독립 역할과 원본 기본값·실패 복귀 순서를 native subagent에 연결한다."
+    },
+    {
+      "file": "skills/how/references/explainer-prompt.md",
+      "before": "Use Read, Grep, and Glob as needed.",
+      "after": "Use the native `read`, `grep`, and `glob` tools as needed.",
+      "reason": "설명자의 읽기 도구명을 OpenCode 표기로 치환한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/how/SKILL.md",
+      "sourceSha256": "08a00079bb15b4258874ac3ff62d4ca7e94350ffedb521d0fd296dc9dd21904e",
+      "portSha256": "3cad45d5763463c6e4f62b196401bb35131a6104aefe84e3edcf246a560ed957",
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/how/references/explainer-prompt.md",
+      "sourceSha256": "ddb89cebefc24e2b54517a331aedfe045b6971e101f45c71b8cef4cccff45bff",
+      "portSha256": "2ce48c65168977e117d68e0725a75185c95425068a2c0fd631d8a1578188854b"
+    },
+    {
+      "path": "skills/how/references/explorer-prompt.md",
+      "sourceSha256": "6300128385ee940fd42ecb84b0e623435440a2dc283eae54ee4a52ba56947ba1",
+      "portSha256": "6300128385ee940fd42ecb84b0e623435440a2dc283eae54ee4a52ba56947ba1"
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

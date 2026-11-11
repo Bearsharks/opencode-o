@@ -1,0 +1,51 @@
+{
+  "name": "show-me-your-work",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 현재 run의 전체 원문을 native 기록 API와 연결한다. 다른 모델 계열의 필수 감사를 runtime independent 검사와 실제 작업 모델 기준으로 강제한다.",
+  "equivalence": "단일 append-only TSV, 6개 열, 단일행/수식 주입 정리, run별 start 범위와 인계 구분, 실제 transcript 대조·잘못된 행을 수정하지 않고 supersede, 다른 계열 감사와 Attention 보고를 보존. 기록 API와 감사 호출 2구간만 교체했고 로그 보조 스크립트·헤더 템플릿은 원문 바이트와 실행 권한을 보존했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/show-me-your-work/SKILL.md",
+      "before": "At the end of the run, before handing back, check the log told the truth. Read this run's transcript under the active workspace's `agent-transcripts/` directory (the system prompt names the path). Don't glob across `~/.cursor/projects/*/`. That reads unrelated private chats. Walk this run's rows against what actually happened. Each stretch of them begins at one of this run's `start` rows, or at the first row if this run created the log, and ends at the next `start` row of another run:",
+      "after": "At the end of the run, before handing back, check the log told the truth. Identify this run with `pstack_history(action: \"current\")` and read/export its full native messages, including pre-compaction history, through `pstack_history`. Follow all pages. Stay in the stated workspace/repository scope; do not read unrelated private chats. Walk this run's rows against what actually happened. Each stretch of them begins at one of this run's `start` rows, or at the first row if this run created the log, and ends at the next `start` row of another run:",
+      "reason": "현재 run의 전체 원문을 native 기록 API와 연결한다."
+    },
+    {
+      "file": "skills/show-me-your-work/SKILL.md",
+      "before": "Before handing back, spawn a subagent on a different model family from the one that did the work. Self-review is not a substitute. The subagent reads the audit trail and the run's transcript, then flags what the user should pay attention to. Not a redo of the work, a scan for what's suboptimal or risky. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+      "after": "Before handing back, spawn a fresh native `subagent` on a different model family from the one that did the work. Identify the work model from the run's actual metadata. Resolve `role: \"arena cross-judge pool\", independent: true, independentOf: \"<native work-model reference>\"` with `pstack_models`, and pass those fields with `agent: \"general\", background: true` to the actual invocation. This is mandatory, not a preference. If the family or a different-family reviewer cannot be established, report the review as `NOT RUN`; never substitute self-review or same-family review. The reviewer reads the trail and an exported full transcript, then flags what the user should pay attention to. It scans for weak evidence or risk; it does not redo the work. Set `difficulty` and `urgent` per **poteto-mode**. Confirm the completed reviewer's actual model via its session metadata before crediting the review.",
+      "reason": "다른 모델 계열의 필수 감사를 runtime independent 검사와 실제 작업 모델 기준으로 강제한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/show-me-your-work/SKILL.md",
+      "sourceSha256": "920a8217cbb62f92a2222fb81fc9eab17ecd554a0277e444a95a927195139bd1",
+      "portSha256": "4eb7abf3a6f289176dfcc6d2ceaa5cb54fd2b28aac776f04f4b5cb7f79fb33f1",
+      "mode": 420,
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/show-me-your-work/references/decision-log-template.tsv",
+      "sourceSha256": "6779378006a2f5225e8c06deb84f1d913fb532041ebbb6e50d94600bfe3f4b76",
+      "portSha256": "6779378006a2f5225e8c06deb84f1d913fb532041ebbb6e50d94600bfe3f4b76",
+      "mode": 420
+    },
+    {
+      "path": "skills/show-me-your-work/scripts/log.sh",
+      "sourceSha256": "a65a4bc5fb7cdeadbdb7b7ff1ca4682f4d9c42420942b2977cd17b46c4ac338e",
+      "portSha256": "a65a4bc5fb7cdeadbdb7b7ff1ca4682f4d9c42420942b2977cd17b46c4ac338e",
+      "mode": 493
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/model-failures-live.json",
+    "provenance/helper-tests.json"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "principle-exhaust-the-design-space",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "선례 없는 UI·아키텍처 결정에서 경쟁 프로토타입 2~3개를 나란히 비교한다는 설명 필드와 감각 기반 제품 결정에도 적용한다는 본문을 모두 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-exhaust-the-design-space/SKILL.md",
+      "sourceSha256": "2de83d99f93f60ec6313455b0bc9aa9f0bfb93dd59f414f403691322db00d4db",
+      "portSha256": "397d0c759c8af9caf8517c15a8ddaa89d88ab814ac04d711efedd6f29869dab1",
+      "bodyUnchanged": true
+    }
+  ]
+}

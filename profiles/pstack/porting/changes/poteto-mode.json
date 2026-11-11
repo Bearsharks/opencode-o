@@ -1,0 +1,530 @@
+[
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- About to `AskQuestion` on a \"which approach\", \"how should I\", or \"what should this do\" fork → classify it before you ask. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle. Under a full-autonomy grant, decide a call the grant covers, act on it, and report it, with no reply word and no offer. Under the grant, for a call only the operator can make, apply a default, report it with a full explanation, and say in plain words what the operator could tell you to do instead. The operator answers in their own words. Never give a shorthand token to type back. Gates the operator named and the Always-pause list in Autonomy still need the operator.",
+    "after": "- About to `question` on a \"which approach\", \"how should I\", or \"what should this do\" fork → classify it before you ask. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle. Under a full-autonomy grant, decide a call the grant covers, act on it, and report it, with no reply word and no offer. Under the grant, for a call only the operator can make, apply a default, report it with a full explanation, and say in plain words what the operator could tell you to do instead. The operator answers in their own words. Never give a shorthand token to type back. Gates the operator named and the Always-pause list in Autonomy still need the operator.",
+    "reason": "질문 도구명만 native 형식으로 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- Any prose surface, your reply to the user included → the **unslop** skill. Write the reply per **Writing the reply**. Agent-facing prose also follows the **create-skill** skill (Cursor's built-in for authoring SKILL.md files).",
+    "after": "- Any prose surface, your reply to the user included → the **unslop** skill. Write the reply per **Writing the reply**. Agent-facing prose also follows the **create-skill** skill (the bundled native authoring skill).",
+    "reason": "저작 스킬 의존성을 native 번들로 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- Before commit → the `deslop` skill from the `cursor-team-kit` plugin (`/deslop`).",
+    "after": "- Before commit → the `deslop` skill bundled with this profile (`/deslop`).",
+    "reason": "보조 스킬의 설치 위치를 갱신한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- Shipping UI / IDE / CLI → the matching control skill. `cursor-team-kit` publishes `control-cli` (CLIs and TUIs) and `control-ui` (browser / Electron / web UIs). For bug fixes, reproduce first on the same surface yourself. Hand to the user only under the narrow Bug fix step 1 exception.",
+    "after": "- Shipping UI / IDE / CLI → the matching control skill. This profile includes `control-cli` (CLIs and TUIs) and `control-ui` (browser / Electron / web UIs). For bug fixes, reproduce first on the same surface yourself. Hand to the user only under the narrow Bug fix step 1 exception.",
+    "reason": "제어 스킬 의존성을 번들로 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- Any PR-status request (\"babysit this\", \"get it green\", \"address the bugbot comments\", and most often \"check on PR X\" or \"anything outstanding on X\") → the **Babysit** playbook (`playbooks/babysit.md`), not Cursor's built-in babysit skill, whose description matches the same words. Never triggered by merely opening a PR. Declare its mode before polling. The playbook's step 1 owns the request-to-mode mapping. Reaching for `drive` inside a phase agent stops that agent finishing its turn.",
+    "after": "- Any PR-status request (\"babysit this\", \"get it green\", \"address the bugbot comments\", and most often \"check on PR X\" or \"anything outstanding on X\") → the **Babysit** playbook (`playbooks/babysit.md`), not another installed babysit skill, whose description matches the same words. Never triggered by merely opening a PR. Declare its mode before polling. The playbook's step 1 owns the request-to-mode mapping. Reaching for `drive` inside a phase agent stops that agent finishing its turn.",
+    "reason": "같은 이름의 다른 워크플로로 잘못 라우팅하지 않는 규칙을 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Use `subagent_type: \"poteto-agent\"` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). The chat that receives `/poteto-mode` runs the playbook. Never spawn a `poteto-agent` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `subagent_type` for diverse-model review. Respect what the skill prescribes, don't override to `poteto-agent`.",
+    "after": "**Use `agent: \"poteto-agent\"` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). The chat that receives `/poteto-mode` runs the playbook. Never spawn a `poteto-agent` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `agent` for diverse-model review. Respect what the skill prescribes, don't override to `poteto-agent`.",
+    "reason": "에이전트 선택 인자를 native agent로 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `Task` call.** `run_in_background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `run_in_background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "위임 도구명을 native subagent로 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `subagent` call.** `run_in_background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "백그라운드 기본값을 native 인자로 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (omit Task `model`). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "부모 상속 alias를 native 에이전트 기본값에 덮이지 않도록 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the Task tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the Task tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a Task error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.",
+    "after": "**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a Task error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.",
+    "reason": "거부 처리의 도구명만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a Task error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.",
+    "after": "**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a native subagent error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.",
+    "reason": "거부 기록 조건을 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "- **Pause safely.** Suspending in-flight work cleanly so it can be resumed, on an explicit pause, going offline, a Cursor restart, or imminent context compaction. The complement to Session pickup.",
+    "after": "- **Pause safely.** Suspending in-flight work cleanly so it can be resumed, on an explicit pause, going offline, an OpenCode restart, or imminent context compaction. The complement to Session pickup.",
+    "reason": "재개/중단 대상 런타임 명칭만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role lines in the `/setup-pstack` rule override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, a required `role` on every call, resolved to an explicit native model at execution (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role keys in `$OPENCODE_CONFIG_DIR/pstack-models.json` override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no key keeps its default, and a role value of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its role key (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "역할별 모델 설정·누락 기본값·alias·가장 어려운 작업의 선택을 native 강제 role 인자에 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Match the model to the job.** Before each spawn, start from the role's line or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same slug without `-fast`. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's line or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a native subagent error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or omit `model` so the subagent runs on the parent model when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, omit `model` too. Say so in both cases.",
+    "after": "**Match the model to the job.** Before each spawn, start from the role's configured value or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same model at advertised standard speed. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's configured value or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a native subagent error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or use the parent model through the role executor when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, use the parent model through the role executor too. Say so in both cases.",
+    "reason": "추론량·속도·원래 설정 복귀·스킬별 fallback·거부 재사용 금지 전부를 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, a required `role` on every call, resolved to an explicit native model at execution (configurable via `/setup-pstack`. Defaults `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role keys in `$OPENCODE_CONFIG_DIR/pstack-models.json` override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no key keeps its default, and a role value of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its role key (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, a required `role` on every call, resolved to an explicit native model at execution (configurable via `/setup-pstack`. Defaults Grok 4.7 at xhigh reasoning and fast speed for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role keys in `$OPENCODE_CONFIG_DIR/pstack-models.json` override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no key keeps its default, and a role value of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its role key (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Match the model to the job.** Before each spawn, start from the role's configured value or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same model at advertised standard speed. Verification is the exception and stays on the `swarm workers` model and speed (`grok-4.7-xhigh-fast` by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's configured value or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a native subagent error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or use the parent model through the role executor when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, use the parent model through the role executor too. Say so in both cases.",
+    "after": "**Match the model to the job.** Before each spawn, start from the role's configured value or default and pick the reasoning level and speed the job needs. The `/setup-pstack` budget sets each role's starting level, xhigh by default. Raise it one step, up to max, for the hardest or subtlest work. Lower it one step for judgment and two or more steps for routine work. Use fast mode only when the job is urgent, meaning CI or trunk is red or a person is blocked on the result right now. Otherwise use standard speed, the same model at advertised standard speed. Verification is the exception and stays on the `swarm workers` model and speed (Grok 4.7 at xhigh reasoning and fast speed by default). Change only the effort level and whether the slug is fast, and keep the family the role names, so a diverse panel stays diverse. If the family has no slug at that level and speed, use its nearest slug. A role on `auto` or `inherit-parent` stays on the parent model. If the native subagent tool rejects the adjusted slug, do not try another adjusted slug. Use the role's configured value or default and say so. If the native subagent tool rejects that too, continue with the calling skill's fallback. A slug counts as rejected once a native subagent error says that the model is not valid, or leaves the slug out of its list of valid slugs. Never pass a rejected slug, and skip any fallback whose slug is already rejected. When the calling skill has no fallback, use the closest valid slug of the role's family from the error's list of valid slugs, or use the parent model through the role executor when the list has none. When the calling skill's fallback runs out of slugs without saying what to do next, use the parent model through the role executor too. Say so in both cases.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, a required `role` on every call, resolved to an explicit native model at execution (configurable via `/setup-pstack`. Defaults Grok 4.7 at xhigh reasoning and fast speed for code, `claude-opus-5-5-xhigh` for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (`claude-opus-5-5-xhigh`), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role keys in `$OPENCODE_CONFIG_DIR/pstack-models.json` override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no key keeps its default, and a role value of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its role key (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "after": "**Defaults for every `subagent` call.** `background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), agent mode (readonly strips MCP), file pointers not inlined context, a required `role` on every call, resolved to an explicit native model at execution (configurable via `/setup-pstack`. Defaults Grok 4.7 at xhigh reasoning and fast speed for code, Claude Opus 5.5 at xhigh reasoning for prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest judgment model (Claude Opus 5.5 at xhigh reasoning), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model. Per-role keys in `$OPENCODE_CONFIG_DIR/pstack-models.json` override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no key keeps its default, and a role value of `inherit-parent` or `auto` runs that role on the parent chat model (the role executor resolves the parent chat model explicitly). Each code playbook's configured model comes from its role key (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), and the hardest changes read `hardest tasks`. Prose and judgment read `judgment and prose`.",
+    "reason": "기본 판단 모델의 동일한 계열·버전·추론량을 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/bug-fix.md",
+    "before": "3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default `grok-4.7-xhigh-fast`) with a specific scope.",
+    "after": "3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes at the PR head drive the real surface through its control skill, per the **swarm** skill, on the `swarm workers` model (default `grok-4.7-xhigh-fast`). Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.",
+    "after": "**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes at the PR head drive the real surface through its control skill, per the **swarm** skill, on the `swarm workers` model (default Grok 4.7 at xhigh reasoning and fast speed). Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/hillclimb.md",
+    "before": "   - Hand the change to a subagent using your configured hillclimb model (default `grok-4.7-xhigh-fast`) with a tight scope. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Supervise and review the diff rather than typing it (the **guard-the-context-window** principle skill). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree (the **separate-before-serializing-shared-state** principle skill).",
+    "after": "   - Hand the change to a subagent using your configured hillclimb model (default Grok 4.7 at xhigh reasoning and fast speed) with a tight scope. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Supervise and review the diff rather than typing it (the **guard-the-context-window** principle skill). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree (the **separate-before-serializing-shared-state** principle skill).",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/feature.md",
+    "before": "4. Delegate code-writing to a subagent using your configured feature model (default `grok-4.7-xhigh-fast`) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No \"standing by\" reply that waits on a nested agent. Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.",
+    "after": "4. Delegate code-writing to a subagent using your configured feature model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No \"standing by\" reply that waits on a nested agent. Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/perf-issue.md",
+    "before": "3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured perf-issue model (default `grok-4.7-xhigh-fast`). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Review the diff. Capture a post-fix trace.",
+    "after": "3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured perf-issue model (default Grok 4.7 at xhigh reasoning and fast speed). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Review the diff. Capture a post-fix trace.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/refactoring.md",
+    "before": "5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent using your configured refactoring model (default `grok-4.7-xhigh-fast`) with a specific scope (file paths, the names being moved, the behavior to hold). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent using your configured refactoring model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, the names being moved, the behavior to hold). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "기본 모델의 계열·버전·추론량·속도를 보존하되 native advertised ID로 해석하게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "You own every subagent's work. Review the diff and write your own summary, don't pass through what it said. A second opinion is the same prompt against a different model. Agreement is high-signal.",
+    "after": "You own every subagent's work. Review the diff and write your own summary, don't pass through what it said. A second opinion is the same prompt against a different model. Agreement is high-signal.\n\nUse `pstack_models(action: \"resolve\", role: ...)` to inspect effective choices and notices. Every native `subagent` call includes `role`; panels also include the returned zero-based `seat`. Pass `difficulty` (routine, judgment, standard, hardest), `urgent`, and `verification` to express the rules above. Verification uses `role: \"swarm workers\", verification: true`. The runtime rechecks the file at execution, never relies on a description prefix, and records model refusals without shared-array overwrites. Explicit per-arm comparisons can pass `model` while retaining a role.\n\nUse `pstack_agents(action: \"inspect\", sessionID: ...)` to inspect owned descendants without restarting them. Use `hold` for an explicit zero-writes order and `stop` to interrupt. These control messages are not reuse for new work. A legitimate resumed task uses `sessionID` plus `retainedState` identifying a strictly necessary checkout, uncommitted changes, or running process and why moving it is costly. Keep every directive in the consolidated brief.",
+    "reason": "필수 native 인자와 별도 조회/제어 동작을 구현된 런타임에 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/SKILL.md",
+    "before": "Open a todolist whose first items are the matched playbook's steps, copied in verbatim, before any task-specific todos. A step you choose not to do stays in the list with a one-line `skip: <reason>`. Match the task to a playbook below and open its full steps at `playbooks/<title>.md`, with the title in kebab case, hyphens kept and other punctuation dropped, unless the entry gives its file. Copy its steps in verbatim.",
+    "after": "Use `pstack_todo(action: \"write\", items: ...)` to open a persistent todo list whose first items are the matched playbook's steps, copied in verbatim, before any task-specific todos. A step you choose not to do stays in the list with a one-line `skip: <reason>`. Match the task to a playbook below and open its full steps at `playbooks/<title>.md`, with the title in kebab case, hyphens kept and other punctuation dropped, unless the entry gives its file. Copy its steps in verbatim.",
+    "reason": "원본 플레이북 단계 복사·skip 보존을 영속 todo 도구에 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/feature.md",
+    "before": "4. Delegate code-writing to a subagent using your configured feature model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No \"standing by\" reply that waits on a nested agent. Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.",
+    "after": "4. Delegate code-writing to a subagent with `agent: \"poteto-agent\", role: \"feature, refactoring\", background: true`, using that configured role model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No \"standing by\" reply that waits on a nested agent. Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.",
+    "reason": "구현 플레이북의 모델을 해당 역할 키에 직접 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/bug-fix.md",
+    "before": "3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope.",
+    "after": "3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent with `agent: \"poteto-agent\", role: \"bug-fix\", background: true`, using that configured role model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope.",
+    "reason": "구현 플레이북의 모델을 해당 역할 키에 직접 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/perf-issue.md",
+    "before": "3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured perf-issue model (default Grok 4.7 at xhigh reasoning and fast speed). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Review the diff. Capture a post-fix trace.",
+    "after": "3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent with `agent: \"poteto-agent\", role: \"perf-issue\", background: true`, using that configured role model (default Grok 4.7 at xhigh reasoning and fast speed). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Review the diff. Capture a post-fix trace.",
+    "reason": "구현 플레이북의 모델을 해당 역할 키에 직접 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/hillclimb.md",
+    "before": "   - Hand the change to a subagent using your configured hillclimb model (default Grok 4.7 at xhigh reasoning and fast speed) with a tight scope. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Supervise and review the diff rather than typing it (the **guard-the-context-window** principle skill). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree (the **separate-before-serializing-shared-state** principle skill).",
+    "after": "   - Hand the change to a subagent with `agent: \"poteto-agent\", role: \"hillclimb\", background: true`, using that configured role model (default Grok 4.7 at xhigh reasoning and fast speed) with a tight scope. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Supervise and review the diff rather than typing it (the **guard-the-context-window** principle skill). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree (the **separate-before-serializing-shared-state** principle skill).",
+    "reason": "구현 플레이북의 모델을 해당 역할 키에 직접 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/refactoring.md",
+    "before": "5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent using your configured refactoring model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, the names being moved, the behavior to hold). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent with `agent: \"poteto-agent\", role: \"feature, refactoring\", background: true`, using that configured role model (default Grok 4.7 at xhigh reasoning and fast speed) with a specific scope (file paths, the names being moved, the behavior to hold). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "구현 플레이북의 모델을 해당 역할 키에 직접 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/runtime-forensics.md",
+    "before": "2. Reduce the artifact to the smoking gun: the function on the hot path, the retainer chain from the leaked object to a GC root, the loop firing without input. Parse large artifacts in a subagent (the **guard-the-context-window** principle skill), keep the reduced finding in the main thread. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "2. Reduce the artifact to the smoking gun: the function on the hot path, the retainer chain from the leaked object to a GC root, the loop firing without input. Parse large artifacts in a native `subagent` with `agent: \"poteto-agent\", role: \"how explorer\", background: true` (the **guard-the-context-window** principle skill), keep the reduced finding in the main thread. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "아티팩트 조사 위임의 역할과 actor를 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/trace-forensics.md",
+    "before": "1. Identify the format and load it with the right tool. Parse large artifacts in a subagent (the **principle-guard-the-context-window** skill) and keep the reduced finding in the main thread. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "1. Identify the format and load it with the right tool. Parse large artifacts in a native `subagent` with `agent: \"poteto-agent\", role: \"how explorer\", background: true` (the **principle-guard-the-context-window** skill) and keep the reduced finding in the main thread. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "아티팩트 조사 위임의 역할과 actor를 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/bug-fix.md",
+    "before": "2. Binary-search the cause. Form the candidate hypotheses, then rule them out until one survives. Seed them with `how` over the affected subsystem and the **why** skill for regression history. Each pass, take the split that cuts the most remaining problem space, get runtime evidence, eliminate. When program state is unclear, add instrumentation or logging and read it as the code runs. Don't guess. Drive a long or stubborn hunt with Cursor's `/loop` command. Confirm the surviving *mechanism* with runtime evidence before the step-3 architect/interrogate fan-out.",
+    "after": "2. Binary-search the cause. Form the candidate hypotheses, then rule them out until one survives. Seed them with `how` over the affected subsystem and the **why** skill for regression history. Each pass, take the split that cuts the most remaining problem space, get runtime evidence, eliminate. When program state is unclear, add instrumentation or logging and read it as the code runs. Don't guess. Drive a long or stubborn hunt with the native `/loop` command. Confirm the surviving *mechanism* with runtime evidence before the step-3 architect/interrogate fan-out.",
+    "reason": "긴 조사를 실제 예약 실행과 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/authoring-a-skill.md",
+    "before": "1. Use the **create-skill** skill (Cursor's built-in for authoring SKILL.md files).",
+    "after": "1. Use the **create-skill** skill (the bundled native authoring skill).",
+    "reason": "저작 의존성을 native 번들로 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/babysit.md",
+    "before": "**You own the merge frontier. Declare a mode, clear one PR at a time, stop where the human's call begins.** This playbook replaces Cursor's built-in babysit skill for these requests, so do not route there even though its description matches the same words. A request to land or ship is `playbooks/shipping.md`, which begins where this playbook ends.",
+    "after": "**You own the merge frontier. Declare a mode, clear one PR at a time, stop where the human's call begins.** This playbook replaces any other installed babysit skill for these requests, so do not route there even though its description matches the same words. A request to land or ship is `playbooks/shipping.md`, which begins where this playbook ends.",
+    "reason": "요청별 모드와 merge frontier 규칙을 유지한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/opening-a-pr.md",
+    "before": "**Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `Task` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.",
+    "after": "**Worktree.** Work from a git worktree off main. Subagents inherit it. Multiple `subagent` calls on the same branch each get their own worktree, or `git fetch && git reset --hard origin/<branch>` between them. Dirty branch with unrelated work: patch out, fresh worktree, apply. Snarled worktree: reset from main, redo minimally.",
+    "reason": "도구명만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/shipping.md",
+    "before": "1. **Resolve the forge, then verify each PR independently before it lands.** GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One verifier per PR, each a Cursor cloud agent, runs the change the way a user would with the matching control skill (such as `control-ui` or `control-cli` from `cursor-team-kit`), parent against head, and posts `PASS`, `PASS+NOTES`, or `FAIL` on that PR. Only a verdict from an agent that did not write the code counts, because an author checks what it meant to build. Green CI and an approving bot review are not verdicts, because neither runs the change as a user would.",
+    "after": "1. **Resolve the forge, then verify each PR independently before it lands.** GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One verifier per PR, each a Cursor cloud agent, runs the change the way a user would with the matching control skill (such as `control-ui` or `control-cli` bundled with this profile), parent against head, and posts `PASS`, `PASS+NOTES`, or `FAIL` on that PR. Only a verdict from an agent that did not write the code counts, because an author checks what it meant to build. Green CI and an approving bot review are not verdicts, because neither runs the change as a user would.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "**Control skill.** Pick it by surface. Browser, Electron, and web UIs use `control-ui` from `cursor-team-kit`. CLIs and TUIs use `control-cli` from `cursor-team-kit`. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no control skill is a risk in Appendix C, and its live block still names how each lane drives it.",
+    "after": "**Control skill.** Pick it by surface. Browser, Electron, and web UIs use `control-ui` bundled with this profile. CLIs and TUIs use `control-cli` bundled with this profile. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no control skill is a risk in Appendix C, and its live block still names how each lane drives it.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "Each live lane runs on its own cloud VM at the PR head. Drive through `control-ui` or `control-cli` from `cursor-team-kit`.",
+    "after": "Each live lane runs on its own cloud VM at the PR head. Drive through `control-ui` or `control-cli` bundled with this profile.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/opening-a-pr.md",
+    "before": "**PRs.** Run `/deslop` from `cursor-team-kit` over the diff before commit and `/no-comments` before review. Write every PR title, description, and commit body with `/technical-writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/unslop`.",
+    "after": "**PRs.** Run `/deslop` bundled with this profile over the diff before commit and `/no-comments` before review. Write every PR title, description, and commit body with `/technical-writing` (every layer except Diátaxis, and apply the STE vocabulary rules: one word per action, keep articles, a plain verb over `-ing` where one works), then apply `/unslop`.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autopilot-full.md",
+    "before": "4. **Swarm-verify once.** A full swarm runs once, at the code-ready head. Another full swarm runs only for new behavior, a redesign, or a large new diff. A rebase, a merge-conflict resolution, or a minor fix gets a single verifier at the new head, and a wording-only change gets none. Fan out independent verifiers at the code-ready SHA per the **swarm** skill. They re-run the gates, prove the load-bearing behavior live on the real surface through its control skill (such as `control-ui` or `control-cli` from `cursor-team-kit`) or a named driver, and audit the diff. The verdict is not clean without the live lane, or before you audit the merge-ready report's receipts, because no lane trusts a claim it has not checked.",
+    "after": "4. **Swarm-verify once.** A full swarm runs once, at the code-ready head. Another full swarm runs only for new behavior, a redesign, or a large new diff. A rebase, a merge-conflict resolution, or a minor fix gets a single verifier at the new head, and a wording-only change gets none. Fan out independent verifiers at the code-ready SHA per the **swarm** skill. They re-run the gates, prove the load-bearing behavior live on the real surface through its control skill (such as `control-ui` or `control-cli` bundled with this profile) or a named driver, and audit the diff. The verdict is not clean without the live lane, or before you audit the merge-ready report's receipts, because no lane trusts a claim it has not checked.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autopilot-full.md",
+    "before": "   Open the PR early so CI and bots run alongside the work. The code is ready only after the slop-strip (the `deslop` skill from the `cursor-team-kit` plugin (`/deslop`)) and the `/no-comments` pass, so the full swarm runs on finished code. Then rebase onto current trunk and report the code-ready head before self-proof, so verification runs on the base the patch lands on. Report every later head, and merge-ready once self-proof, CI, and babysit are done. Fix rounds stay on that base unless trunk conflicts, breaks CI, or lands a known concurrent change to the same files, because each rebase restarts CI. Run the repo's checks for the touched paths on the committed head before the code-ready push and before a later push that needs a verifier.",
+    "after": "   Open the PR early so CI and bots run alongside the work. The code is ready only after the slop-strip (the `deslop` skill bundled with this profile (`/deslop`)) and the `/no-comments` pass, so the full swarm runs on finished code. Then rebase onto current trunk and report the code-ready head before self-proof, so verification runs on the base the patch lands on. Report every later head, and merge-ready once self-proof, CI, and babysit are done. Fix rounds stay on that base unless trunk conflicts, breaks CI, or lands a known concurrent change to the same files, because each rebase restarts CI. Run the repo's checks for the touched paths on the committed head before the code-ready push and before a later push that needs a verifier.",
+    "reason": "정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/orchestrate.md",
+    "before": "- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Run workers on a new cloud VM (`environment: \"cloud\"`) unless the work needs this machine: a `control-ui` or `control-cli` runtime check (from `cursor-team-kit`), local transcripts, a simulator, or auth that exists only here. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Run workers on a new cloud VM (`environment: \"cloud\"`) unless the work needs this machine: a `control-ui` or `control-cli` runtime check (bundled with this profile), local transcripts, a simulator, or auth that exists only here. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "제어/정리 스킬의 native 번들 위치만 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autopilot-full.md",
+    "before": "2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is a Cursor cloud agent that builds, opens its PR per `playbooks/opening-a-pr.md`, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and merges once steps 4 and 5 clear it.",
+    "after": "2. **Spawn one owner per PR, and keep its work where a replacement can find it.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). Each owner is an agent on a separate VM that builds, opens its PR per `playbooks/opening-a-pr.md`, proves the change on the real artifact, babysits to green per `playbooks/babysit.md`, and merges once steps 4 and 5 clear it.",
+    "reason": "별도 VM 요구를 유지하고 플랫폼 제품명만 제거한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/shipping.md",
+    "before": "1. **Resolve the forge, then verify each PR independently before it lands.** GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One verifier per PR, each a Cursor cloud agent, runs the change the way a user would with the matching control skill (such as `control-ui` or `control-cli` bundled with this profile), parent against head, and posts `PASS`, `PASS+NOTES`, or `FAIL` on that PR. Only a verdict from an agent that did not write the code counts, because an author checks what it meant to build. Green CI and an approving bot review are not verdicts, because neither runs the change as a user would.",
+    "after": "1. **Resolve the forge, then verify each PR independently before it lands.** GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr` for every PR operation. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One verifier per PR, each an agent on a separate VM, runs the change the way a user would with the matching control skill (such as `control-ui` or `control-cli` bundled with this profile), parent against head, and posts `PASS`, `PASS+NOTES`, or `FAIL` on that PR. Only a verdict from an agent that did not write the code counts, because an author checks what it meant to build. Green CI and an approving bot review are not verdicts, because neither runs the change as a user would.",
+    "reason": "별도 VM 요구를 유지하고 플랫폼 제품명만 제거한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autopilot-full.md",
+    "before": "A verdict covers one patch and green CI covers one head. Step 4 runs a full swarm once, and again only for a major change. The patch-id rule in `playbooks/shipping.md` can carry a lane's result, and every new head needs its own green CI.",
+    "after": "A verdict covers one patch and green CI covers one head. Step 4 runs a full swarm once, and again only for a major change. The patch-id rule in `playbooks/shipping.md` can carry a lane's result, and every new head needs its own green CI.\n\nSeparate VMs are a prerequisite for the cloud-owner topology below. Native OpenCode subagents share their host; do not describe them as VM-isolated. If no actual VM execution environment is configured, report that part as blocked and preserve the requirement. Establish a coordinator-owned artifact directory and a `pstack_project` program/root handle before kickoff. Put the exact artifact path and store handle in each owner's brief.",
+    "reason": "미제공 VM을 명확히 제한하고 공유 상태/아티팩트 위치를 실제 native 핸들로 전달한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autopilot-full.md",
+    "before": "   Assume the VM dies. Soon after starting, push and start a decision trail in the root agent's store (path in the system prompt) per the **show-me-your-work** skill, then push each finished unit before you start the next. Whoever spawns a subagent records its id, state, and a stuck-after runtime from past runs of its kind in that store, so the root can probe it if the parent dies. Force-push only your own branch, with `--force-with-lease` pinned to the SHA you last pushed or took over, and on any push you did not make, stop and report to the root.",
+    "after": "   Assume the VM dies. Soon after starting, push and start a decision trail in the coordinator-owned artifact store (absolute path in the kickoff) per the **show-me-your-work** skill, then push each finished unit before you start the next. Whoever spawns a subagent records its id, state, and a stuck-after runtime from past runs of its kind in that store, so the root can probe it if the parent dies. Force-push only your own branch, with `--force-with-lease` pinned to the SHA you last pushed or took over, and on any push you did not make, stop and report to the root.",
+    "reason": "암묵적 플랫폼 경로를 명시적 절대 경로로 변경한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/shipping.md",
+    "before": "**You own what lands. Verify each PR independently, land only the verified run from the root, then keep your hands off the stack.**",
+    "after": "**You own what lands. Verify each PR independently, land only the verified run from the root, then keep your hands off the stack.**\n\nThe separate-VM verifier requirement below needs an actual configured VM execution environment. Native local subagents alone do not satisfy it; report that prerequisite as blocked rather than claiming the independent runtime proof ran.",
+    "reason": "별도 VM 검수 요구를 로컬 작업으로 축소하지 않는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/session-pickup.md",
+    "before": "1. Locate the prior trail. A local transcript under the active workspace's `agent-transcripts/` directory (the system prompt names the path. Do not glob across `~/.cursor/projects/*/`, that crosses workspace boundaries and reads private chats from unrelated projects), a cloud-agent URL, or a pushed branch. Read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in a subagent and keep the reduced timeline in the main thread (the **principle-guard-the-context-window** skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "1. Locate the prior trail. A native session transcript read with `pstack_history` in the active workspace (set `relatedWorktrees: true` only for worktrees registered to this repository; never read unrelated projects), a remote-agent trail supplied by the user, or a pushed branch. Read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in native `subagent` with `agent: \"poteto-agent\", role: \"how explorer\", background: true` and keep the reduced timeline in the main thread (the **principle-guard-the-context-window** skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "이전 기록 탐색을 원문 전체 API와 조사 역할에 연결하고 나머지 5단계를 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autonomous-run.md",
+    "before": "2. Pick the wake mechanism using Cursor's `/loop` command (a built-in, not a pstack skill). An event to watch (CI, a merge, a ref advancing) gets a watcher subagent that wakes you on the event, with a long time-based heartbeat as fallback. No event gets a fixed-interval heartbeat sized to when the result is worth re-checking. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "2. Pick the wake mechanism using the native `/loop` command and `pstack_schedule`. An event to watch (CI, a merge, a ref advancing) gets a watcher subagent that wakes you on the event, with a long time-based heartbeat as fallback. No event gets a fixed-interval heartbeat sized to when the result is worth re-checking. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "원본의 이벤트 우선·시간 heartbeat 대안을 실제 wake 기능에 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autonomous-run.md",
+    "before": "4. Mid-run discoveries that support the goal are yours. Address broken skills, related bugs, flaky verifiers, review noise, tooling failures, orphaned follow-ups, and fixable drift yourself via poteto-mode. Put out-of-band fixes in their own PR. Do not park reversible work for the human or use `AskQuestion`. Surface only irreversible actions, genuine product or preference calls no experiment can settle, or a real dead end. Keep the predicate as the main drive, and return to it after each side fix.",
+    "after": "4. Mid-run discoveries that support the goal are yours. Address broken skills, related bugs, flaky verifiers, review noise, tooling failures, orphaned follow-ups, and fixable drift yourself via poteto-mode. Put out-of-band fixes in their own PR. Do not park reversible work for the human or use `question`. Surface only irreversible actions, genuine product or preference calls no experiment can settle, or a real dead end. Keep the predicate as the main drive, and return to it after each side fix.",
+    "reason": "질문 도구명만 바꾼다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/autonomous-run.md",
+    "before": "6. Stop when the predicate is met. A plateau is not a stop, so keep going and pivot your approach to push past it. Surface a genuine dead end rather than spinning, and never relax the predicate to declare victory.",
+    "after": "6. Stop when the predicate is met. A plateau is not a stop, so keep going and pivot your approach to push past it. Surface a genuine dead end rather than spinning, and never relax the predicate to declare victory.\n\nCancel the owned `pstack_schedule` jobs when the predicate is met or the operator stops the run. Keep the OpenCode service running for scheduled wakes; a stopped service recovers persisted timers on restart.",
+    "reason": "종료 판정을 유지하고 예약 취소와 서비스 생명주기를 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/eval.md",
+    "before": "6. **Verify the chain from transcripts, not self-report.** Read each candidate's local transcript under the active workspace's `agent-transcripts/` directory (the system prompt names this path). Do not glob across `~/.cursor/projects/*/`. That crosses workspace boundaries and reads private chats from unrelated projects.",
+    "after": "6. **Verify the chain from transcripts, not self-report.** Read each candidate's full messages with `pstack_history(action: \"read\", sessionID: ...)`, following every page. Use `relatedWorktrees: true` only for this repository's registered worktrees. This includes messages from before compaction. Never read unrelated projects.",
+    "reason": "블라인딩과 실제 읽은 파일 검증을 원문 메시지 API로 유지한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "3. Explore in subagents with `subagent_type: \"poteto-agent\"` and an explicit model per the Subagents section (the **guard-the-context-window** principle skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.",
+    "after": "3. Explore in subagents with `agent: \"poteto-agent\", role: \"how explorer\", background: true` and the resolved investigation model per the Subagents section (the **guard-the-context-window** principle skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section. Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.",
+    "reason": "계획 조사에서도 저장한 역할 설정이 적용되도록 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "6. Run `node pstack/skills/poteto-mode/scripts/check-plan.mjs <plan.md>` and fix every line it prints (the **encode-lessons-in-structure** principle skill).",
+    "after": "6. Run `node <absolute-poteto-mode-directory>/scripts/check-plan.mjs <plan.md>` and fix every line it prints (the **encode-lessons-in-structure** principle skill).",
+    "reason": "설치 위치에 맞는 실제 검사 경로를 사용한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store's `docs/`. Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick `playbooks/autopilot-full.md` when the run may merge. Pick `playbooks/autopilot-stack.md` when the operator lands the PRs. A standing program takes `playbooks/orchestrate.md`.",
+    "after": "4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the coordinator-owned artifact store's `docs/` (set and record its absolute path first). Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick `playbooks/autopilot-full.md` when the run may merge. Pick `playbooks/autopilot-stack.md` when the operator lands the PRs. A standing program takes `playbooks/orchestrate.md`.",
+    "reason": "계획 파일의 소유 경로를 명시적으로 정한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "The program runs `pstack/skills/poteto-mode/playbooks/<execution playbook>.md`. <Who merges, and which PR ids are the operator's items that stop at merge-ready.>",
+    "after": "The program runs `<profile-repo-path>/skills/poteto-mode/playbooks/<execution playbook>.md`. <Who merges, and which PR ids are the operator's items that stop at merge-ready.>",
+    "reason": "계획 템플릿의 upstream 경로를 실제 프로필의 저장소 상대 경로로 채우게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "- [ ] A full swarm runs once, at the code-ready head. Another full swarm runs only for new behavior, a redesign, or a large new diff. A rebase, a merge-conflict resolution, or a minor fix gets a single verifier at the new head, and a wording-only change gets none. Run each full swarm per `pstack/skills/swarm/SKILL.md`. One gates lane. The ten live lanes from the PR's **Verify, live** block. The perf lane from its **Verify, perf** block. Two or more audit lanes, each with its own focus, that read the diff and the receipts and distrust the PR body. The root audits the receipts in the merge-ready report before the verdict.",
+    "after": "- [ ] A full swarm runs once, at the code-ready head. Another full swarm runs only for new behavior, a redesign, or a large new diff. A rebase, a merge-conflict resolution, or a minor fix gets a single verifier at the new head, and a wording-only change gets none. Run each full swarm per `<profile-repo-path>/skills/swarm/SKILL.md`. One gates lane. The ten live lanes from the PR's **Verify, live** block. The perf lane from its **Verify, perf** block. Two or more audit lanes, each with its own focus, that read the diff and the receipts and distrust the PR body. The root audits the receipts in the merge-ready report before the verdict.",
+    "reason": "계획 템플릿의 upstream 경로를 실제 프로필의 저장소 상대 경로로 채우게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "<Docs to read before editing. Which PRs get `pstack/skills/how/SKILL.md` and `pstack/skills/interrogate/SKILL.md`. The trail per `pstack/skills/show-me-your-work/SKILL.md`.>",
+    "after": "<Docs to read before editing. Which PRs get `<profile-repo-path>/skills/how/SKILL.md` and `<profile-repo-path>/skills/interrogate/SKILL.md`. The trail per `<profile-repo-path>/skills/show-me-your-work/SKILL.md`.>",
+    "reason": "계획 템플릿의 upstream 경로를 실제 프로필의 저장소 상대 경로로 채우게 한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "### Boot recipe, for every live lane",
+    "after": "### Boot recipe, for every live lane\n\nThe separate VM in this recipe must actually exist. If that prerequisite is unavailable, mark the lane NOT RUN; do not replace its isolation claim with a local worktree.",
+    "reason": "VM 검증을 수행하지 않은 경우를 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/orchestrate.md",
+    "before": "Run it with your own tools. Spawn workers with `Task`. Keep the program's state in the Project tracker (`notes.md`) and the Project store. Watch each PR with PR and CI event subscriptions when your harness has them. Call no scripts, run no polling loops, and never relay messages or status between agents.",
+    "after": "Run it with your own tools. Spawn workers with native `subagent` with an explicit role. Keep the program's state in the coordinator-owned tracker (`notes.md`) and `pstack_project` store (pass the same `root` directory and `program` ID to every worker). Watch each PR with PR and CI event subscriptions when your harness has them. Call no scripts, run no polling loops, and never relay messages or status between agents.",
+    "reason": "프로그램 상태를 native 공유 저장소로 옮기고 무폴링·직접 감독 조건을 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/orchestrate.md",
+    "before": "- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Run workers on a new cloud VM (`environment: \"cloud\"`) unless the work needs this machine: a `control-ui` or `control-cli` runtime check (bundled with this profile), local transcripts, a simulator, or auth that exists only here. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "- **A fresh worker for each independent task.** Its kickoff carries everything it needs, including each upstream report it depends on, pasted in full. Workers can't see their siblings. Run workers on a new, actual VM in the configured execution environment unless the work needs this machine: a `control-ui` or `control-cli` runtime check (bundled with this profile), local transcripts, a simulator, or auth that exists only here. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "별도 VM 기본값과 로컬 실행 예외를 그대로 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/orchestrate.md",
+    "before": "#### Topology",
+    "after": "#### Topology\n\nNative local subagents do not provision VMs. When the VM default below applies, a configured VM runner is a prerequisite; otherwise mark the unit blocked. Keep the three-level topology, rolling concurrency and independent verifier rules below. Use `pstack_agents` to inspect or control owned descendants without starting a new work turn merely to ask for status. Use `pstack_schedule` for available native events and heartbeat wakes; external PR/CI subscriptions still require the corresponding integration.",
+    "reason": "제공 가능한 native 조정 도구와 외부 실행/이벤트 전제조건을 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/orchestrate.md",
+    "before": "- **Fork when new work needs a worker's built state,** such as its checkout, uncommitted changes, or a running process. Message a worker only for a follow-up on the same work. Never message one to check on it, because a message restarts an idle agent.",
+    "after": "- **Fork when new work needs a worker's built state,** such as its checkout, uncommitted changes, or a running process. Message a worker only for a follow-up on the same work. Never message one to check on it, because a message restarts an idle agent.\n\n  A conversation fork does not clone a VM or a running process. Use an actual environment snapshot/fork when those are required. Native continuation uses `sessionID` plus `retainedState` only under the strict Subagents rules; otherwise start a fresh child with a consolidated brief.",
+    "reason": "대화 fork와 실행 환경 fork를 혼동하지 않게 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/pause-safely.md",
+    "before": "1. Stop at a safe boundary. Finish the current atomic step or back out of it. Start nothing new, and cancel any nested subagents.",
+    "after": "1. Stop at a safe boundary. Finish the current atomic step or back out of it. Start nothing new, and cancel any nested subagents through `pstack_agents(action: \"stop\", ...)` and cancel owned `pstack_schedule` wakes.",
+    "reason": "명시적 정지에서 자식과 예약을 실제로 중지한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/worktree-cleanup.md",
+    "before": "1. Snapshot and audit. Record `df -h /`, then run `scripts/worktree-audit.sh [-b <pr-base-ref>] [repo-path]` (principle-build-the-lever). Without `-b` it checks `MERGED` against `origin/HEAD`, so pass `-b origin/<branch>` when PRs target another branch. It reads paths from `git worktree list`, never hand-typed, since a hand-typed `myrepo-worktrees/x` misses one that lives at `.cursor/worktrees/myrepo/x` (principle-encode-lessons-in-structure). It classifies each worktree by size, age, merge state, uncommitted work, PR state, and the newest chat that touched it, then suggests a bucket. The transcript scan is slow, so background it.",
+    "after": "1. Snapshot and audit. Record `df -h /`, then run `scripts/worktree-audit.sh [-b <pr-base-ref>] [repo-path]` (principle-build-the-lever). Without `-b` it checks `MERGED` against `origin/HEAD`, so pass `-b origin/<branch>` when PRs target another branch. It reads paths from `git worktree list`, never hand-typed, since a hand-typed `myrepo-worktrees/x` misses one that lives at `a different registered worktree directory` (principle-encode-lessons-in-structure). It classifies each worktree by size, age, merge state, uncommitted work, PR state, and the newest chat that touched it, then suggests a bucket. The transcript scan is slow, so background it.",
+    "reason": "플랫폼 고정 경로 예시를 제거하되 Git 목록에서 경로를 얻는 규칙은 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/worktree-cleanup.md",
+    "before": "3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan subagents out to read the transcripts and report whether the chat is pinned or ongoing and which worktrees it touches (principle-guard-the-context-window, transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the sidebar. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "after": "3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan native `subagent` calls out with `agent: \"poteto-agent\", role: \"how explorer\", background: true` to read full messages through `pstack_history` with `relatedWorktrees: true` and report whether the chat is pinned or ongoing and which worktrees it touches (principle-guard-the-context-window, transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the sidebar. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
+    "reason": "실제 원문 기록을 기반으로 관련 worktree 사용 여부를 조사한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/worktree-cleanup.md",
+    "before": "6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, `~/Library/Application Support/Cursor` (`state.vscdb.backup`, and `snapshots/roots/<root>` where a `<root>` named for a folder you opened as a workspace balloons), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.",
+    "after": "6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, OpenCode cache directories only after confirming their purpose with `opencode debug paths` (never delete the session database, credentials, routine keys, or program store as cache), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.",
+    "reason": "다른 앱의 상태 삭제 경로를 제거하고 OpenCode 캐시와 사용자 데이터의 경계를 명시한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/package.json",
+    "before": "  \"name\": \"@cursor-skill/poteto-mode-tools\",",
+    "after": "  \"name\": \"@opencode-pstack/poteto-mode-tools\",",
+    "reason": "로컬 보조 패키지 이름만 native 프로필로 변경하고 잠긴 의존성은 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/bun.lock",
+    "before": "      \"name\": \"@cursor-skill/poteto-mode-tools\",",
+    "after": "      \"name\": \"@opencode-pstack/poteto-mode-tools\",",
+    "reason": "로컬 보조 패키지 이름만 native 프로필로 변경하고 잠긴 의존성은 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "main_wt=$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')",
+    "after": "main_wt=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -1)",
+    "reason": "공백을 포함한 실제 worktree 경로를 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt; do",
+    "after": "git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r wt; do",
+    "reason": "공백을 포함한 실제 worktree 경로를 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r wt; do",
+    "after": "git worktree list --porcelain | sed -n 's/^worktree //p' | while IFS= read -r wt; do",
+    "reason": "worktree 경로의 공백을 보존한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "# Transcripts dir: ~/.cursor/projects/<slugified-repo-path>/agent-transcripts.\nslug=$(printf '%s' \"$main_wt\" | sed 's#^/##; s#/#-#g')\ntranscripts=\"$HOME/.cursor/projects/$slug/agent-transcripts\"\n",
+    "after": "# Full native messages from this repository's registered worktrees only.\nusage=$(mktemp)\ntrap 'rm -f \"$prs\" \"$usage\"' EXIT\nif ! bun \"$(dirname \"$0\")/../../../scripts/worktree-usage.ts\" \"$repo\" > \"$usage\"; then\n    echo 'warn: session usage could not be established; affected worktrees are held' >&2\nfi\n",
+    "reason": "대화 사용 여부를 전체 native 메시지와 실제 활성 세션에서 계산한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "\t# Most recent chat whose transcript operated in this worktree. Match path\n\t# followed by \"/\" or a quote so glint-482 does not match glint-482-r37.\n\tlast=\"-\"; last_ts=0\n\tif [ -d \"$transcripts\" ]; then\n\t\tf=$(rg -l -e \"${wt}/\" -e \"${wt}\\\"\" \"$transcripts\" 2>/dev/null \\\n\t\t\t| xargs stat \"${stat_fmt[@]}\" 2>/dev/null | sort -rn | head -1)\n\t\tif [ -n \"$f\" ]; then last_ts=$(echo \"$f\" | awk '{print $1}')\n\t\t\tlast=$(fmt_day \"$last_ts\" 2>/dev/null); fi\n\tfi\n",
+    "after": "\t# Paths are JSON keys, not regular expressions or shell arguments to a scan.\n\tlast=\"-\"; last_ts=$(jq -r --arg wt \"$wt\" '.worktrees[$wt].lastTs // 0' \"$usage\")\n\tlast_id=$(jq -r --arg wt \"$wt\" '.worktrees[$wt].lastSession // \"\"' \"$usage\")\n\tusage_complete=$(jq -r '.complete // false' \"$usage\")\n\tin_use=$(jq -r --arg wt \"$wt\" '(.worktrees[$wt].active // false) or (.worktrees[$wt].pinned // false)' \"$usage\")\n\tif [ \"$last_ts\" -gt 0 ] 2>/dev/null; then last=\"$(fmt_day \"$last_ts\")/$last_id\"; fi\n",
+    "reason": "최신 메시지·활성/명시 pin·정확한 경로 경계로 사용 현황을 판정한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "\tprintf \"%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n\" \\\n",
+    "after": "\tif [ \"$usage_complete\" != true ]; then bucket=hold-usage-unknown\n\telif [ \"$in_use\" = true ]; then bucket=hold-active-chat; fi\n\n\tprintf \"%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n\" \\\n",
+    "reason": "조회 실패 시에만 unknown으로 보류하며 실제 활성/핀 사용은 별도 보류한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "set -u\n",
+    "after": "set -u\nscript_dir=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd -P)\n",
+    "reason": "repo로 이동하기 전에 보조 스크립트의 절대 경로를 확정한다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "if ! bun \"$(dirname \"$0\")/../../../scripts/worktree-usage.ts\" \"$repo\" > \"$usage\"; then",
+    "after": "if ! bun \"$script_dir/../../../scripts/worktree-usage.ts\" \"$repo\" > \"$usage\"; then",
+    "reason": "cwd 변경과 무관하게 native 기록 수집기를 찾는다."
+  },
+  {
+    "file": "skills/poteto-mode/scripts/worktree-audit.sh",
+    "before": "cd \"$repo\" || exit 1",
+    "after": "cd \"$repo\" || exit 1\nrepo=$(pwd -P)",
+    "reason": "상대 repo 인자도 cwd 변경 후 native 기록 수집기에 올바른 절대 경로로 전달한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/opening-a-pr.md",
+    "before": "Subagents inherit it.",
+    "after": "Set it as the session directory with `opencode_session_move`; subagents inherit that directory. A shell `cd` alone does not move the session.",
+    "reason": "원본의 worktree 상속을 실제 native 세션 디렉터리 변경에 연결한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "  - [ ] `git show origin/main:pstack/skills/poteto-mode/playbooks/<execution playbook>.md`",
+    "after": "  - [ ] `(cd <profile-repository> && git show origin/main:<profile-repo-path>/skills/poteto-mode/playbooks/<execution playbook>.md)`",
+    "reason": "프로필 지침은 앱 저장소가 아닌 그 지침을 소유한 저장소의 실제 trunk 경로에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "  - [ ] `git show origin/main:pstack/skills/swarm/SKILL.md`",
+    "after": "  - [ ] `(cd <profile-repository> && git show origin/main:<profile-repo-path>/skills/swarm/SKILL.md)`",
+    "reason": "프로필 지침은 앱 저장소가 아닌 그 지침을 소유한 저장소의 실제 trunk 경로에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "  - [ ] `git show origin/main:<control skill path>`",
+    "after": "  - [ ] `(cd <profile-repository> && git show origin/main:<control skill path>)`",
+    "reason": "프로필 지침은 앱 저장소가 아닌 그 지침을 소유한 저장소의 실제 trunk 경로에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "  - [ ] `git show origin/main:pstack/skills/poteto-mode/playbooks/opening-a-pr.md`",
+    "after": "  - [ ] `(cd <profile-repository> && git show origin/main:<profile-repo-path>/skills/poteto-mode/playbooks/opening-a-pr.md)`",
+    "reason": "프로필 지침은 앱 저장소가 아닌 그 지침을 소유한 저장소의 실제 trunk 경로에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "  - [ ] `git show origin/main:pstack/skills/<each other leaf skill the program uses>`",
+    "after": "  - [ ] `(cd <profile-repository> && git show origin/main:<profile-repo-path>/skills/<each other leaf skill the program uses>)`",
+    "reason": "프로필 지침은 앱 저장소가 아닌 그 지침을 소유한 저장소의 실제 trunk 경로에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "````markdown\n# <Program> plan",
+    "after": "Before filling the template, resolve `<profile-repository>` to the Git checkout that owns the installed instructions and `<profile-repo-path>` to its repository-relative profile directory. Confirm every referenced instruction exists on that repository's trunk. Do not assume the application repository contains these files. An unavailable authoritative file is a blocked prerequisite, not permission to pretend a working-tree read came from trunk.\n\n````markdown\n# <Program> plan",
+    "reason": "계획 템플릿의 실제 저장소·프로필 경로와 승인된 지침 파일을 검증한다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "(cd <profile-repository> && git show origin/main:<control skill path>)",
+    "after": "(cd <control-skill-repository> && git show origin/main:<control skill path>)",
+    "reason": "프로젝트 로컬 제어 스킬은 그 스킬의 실제 저장소에서 읽는다."
+  },
+  {
+    "file": "skills/poteto-mode/playbooks/multi-phase-plan.md",
+    "before": "Confirm every referenced instruction exists on that repository's trunk.",
+    "after": "Resolve `<control-skill-repository>` separately for a project-local driver. Confirm every referenced instruction exists on its owning repository's trunk.",
+    "reason": "프로필 지침과 프로젝트 로컬 제어 지침의 저장소를 혼동하지 않는다."
+  }
+]

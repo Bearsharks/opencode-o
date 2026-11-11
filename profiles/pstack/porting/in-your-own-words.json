@@ -1,0 +1,21 @@
+{
+  "name": "in-your-own-words",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "사용자의 목표와 해결하려는 문제를 자신의 말로 재진술한다는 단일 동작·설명·명시 호출 정책을 그대로 보존. 본문에는 플랫폼 전용 지시가 없어 메타데이터만 변환.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/in-your-own-words/SKILL.md",
+      "sourceSha256": "fa8ba74e27d7be371dc270ec78bbf816411477d0dfab185356c861ac8dd413ad",
+      "portSha256": "87ce6017b12b4c81fda4d0976826485667059b147b2eb8bd7a034d7b1cc9212a",
+      "bodyUnchanged": true
+    }
+  ]
+}

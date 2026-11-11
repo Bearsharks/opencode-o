@@ -1,0 +1,22 @@
+{
+  "name": "unslop",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "본문 전체 바이트 동일. 번호가 안정적인 33개 규칙 위치와 삭제 번호의 공백, 의미·톤 보존 요구를 유지한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/unslop/SKILL.md",
+      "sourceSha256": "ccab208e315ce05e2fab8eeee2f7879f1289b5c6844840b2d307adf31c79144f",
+      "portSha256": "348e095da7fb3f6a0e21d5f279a0408d2e6cdda608ae73db99d106779ba2d617",
+      "mode": 420,
+      "bodyUnchanged": true
+    }
+  ]
+}

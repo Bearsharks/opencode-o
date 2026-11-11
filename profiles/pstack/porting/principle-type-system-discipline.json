@@ -1,0 +1,20 @@
+{
+  "name": "principle-type-system-discipline",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "불가능한 상태·서로 다른 의미의 기본형·누락된 변형을 컴파일러로 거부하고, 경계 파싱·권위 스키마에서 타입 도출·TypeScript 보조 스킬 참조를 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-type-system-discipline/SKILL.md",
+      "sourceSha256": "5cdaf79785e3c12b2592b9469ee8c272143eb86ab7a18d8382197cea5fd30106",
+      "portSha256": "34bd5fc1ad09b29386eac4659a04222e0fd9f2b0c1139d8b5ad8002b5362fb11",
+      "bodyUnchanged": true
+    }
+  ]
+}

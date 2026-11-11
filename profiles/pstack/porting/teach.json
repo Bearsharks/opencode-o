@@ -1,0 +1,33 @@
+{
+  "name": "teach",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. how·why 실제 병렬 실행과 하위 역할 선택을 native skill 및 role 필수 위임에 연결한다.",
+  "equivalence": "원문 5단계와 how·why 실제 조사, why 신뢰도 표현 보존, 단계별 그림, 사용자 속도에 맞춘 설명 및 unslop을 유지. 병렬 실행을 native skill 로드와 역할을 지정한 독립 coordinator에 명시적으로 연결한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/teach/SKILL.md",
+      "before": "2. Let `how` and `why` do the work, don't redo it.",
+      "after": "2. Let `how` and `why` do the work, don't redo it. In OpenCode, load their installed `SKILL.md` files with the native `skill` tool. For parallel execution, launch separate `subagent(agent: \"general\", background: true, ...)` coordinators, with `role: \"how explorer\"` for the how workflow and `role: \"why investigators\"` for the why workflow, and include each absolute skill path and complete scope in its brief. Each coordinator must execute that skill's full investigator and synthesizer procedure with its own prescribed roles; one generic summary call is not a substitute.",
+      "reason": "how·why 실제 병렬 실행과 하위 역할 선택을 native skill 및 role 필수 위임에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/teach/SKILL.md",
+      "sourceSha256": "bd286e5a6290673be2cd28aef7af2ec7f1fb138e6bce156ea657368c7e7fc8a4",
+      "portSha256": "526d2bff571702075ec6b0398681a19f8ef3c9be8cfde404f5089d06f5808f78",
+      "mode": 420,
+      "bodyUnchanged": false
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json",
+    "provenance/topology-live.json"
+  ]
+}

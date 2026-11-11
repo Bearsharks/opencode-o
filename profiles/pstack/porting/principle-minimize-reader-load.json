@@ -1,0 +1,20 @@
+{
+  "name": "principle-minimize-reader-load",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "추적할 계층과 기억할 상태의 두 독립 축, 인터페이스 압축·상태 범위 축소·경계 불변식, 30초 출처·변경원인 설명 검사를 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-minimize-reader-load/SKILL.md",
+      "sourceSha256": "1ea2b7fef2391cae5844c4efdbd59031f775e8a52d06b7495d707229a200dcca",
+      "portSha256": "0046147d06e5d1148ae7e99d34062ad494c99a2af04fd14e913f394813cee7eb",
+      "bodyUnchanged": true
+    }
+  ]
+}

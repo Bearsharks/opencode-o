@@ -1,0 +1,14 @@
+[
+  {
+    "file": "skills/figure-it-out/SKILL.md",
+    "before": "Open a todolist whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos.",
+    "after": "Use `pstack_todo(action: \"write\", items: ...)` to open an ordered todo list whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos. Update the stored list as the designed units are added and completed; retain skipped steps with a reason.",
+    "reason": "원본의 첫 todo와 단계 삽입 순서를 영속 todo 도구에 연결한다."
+  },
+  {
+    "file": "skills/figure-it-out/SKILL.md",
+    "before": "- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.",
+    "after": "- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan. Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill. Use native `subagent` with `background: true` and the appropriate required `role`: `feature, refactoring` for ordinary implementation, `hardest tasks` for the hardest work, `judgment and prose` for judgments, or the investigation role named by the routed skill. Set `difficulty` and `urgent` per that job. Resolve panels through `pstack_models` when the designed workflow calls for them; pass their role and seat to each invocation.",
+    "reason": "원본의 작업별 모델 선택을 필수 role 및 추론/속도 인자에 연결한다."
+  }
+]

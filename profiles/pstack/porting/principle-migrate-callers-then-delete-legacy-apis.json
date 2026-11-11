@@ -1,0 +1,20 @@
+{
+  "name": "principle-migrate-callers-then-delete-legacy-apis",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "호출자 이관과 구 API 제거를 같은 작업에서 수행하고 새 계약만 테스트하는 규칙 및 외부 호환성 의존이 없어야 한다는 적용 조건 세 가지를 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+      "sourceSha256": "580ad9bb1a0994ecb924321ba49efc38a2f85c64e22c76fb133f57a78272a2e6",
+      "portSha256": "42d803dc77ef5b058be7c223928f71c203df9dfb0776cc99d89a7ef8bd498aa2",
+      "bodyUnchanged": true
+    }
+  ]
+}

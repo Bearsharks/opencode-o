@@ -1,0 +1,19 @@
+{
+  "name": "control-cli",
+  "scope": "dependencies/control-cli",
+  "registered": true,
+  "sourceArchive": "provenance/dependencies.tar",
+  "archiveSha256": "18abe6e1f793004f68f690732511de517f9bc2fdde81b150e0342407ece2a87f",
+  "commit": "de8ee15dd1194627d21eb5fcd41cb1873208dabb",
+  "changes": "자동 호출 메타데이터만 명시. 본문 전체 동일.",
+  "equivalence": "동일 커밋의 동반 스킬 원문과 본문 바이트가 동일하다. 원본 자동 호출 정책을 native metadata로 보존한다.",
+  "rewrites": [],
+  "files": [
+    {
+      "sourcePath": "cursor-team-kit/skills/control-cli/SKILL.md",
+      "path": "skills/control-cli/SKILL.md",
+      "sourceSha256": "13ac93e595bbda2000849bdb815d5f2ca03f7c2ca63788c8335f9212b9b422a2",
+      "portSha256": "c338d1d5f18e3f6b3600e8917c9cf8ef1cd03b95a6eadea5f12947e6b7663c08"
+    }
+  ]
+}

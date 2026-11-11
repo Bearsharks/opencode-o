@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-11-10T20:45:35.559Z",
+  "tests": 367,
+  "passed": 367,
+  "failed": 0,
+  "skipped": 0,
+  "realTLC": "1.7.4",
+  "java": "Temurin 25.0.5",
+  "node": "v25.6.1",
+  "includes": [
+    "original corpus",
+    "differential model checking",
+    "plain TLC output comparison",
+    "Mermaid/Pele rendering",
+    "CLI runtime and symlink paths"
+  ],
+  "testFixturePort": "Canonicalize macOS temporary-directory alias before constructing a relative symlink; original launcher unchanged.",
+  "logSha256": "be3d1dafe1c345c01f54d1aad66bb45de9183f5f519a1ffae8ab17a2261ce71c"
+}

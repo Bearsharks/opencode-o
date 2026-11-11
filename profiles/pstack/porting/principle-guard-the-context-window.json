@@ -1,0 +1,20 @@
+{
+  "name": "principle-guard-the-context-window",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "대용량 자료는 하위 실행에 맡기고 부모에는 요약을 남긴다는 설명 필드와 단계·파일·턴·메커니즘 비용 제한을 보존. 특정 하위 도구를 지정하지 않으므로 플랫폼 변환 불필요.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-guard-the-context-window/SKILL.md",
+      "sourceSha256": "af0b9dd70b43628ce4a59a4d332e9d9ad055084e460f430e7a757495c627e81a",
+      "portSha256": "a09b6513c9df8146b5af8cc36be141c1a5ed5089eda2a2dbf5a3163f83763d44",
+      "bodyUnchanged": true
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "deslop",
+  "scope": "dependencies/deslop",
+  "registered": true,
+  "sourceArchive": "provenance/dependencies.tar",
+  "archiveSha256": "18abe6e1f793004f68f690732511de517f9bc2fdde81b150e0342407ece2a87f",
+  "commit": "de8ee15dd1194627d21eb5fcd41cb1873208dabb",
+  "changes": "자동 호출 메타데이터만 명시. 본문 전체 동일.",
+  "equivalence": "동일 커밋의 동반 스킬 원문과 본문 바이트가 동일하다. 원본 자동 호출 정책을 native metadata로 보존한다.",
+  "rewrites": [],
+  "files": [
+    {
+      "sourcePath": "cursor-team-kit/skills/deslop/SKILL.md",
+      "path": "skills/deslop/SKILL.md",
+      "sourceSha256": "2f7b7def74af7ed11f5b44b4d32f0f91fca8c5d1f92bf2171e8d12fd33a0f810",
+      "portSha256": "5aa84048424438754571a727402f213635524a8e0316633cbaf3b18f61e6500d"
+    }
+  ]
+}

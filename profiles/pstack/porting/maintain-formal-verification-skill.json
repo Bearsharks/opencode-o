@@ -1,0 +1,21 @@
+{
+  "name": "maintain-formal-verification-skill",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "in sync/updated/bug/blocked 판정, 검증 영역만 수정, 동기화 커밋 이후 변경 분류, 결과에 맞춰 속성 약화 금지, 변이 검출과 반례 재현, blocked면 동기화 커밋 전진 금지, 다음 에이전트 관점 재실행의 6단계와 보고 항목을 원문 그대로 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/maintain-formal-verification-skill/SKILL.md",
+      "sourceSha256": "0c96f54293542d3818b68754562b338073958781a9684454611dca37592e2d2c",
+      "portSha256": "ee3c62ea399d3981866c2b56ec911516716c6970597c412db389f78dfd4e9a5a",
+      "bodyUnchanged": true
+    }
+  ]
+}

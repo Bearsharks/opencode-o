@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-11-10T20:45:35.558Z",
+  "originalWatcherAndPlanTests": 61,
+  "typecheck": true,
+  "decisionLog": {
+    "appendOnly": true,
+    "sixColumns": true,
+    "formulaAndLineSanitization": true,
+    "sourceSha256": "a65a4bc5fb7cdeadbdb7b7ff1ca4682f4d9c42420942b2977cd17b46c4ac338e"
+  }
+}

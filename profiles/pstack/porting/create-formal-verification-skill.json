@@ -1,0 +1,28 @@
+{
+  "name": "create-formal-verification-skill",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 생성 스킬의 프로젝트 저장 위치와 자동 발견 메타데이터를 OpenCode 형식으로 명시한다.",
+  "equivalence": "실패 비용과 테스트 사각지대로 대상 선정, 질문에 따른 검증 도구 선정, 실제 코드 대응·변이 실패 증거·결함 은폐 금지·검증 범위·재실행·동기화 커밋 관리, 생성 스킬의 실제 결함 검출 시험을 보존. 생성 파일의 경로와 OpenCode 발견 메타데이터만 1구간 보완. TLA+ 결과의 statechart 위임도 원문 그대로 유지하며 해당 의존 스킬은 후속 순서에서 포팅한다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/create-formal-verification-skill/SKILL.md",
+      "before": "Write a project-local skill with frontmatter that names the area and says when to use it.",
+      "after": "Write a project-local skill at `.opencode/skills/verify-<area>/SKILL.md` with frontmatter that names the area and says when to use it. Choose a concrete area name and include native `metadata: {opencode/autoinvoke: true}` so relevant changes can discover the verification skill.",
+      "reason": "생성 스킬의 프로젝트 저장 위치와 자동 발견 메타데이터를 OpenCode 형식으로 명시한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/create-formal-verification-skill/SKILL.md",
+      "sourceSha256": "30ef0ac27612ecd16fdc081112113221d673053cef3f8603db11932193861211",
+      "portSha256": "b237e27e6ce05c5224fa72b3867f53f48038e6c059d2c4dc6378da3e08d22143",
+      "bodyUnchanged": false
+    }
+  ]
+}

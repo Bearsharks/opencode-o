@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-11-10T20:44:25.794Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 13559,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:57780"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "programPersistence": true,
+  "nativeProgramChangeWake": true,
+  "internalWakesAreSynthetic": true,
+  "workspaceIsolation": true,
+  "sharedCoordinatorStore": true,
+  "staleWriteRejected": true,
+  "singleTimerDispatcherAcrossWorkspaces": true,
+  "scheduleOwnershipSurvivesMove": true,
+  "relatedWorktreeHistory": true,
+  "unrelatedProjectDenied": true,
+  "exactPathMatching": true,
+  "pinnedWorktreeHeld": true,
+  "unusedMergedWorktreeClassified": true,
+  "potetoAgentBound": true,
+  "limits": "Temporary local Git repository and native OpenCode service. No real worktree deletion, PR mutation or VM execution."
+}

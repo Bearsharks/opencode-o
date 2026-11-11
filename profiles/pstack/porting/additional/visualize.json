@@ -1,0 +1,14 @@
+{
+  "name": "visualize",
+  "scope": "native/visualize",
+  "registered": true,
+  "changes": "OpenCode 전용 의존 스킬 작성.",
+  "equivalence": "원본 pstack에 포함되지 않은 환경 의존 기능을 제공한다. 원본 파일과 동일하다는 주장은 하지 않는다. native 경로·호출 제한·검증 절차와 제공되지 않는 도구의 한계를 명시한다.",
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/visualize/SKILL.md",
+      "portSha256": "a8740bcf938666724bfc2d2383428b9757669b7d0843343fefe40a9dbb8a438a"
+    }
+  ]
+}

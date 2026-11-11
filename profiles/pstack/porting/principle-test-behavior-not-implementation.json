@@ -1,0 +1,20 @@
+{
+  "name": "principle-test-behavior-not-implementation",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "외부 관찰 가능한 값·오류·상태·효과를 테스트하고, 동작 파괴에는 실패하되 내부 재구성에는 통과해야 한다는 두 변형 검사와 계약 중심 예시를 모두 보존.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-test-behavior-not-implementation/SKILL.md",
+      "sourceSha256": "f7223698623b6a26fea49c751e466b38e6691b1f32ce841d3983e7ffbe2b74a6",
+      "portSha256": "5c8bac38b641b763e70d38f917f120d2cf31ccc10055f4642bf11c9bf5cf6c33",
+      "bodyUnchanged": true
+    }
+  ]
+}

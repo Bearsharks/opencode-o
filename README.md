@@ -76,6 +76,19 @@ you want the two commands to remain independent.
 If `~/.local/bin` is not on `PATH`, add it to your shell configuration or invoke
 the wrapper by its absolute path.
 
+## Install pstack separately
+
+The [pstack profile](profiles/pstack/README.md) ports the pinned upstream's 58
+skills, adds 3 companion and 2 native skills, and preserves the 17 model roles,
+ordered panels, reasoning budgets and failure rules. Install with
+`./scripts/install/pstack.sh`, then run `oc-pstack` and `/setup-pstack`.
+It uses a separate managed service and database from `oc-lite`.
+
+See the [per-skill report](profiles/pstack/PORTING.md) for the exact changes,
+preservation evidence, runtime checks, and unsupported platform features. Upstream attribution
+and an immutable source archive are bundled. `falentio/opencode-pstack` is a
+reference only, not an installed dependency.
+
 ## Install max mode separately
 
 Max mode has its own config root, installer, doctor, and wrapper. Installing it

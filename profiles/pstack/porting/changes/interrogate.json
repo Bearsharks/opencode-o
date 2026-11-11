@@ -1,0 +1,14 @@
+[
+  {
+    "file": "skills/interrogate/SKILL.md",
+    "before": "Read the `interrogate reviewers` line in place of `arena runners`.",
+    "after": "Resolve `role: \"interrogate reviewers\"` with `pstack_models` in place of the `arena runners` role, preserving the configured reviewer list and seat count.",
+    "reason": "검토자 전용 패널 설정을 네이티브 역할 선택에 연결한다."
+  },
+  {
+    "file": "skills/interrogate/SKILL.md",
+    "before": "Spawn each adversary as `generalPurpose`.",
+    "after": "Spawn each adversary with native `subagent`, `agent: \"general\"`, `role: \"interrogate reviewers\"`, its returned zero-based `seat`, and `background: true`.",
+    "reason": "각 공격적 검토를 실제 native subagent의 패널 좌석에 연결한다."
+  }
+]

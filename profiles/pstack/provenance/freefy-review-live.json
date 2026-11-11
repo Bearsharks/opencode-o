@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-11-10T20:50:45.970827+00:00",
+  "runtime": "2.2.7",
+  "ocLiteReviewToolsPresent": true,
+  "pstackReviewToolsAbsent": true,
+  "pstackReviewDiscoveryDidNotRun": true,
+  "nativeSkillAndCommandCollisionsResolved": true,
+  "realStockCliInputAndRecovery": true,
+  "limits": "Disposable fixture with production Freefy review modules; no authenticated model request or real PR mutation."
+}

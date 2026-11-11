@@ -1,0 +1,21 @@
+{
+  "name": "benchmark-checklist",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "측정 전 주장·스크립트·부하 확인, 제한요소·튜닝·물리 한계·오류·5회 교차 반복·사용자 경로 영향·실제 작업 여부의 7개 검사와 단일 ballpark 예외를 본문 전체 바이트 동일하게 보존. 도구명은 플랫폼 전용이 없어 바꾸지 않는다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/benchmark-checklist/SKILL.md",
+      "sourceSha256": "ba109e96c8f6c1c391baccf19e5d11e14370df7b3f2605e1572cd565a6c0fca0",
+      "portSha256": "b4633992c7f3529953b8fa70c8489c72904a29db8fd57f186fadfd1f777ad47a",
+      "bodyUnchanged": true
+    }
+  ]
+}

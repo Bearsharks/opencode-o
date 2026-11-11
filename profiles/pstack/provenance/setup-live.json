@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-11-10T20:35:59.539Z",
+  "cataloguePaging": true,
+  "all17Roles": true,
+  "planIsReadOnly": true,
+  "retiredRolesReported": true,
+  "aliasesAndDuplicateSeatsPreserved": true,
+  "budgetApplied": true,
+  "validatedAtomicSave": true,
+  "staleSaveRejected": true,
+  "unavailableModelRejected": true,
+  "savedRoleReachedNativeChild": {
+    "model": "gpt-parent",
+    "effort": "high"
+  }
+}

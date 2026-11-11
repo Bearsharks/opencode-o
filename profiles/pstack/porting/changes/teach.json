@@ -1,0 +1,8 @@
+[
+  {
+    "file": "skills/teach/SKILL.md",
+    "before": "2. Let `how` and `why` do the work, don't redo it.",
+    "after": "2. Let `how` and `why` do the work, don't redo it. In OpenCode, load their installed `SKILL.md` files with the native `skill` tool. For parallel execution, launch separate `subagent(agent: \"general\", background: true, ...)` coordinators, with `role: \"how explorer\"` for the how workflow and `role: \"why investigators\"` for the why workflow, and include each absolute skill path and complete scope in its brief. Each coordinator must execute that skill's full investigator and synthesizer procedure with its own prescribed roles; one generic summary call is not a substitute.",
+    "reason": "how·why 실제 병렬 실행과 하위 역할 선택을 native skill 및 role 필수 위임에 연결한다."
+  }
+]

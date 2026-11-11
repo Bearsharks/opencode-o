@@ -1,0 +1,37 @@
+{
+  "name": "maintain-verification-skill",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 프로젝트 검증 스킬 탐색 경로를 OpenCode로 옮긴다. 기능별 읽기 전용 동시 조사를 실제 조사 역할에 연결한다.",
+  "equivalence": "0~6단계, 모든 기능의 소스/실행 양쪽 검증, 조정자만 앱 조작, 건강 확인·증거 보존·실패 잔여물 정리의 세 불변식, drift 수정 후 1회 재시도, 실제 회귀를 문서로 숨기지 않기, clean/blocked 시 PR 없음 규칙을 보존. 경로와 조사 위임 연결 2구간만 변경.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/maintain-verification-skill/SKILL.md",
+      "before": "(usually `.cursor/skills/verify-*/`)",
+      "after": "(usually `.opencode/skills/verify-*/`)",
+      "reason": "프로젝트 검증 스킬 탐색 경로를 OpenCode로 옮긴다."
+    },
+    {
+      "file": "skills/maintain-verification-skill/SKILL.md",
+      "before": "2. **Source wave.** One read-only subagent per feature file, launched concurrently.",
+      "after": "2. **Source wave.** One read-only native `subagent` per feature file, launched concurrently with `agent: \"explore\", role: \"how explorer\", background: true`. Choose `difficulty` and `urgent` per the job; the required role applies the stored investigation model. Use completion notifications before reconciliation.",
+      "reason": "기능별 읽기 전용 동시 조사를 실제 조사 역할에 연결한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/maintain-verification-skill/SKILL.md",
+      "sourceSha256": "515c0eaa054b3f6be1b1fb06f2c2f173c80fddb58bbcac57576f89c479bc68e8",
+      "portSha256": "87f1cc802ddaa868fbd54d79faf6f8041dba8b6fbdf643caf52733e1aac252c1",
+      "bodyUnchanged": false
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/models-live.json"
+  ]
+}

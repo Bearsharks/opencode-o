@@ -1,0 +1,139 @@
+{
+  "name": "poteto-help",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 작업 요청과 도움말 질문 구분은 유지하고 지속 모드 명령을 연결한다. 설치된 native 파일을 근거로 답하도록 링크 경로를 수정한다. 모델 설정 상태를 native JSON 및 모델 도구로 확인한다. 설정 파일 명칭만 갱신한다. 별도 프로필 설치·검수·실행 명령을 안내한다. 설정 단계와 선택적 검증 스킬 제안을 보존하고 적용 시점을 설명한다. 호출 정책을 보존하면서 전용 프로필의 실제 등록 효과를 정확히 설명한다. 지원되는 native 실행 기반과 미제공 호스팅 기능을 구분하고 다른 플랫폼용 설치/어댑터 지시를 제거한다. UI 키 조합 대신 실제 지속 모드 명령·해제·상태 및 native 위임 인자를 안내한다. 병렬 검사의 의도를 보존하고 미구현 cloud 실행을 약속하지 않는다. native webhook routine 대상으로 변경한다. 외부 플랫폼 내장 기능 의존성을 실제 번들/런타임으로 연결한다. 이름이 겹치는 워크플로에 대한 경고를 native 환경에 맞춘다. 네이티브 계획 에이전트와의 병용을 안내한다. 모드 진단을 실제 상태 명령에 연결한다. 모델 설정과 자식 재사용의 실제 동작을 설명한다. 격리 요구와 제공 범위를 정확히 구분한다.",
+  "equivalence": "질문이면 실행하지 않고 근거 파일과 예시 프롬프트를 주는 원칙, 5개 필요 분류, 모델 설정 제안 횟수 제한, 모든 스킬 추천 표·근접 사례 구분·플레이북·원칙·장애 진단·개인화 경로를 보존. 플랫폼 종속 17구간을 native 명령/설정/모드/예약으로 치환했고 참고 파일 2개는 바이트 그대로 유지. 가이드 17개 파일도 21개 검토 치환 외에는 원문 보존. 제공하지 않는 호스팅 VM/Project UI는 명시하고 동등한 로컬 기능이라고 주장하지 않는다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "exact reviewed replacements; all other bytes preserved",
+    "native loader content/description/autoinvoke equality",
+    "legacy instruction scan"
+  ],
+  "rewrites": [
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "A message that asks for work, such as \"use pstack to fix this bug\", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that a Custom Mode keeps it on.",
+      "after": "A message that asks for work, such as \"use pstack to fix this bug\", is not a help question. Read [`poteto-mode`](../poteto-mode/SKILL.md), do the work under it, and mention once that `/pstack-mode on poteto-mode` keeps it active across turns.",
+      "reason": "작업 요청과 도움말 질문 구분은 유지하고 지속 모드 명령을 연결한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "This file maps questions to the skills and guide pages that hold the answers. Those files own the details. Read the file you route to before you quote it, and trust it when it disagrees with this map. The links here point into the installed plugin, which the user may not be able to open, so give the user the file's public copy: `https://github.com/cursor/plugins/blob/main/pstack/` followed by its path.",
+      "after": "This file maps questions to skills and guide pages. Those files own the details. Read the routed file before quoting it and trust it when it disagrees with this map. Link the actual installed OpenCode file using its absolute Markdown path. Do not replace native operating instructions with an upstream platform page; provenance is kept separately in the porting report.",
+      "reason": "설치된 native 파일을 근거로 답하도록 링크 경로를 수정한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "- No `~/.cursor/rules/pstack-models.mdc` means `/setup-pstack` hasn't run for this user, so every role uses its default model.",
+      "after": "- No `$OPENCODE_CONFIG_DIR/pstack-models.json` means there are no saved role overrides, so each missing role uses its original default. `pstack_models(action: \"inspect\")` shows the effective choices and availability fallbacks.",
+      "reason": "모델 설정 상태를 native JSON 및 모델 도구로 확인한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "When the model rule is missing and it matters,",
+      "after": "When the model configuration is missing and it matters,",
+      "reason": "설정 파일 명칭만 갱신한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "1. Install with `/add-plugin pstack` in chat, or from Customize in the sidebar.",
+      "after": "1. Check the [profile README](../../README.md) for completion and compatibility status. From this repository run `./scripts/install/pstack.sh`, then `./scripts/doctor/pstack.sh`. Start `oc-pstack` in the target project.",
+      "reason": "별도 프로필 설치·검수·실행 명령을 안내한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "2. Run [`/setup-pstack`](../setup-pstack/SKILL.md). It asks for a reasoning budget, maps a model to each role, and writes a rule. The rule applies to new chats. Then it offers once each to generate a verification skill and a formal verification skill for the project, unless the project already has one.",
+      "after": "2. Run [`/setup-pstack`](../setup-pstack/SKILL.md). It asks for a reasoning budget, maps native models to all 17 roles and panels, and writes `pstack-models.json`. New subagent invocations read the current configuration. It then offers once each to generate project verification and formal verification skills unless they already exist.",
+      "reason": "설정 단계와 선택적 검증 스킬 제안을 보존하고 적용 시점을 설명한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "Installing changes nothing until the user invokes a skill. Only `/setup-pstack` loads from the user's words. The [README](../../README.md) and [guide page 1](../../docs/guide/01-setup.md) have the details. Offer to word their first prompt with them, per [`references/prompting.md`](references/prompting.md).",
+      "after": "The dedicated profile registers native tools and requires a role on subagent calls, but it does not start a playbook merely by launching. Only `/setup-pstack` is automatically discoverable from the user's words; other original skills remain explicit. The [README](../../README.md) and [guide page 1](../../docs/guide/01-setup.md) explain the profile. Offer to word the first task prompt per [`references/prompting.md`](references/prompting.md).",
+      "reason": "호출 정책을 보존하면서 전용 프로필의 실제 등록 효과를 정확히 설명한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "pstack is built for Cursor, and it also installs in Claude Code with `/plugin marketplace add cursor/plugins`, then `/plugin install pstack@cursor-plugins`. There, each command takes a `pstack:` prefix, such as `/pstack:poteto-mode`. The [Claude Code adapter](../../docs/harness/claude-code.md) maps the Cursor names, and a step that needs a Cursor-only feature, such as Bugbot or Automations, is skipped with a one-line note.\n\nOther tools can read the skills, because they use the Agent Skills format. But most workflow skills, including `/poteto-mode`, `/how`, `/why`, and `/teach`, spawn Cursor subagents with per-role models, and Custom Modes and `/loop` are Cursor features, so those parts may not work there.\n\n",
+      "after": "This profile runs on OpenCode V2 and provides native skill commands, per-role subagent models, persistent modes, timers, event wakes and webhook routines. It does not require a platform-instruction adapter. Read [PORTING.md](../../PORTING.md) for verified coverage and unfinished work. Hosted cloud VMs and a hosted project dashboard are not supplied: a step that requires that isolation or remote service must stay explicitly blocked until the real prerequisite is available, not be silently replaced by a local approximation.\n\n",
+      "reason": "지원되는 native 실행 기반과 미제공 호스팅 기능을 구분하고 다른 플랫폼용 설치/어댑터 지시를 제거한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "Whether `/poteto-mode` stays on depends on how the user starts it:\n\n- Enter on `/poteto-mode` attaches the skill to one message. It fades as the chat moves on.\n- Option+Enter on Mac or Alt+Enter on Windows, or Use as Mode from the skill entry, makes it a Custom Mode. It stays in context every turn until the user exits the mode, and it stays out of casual turns.\n- Cursor's docs list Custom Modes in the Agents Window and the CLI. Elsewhere, start each new task with `/poteto-mode`.\n\nLink [Cursor's skills docs](https://cursor.com/docs/skills) when this comes up. Mid-chat, \"new task\" makes the mode match a fresh playbook. `/poteto-mode` already uses `poteto-agent` for the subagents its playbook steps spawn. To get the same style from a subagent of your own, spawn it with `subagent_type: \"poteto-agent\"`.\n\n",
+      "after": "Whether `/poteto-mode` stays on depends on how the user starts it:\n\n- `/poteto-mode <task>` loads the skill for that request.\n- `/pstack-mode on poteto-mode` keeps the full native skill in session instructions across turns, compaction and service restarts. Then send the task normally. Add a personal mode ID after it to keep both active.\n- `/pstack-mode off` removes persistent instructions. `/pstack-mode status` reports the selection. These settings are explicit user commands and do not make every skill autoinvoke.\n\nMid-chat, \"new task\" makes the mode match a fresh playbook. `/poteto-mode` uses `poteto-agent` for the delegates inside its playbook steps. To request that style for another delegate, use native `subagent` with `agent: \"poteto-agent\"`, the appropriate required `role`, and `background: true`.\n\n",
+      "reason": "UI 키 조합 대신 실제 지속 모드 명령·해제·상태 및 native 위임 인자를 안내한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "| Run parallel checks over slices, or race workers, as cloud agents |",
+      "after": "| Run parallel checks over slices or race workers, with the isolation the task requires |",
+      "reason": "병렬 검사의 의도를 보존하고 미구현 cloud 실행을 약속하지 않는다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "| Build a page whose buttons wake a Grok Bot over a webhook |",
+      "after": "| Build a page whose buttons wake an OpenCode bot over a webhook |",
+      "reason": "native webhook routine 대상으로 변경한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "Not in pstack:\n\n- `/deslop`, `control-cli`, and `control-ui` ship in the `cursor-team-kit` plugin.\n- `/loop` and `/create-skill` are Cursor built-ins.\n- pstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.\n\n",
+      "after": "Companion and runtime features:\n\n- `/deslop`, `control-cli`, and `control-ui` are bundled companion skills.\n- `/create-skill` is the native authoring helper. `/loop` is the native scheduling command backed by `pstack_schedule`; a running OpenCode service delivers its wakes.\n- pstack has no `/orchestrate` skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows `/orchestrate`, another plugin provides it.\n\n",
+      "reason": "외부 플랫폼 내장 기능 의존성을 실제 번들/런타임으로 연결한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "Without `/poteto-mode`, a phrase such as \"babysit this pr\" can start Cursor's own skill for the same job instead. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook and when it applies. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.",
+      "after": "Without `/poteto-mode`, a phrase such as \"babysit this pr\" can start another installed skill for the same job instead. The Playbooks section of [`poteto-mode`](../poteto-mode/SKILL.md) lists every playbook and when it applies. [Guide page 6](../../docs/guide/06-verify-and-ship.md) covers opening, babysitting, and landing a PR.",
+      "reason": "이름이 겹치는 워크플로에 대한 경고를 native 환경에 맞춘다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "pstack has no planning skill. Cursor's Plan Mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.",
+      "after": "pstack has no planning skill. OpenCode's plan agent works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.",
+      "reason": "네이티브 계획 에이전트와의 병용을 안내한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "| The mode stopped applying after a few turns | It was started with Enter. Start it as a Custom Mode, or start each task with `/poteto-mode`. |",
+      "after": "| The mode stopped applying after a few turns | Use `/pstack-mode on poteto-mode` for persistent mode, or start each task with `/poteto-mode`. Check `/pstack-mode status`. |",
+      "reason": "모드 진단을 실제 상태 명령에 연결한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "| A new model choice had no effect | The rule from `/setup-pstack` applies to new chats. Start one. |",
+      "after": "| A new model choice had no effect | Inspect `pstack_models`; fresh subagent calls use the current role setting. A reused child retains its original model. Start a fresh child for new work. |",
+      "reason": "모델 설정과 자식 재사용의 실제 동작을 설명한다."
+    },
+    {
+      "file": "skills/poteto-help/SKILL.md",
+      "before": "| Parallel agents overwrote each other | Give each agent its own worktree, or run them as cloud agents, which each get their own machine. |",
+      "after": "| Parallel agents overwrote each other | Use separate worktrees for file isolation and actual separate machines when process/port isolation is required. The profile does not provision hosted VMs. |",
+      "reason": "격리 요구와 제공 범위를 정확히 구분한다."
+    }
+  ],
+  "files": [
+    {
+      "path": "skills/poteto-help/SKILL.md",
+      "sourceSha256": "768368881379d688c4e3bbdae55dd2d7874fde98a258324d3527de1bf09f9bd1",
+      "portSha256": "23563195d839e34d72959684d1c19a600086f0687e223dfa3097863b244d55b5",
+      "bodyUnchanged": false
+    },
+    {
+      "path": "skills/poteto-help/references/prompting.md",
+      "sourceSha256": "463f450c44a60afd001a2f69fdf8a5dea174351f339369b12ec3c41515e564d3",
+      "portSha256": "463f450c44a60afd001a2f69fdf8a5dea174351f339369b12ec3c41515e564d3"
+    },
+    {
+      "path": "skills/poteto-help/references/recipes.md",
+      "sourceSha256": "5323aca73a39a3b607c2bb22cd33551fe893563dfd4b104df838da010e9fc702",
+      "portSha256": "5323aca73a39a3b607c2bb22cd33551fe893563dfd4b104df838da010e9fc702"
+    }
+  ],
+  "runtimeEvidence": [
+    "provenance/modes-schedules-live.json",
+    "porting/guide.json",
+    "provenance/models-live.json"
+  ]
+}

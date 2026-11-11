@@ -1,0 +1,20 @@
+{
+  "name": "principle-attack-the-premise",
+  "changes": "호출 제한을 OpenCode metadata.opencode/autoinvoke로 변환. 본문과 보조 파일 보존.",
+  "equivalence": "같은 전제로 두 번 실패하면 전제를 기록하고 반증 실험을 먼저 수행하는 조건·중단 기준·관련 원칙 링크를 바이트 단위로 보존. 명시 호출 제한은 native metadata의 autoinvoke=false로 등록하고 실제 호스트에서 확인했다.",
+  "checks": [
+    "source SHA-256",
+    "all source paths included",
+    "body byte equality",
+    "native invocation flag",
+    "legacy instruction scan"
+  ],
+  "files": [
+    {
+      "path": "skills/principle-attack-the-premise/SKILL.md",
+      "sourceSha256": "6a932884daad4aa189e9b5d1665226bbc75621d4d2a398fd4003bebd382f4599",
+      "portSha256": "f67b0132998198940e21b099c8e2796c8f105ed6bc24a6d86094f35fc2078776",
+      "bodyUnchanged": true
+    }
+  ]
+}

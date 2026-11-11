@@ -1,0 +1,8 @@
+{
+  "name": "poteto-agent",
+  "source": "pstack/agents/poteto-agent.md",
+  "sourceSha256": "979f18abd000d185a0b4c41a2a4111c0910596a7f5c81cbb571885bc721b2bf7",
+  "portSha256": "88e77a38b988f3c70cfac3ac639cae42871aae3deddbe23f316d74f2fca5328c",
+  "changes": "native subagent 모드와 실제 등록된 poteto-mode 절대 경로를 사용한다. 배경 기본값은 native 실행기에서 보존한다.",
+  "equivalence": "모든 작업 전에 본문 전체와 inline Principles를 읽고, 부모만 플레이북/할 일/위임을 소유하며, 적용하는 leaf 원칙을 읽는 의무를 보존한다."
+}
