@@ -100,3 +100,50 @@ test("one unreadable session does not block reconnecting the others", async () =
   ], async (route) => { calls.push(route.nativeSessionId) })
   expect(calls).toEqual([notice.nativeSessionId])
 })
+
+
+test("review mode hides the MCP catalog while controller APIs and default Aria mode remain available", async () => {
+  const { setupJobMessages } = await import("./job-messages")
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises")
+  for (const exposeModelTools of [true, false]) {
+    const root = await mkdtemp("/tmp/oc-message-visibility-")
+    const requests: any[] = []
+    const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req) {
+      const body = await req.json() as any
+      requests.push(body)
+      return Response.json(body.method === "tools/call"
+        ? { result: { structuredContent: { success: true } } } : { sessions: [] })
+    } })
+    let detach: (() => void) | undefined
+    try {
+      await writeFile(root + "/token", "fixture-token-".repeat(6), { mode: 0o600 })
+      await writeFile(root + "/settings.json", JSON.stringify({ configFile: root + "/service.json",
+        stdio: root + "/stdio.py", baseUrl: `http://127.0.0.1:${server.port}/`, tokenFile: root + "/token" }))
+      const mcp = new Map<string, any>()
+      const tools = new Map(["job_messages_createSession", "job_messages_sendMessage",
+        "job_messages_completeJob", "job_messages_readAgentMessages", "job_messages_readPeerMessages",
+        "job_messages_sendPeerMessage", "freefy_request_review", "shell", "subagent"].map(id => [id, { id }]))
+      const fake = context()
+      const ctx = { ...fake.ctx,
+        tool: { hook: async () => {}, transform: async (apply: any) => apply({
+          list: () => [...tools.values()], remove: (id: string) => tools.delete(id),
+        }) },
+        mcp: { transform: async (apply: any) => apply({
+          get: (name: string) => mcp.get(name), set: (name: string, value: any) => mcp.set(name, value),
+          remove: (name: string) => mcp.delete(name),
+        }) },
+      }
+      detach = await setupJobMessages(ctx as any, { configPath: root + "/settings.json", exposeModelTools,
+        connected: async channel => {
+          for (const name of ["createSession", "sendPeerMessage", "readPeerMessages"])
+            await channel.call("ses_fixture0001", name, {})
+        } })
+      expect(mcp.has("job_messages")).toBe(true)
+      expect(tools.has("job_messages_createSession")).toBe(exposeModelTools)
+      expect([...tools.keys()].filter(id => id.startsWith("job_messages_")).length).toBe(exposeModelTools ? 6 : 0)
+      for (const id of ["freefy_request_review", "shell", "subagent"]) expect(tools.has(id)).toBe(true)
+      expect(requests.filter(row => row.method === "tools/call").map(row => row.params.name))
+        .toEqual(["createSession", "sendPeerMessage", "readPeerMessages"])
+    } finally { detach?.(); server.stop(true); await rm(root, { recursive: true, force: true }) }
+  }
+})

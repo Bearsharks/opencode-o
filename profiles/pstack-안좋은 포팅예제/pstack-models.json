@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "budget": "medium",
+  "roles": {
+    "feature-refactoring": "openai/gpt-6.1-sol#high",
+    "bug-fix": "openai/gpt-6.1-sol#high",
+    "perf-issue": "openai/gpt-6.1-sol#high",
+    "hillclimb": "openai/gpt-6.1-sol#high",
+    "judgment-prose": "openai/gpt-6.1-sol#high",
+    "hardest-tasks": "openai/gpt-6-astra#high",
+    "how-explorer": "openai/gpt-6.1-terra#high",
+    "how-explainer": "openai/gpt-6.1-sol#high",
+    "why-investigators": "openai/gpt-6.1-sol#high",
+    "why-synthesizer": "openai/gpt-6.1-sol#high",
+    "reflect-tooling": "openai/gpt-6.1-sol#high",
+    "reflect-judgment-divergent-synthesizer": "openai/gpt-6-astra#high",
+    "arena-runners": [
+      "openai/gpt-6.1-sol#high",
+      "openai/gpt-6.1-sol#high"
+    ],
+    "arena-cross-judge-pool": [
+      "openai/gpt-6-astra#high",
+      "openai/gpt-6.1-sol#high"
+    ],
+    "swarm-workers": "openai/gpt-6.1-terra#high",
+    "architect-runners": [
+      "openai/gpt-6.1-sol#high",
+      "openai/gpt-6-astra#high"
+    ],
+    "interrogate-reviewers": [
+      "openai/gpt-6.1-sol#high",
+      "openai/gpt-6-astra#high"
+    ]
+  }
+}

@@ -91,7 +91,10 @@ export async function checkRunnerPolicy(
   const definitions = await Promise.all(["a-max", "oc-lite"].map(async (profile) => {
     const markdown = await readFile(new URL(`./${profile}/agents/runner.md`, import.meta.url), "utf8")
     const front = YAML.parse(markdown.match(/^---\n([\s\S]*?)\n---\n/)![1])
-    for (const phrase of ["loopback", "listen EPERM", "not a complete shell", "actual game/provider/image sends", "not_run is never pass"])
+    const gameBoundary = profile === "oc-lite"
+      ? ["Parent-prepared game-session verification", "launch actual games or run provider/image sends", "not general game execution authority"]
+      : ["actual game/provider/image sends"]
+    for (const phrase of ["loopback", "listen EPERM", "not a complete shell", "not_run is never pass", ...gameBoundary])
       assert.ok(markdown.includes(phrase), `${profile} Runner contract: ${phrase}`)
     return front.permissions
   }))

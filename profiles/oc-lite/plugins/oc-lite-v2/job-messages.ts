@@ -180,6 +180,7 @@ async function startConnection(ctx: Context, url: URL, token: string) {
 
 export async function setupJobMessages(ctx: Context, options: {
   required?: boolean,
+  exposeModelTools?: boolean,
   configPath?: string,
   connected?: (transport: Pick<ProcessConnection, "runtimeId" | "call">) => void | Promise<void>,
 } = {}) {
@@ -204,6 +205,12 @@ export async function setupJobMessages(ctx: Context, options: {
   }
   const connection = await pending
   const runtimeId = connection.runtimeId
+  if (options.exposeModelTools === false) {
+    await ctx.tool.transform(editor => {
+      for (const tool of editor.list()) if (tool.id.startsWith("job_messages_")) editor.remove(tool.id)
+    })
+  }
+  // Keep the MCP/API connection; only model-facing definitions are filtered.
   await ctx.mcp.transform((editor) => {
     const command = ["/usr/bin/python3", "-B", settings.stdio, "--config", settings.configFile,
       "--role", "agent", "--runtime-id", runtimeId]

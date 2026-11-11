@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import { Tool } from "@opencode/schema/tool"
 
 export const allowedTools = new Set([
-  "job_messages_createSession", "job_messages_readPeerMessages",
+  "freefy_review_inbox",
   "freefy_review_read", "freefy_review_list", "freefy_review_search",
   "freefy_review_check", "freefy_review_submit",
 ])
@@ -12,11 +12,7 @@ export default {
   effect: (ctx: any) => Effect.gen(function* () {
     yield* ctx.tool.transform((editor: any) => {
       for (const tool of editor.list()) if (!allowedTools.has(tool.id)) editor.remove(tool.id)
-      // The reviewer does not have the generic execute tool. Expose its two
-      // queue readers natively instead of leaving unreachable Code Mode entries.
-      for (const name of ["job_messages_createSession", "job_messages_readPeerMessages"]) {
-        editor.update(name, (tool: any) => { tool.options = { ...tool.options, codemode: false } })
-      }
+
     })
     for (const name of ["context", "generate", "compaction"]) {
       yield* ctx.session.hook(name, (event: any) => Effect.sync(() => {

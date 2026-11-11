@@ -17,7 +17,7 @@ python3 profiles/oc-review/prepare.py \
   --workflow /absolute/controller-state/workflow-config.json
 ```
 
-메시지 연결은 oc-lite의 기존 `setupJobMessages`를 재사용한다. `--messaging`은
+메시지 연결은 oc-lite의 기존 `setupJobMessages`를 `exposeModelTools: false`로 재사용한다. 모델에게는 Aria용 등록·송신·완료·수신 도구와 일반 peer 도구를 노출하지 않는다. 세션 등록과 peer API는 제어부 내부 연결에서 그대로 사용한다. `--messaging`은
 격리 시험용 기존 설정 파일 경로를 지정할 때만 사용한다. 비밀 자체를 프로필이나
 후보에 넣지 않는다. 제어부는 `opencode api`로 공유 서비스에 세션을 만들 때
 `location.directory`를 위 디렉터리로 지정한다. 새 CLI의 환경변수만 바꿔

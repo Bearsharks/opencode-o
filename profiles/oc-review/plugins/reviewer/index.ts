@@ -43,7 +43,7 @@ export default Plugin.define({
       })
     })
     let closeHost: (() => void) | undefined
-    const closeMessages = await setupJobMessages(ctx, { required: true,
+    const closeMessages = await setupJobMessages(ctx, { required: true, exposeModelTools: false,
       configPath: typeof ctx.options.messagingConfig === "string" ? ctx.options.messagingConfig : undefined,
       connected: async channel => {
       if (typeof ctx.options.workflowConfig === "string") {

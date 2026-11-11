@@ -68,9 +68,23 @@
       "disabled": true
     }
   },
+  "mcp": {
+    "servers": {
+      "roblox_studio": {
+        "type": "local",
+        "command": ["/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP"],
+        "protocol": "legacy"
+      }
+    }
+  },
   "plugins": ["./plugins/oc-lite-v2"],
   "permissions": [
     { "action": "harness_state", "resource": "*", "effect": "deny" },
-    { "action": "investigate", "resource": "*", "effect": "deny" }
+    { "action": "investigate", "resource": "*", "effect": "deny" },
+    { "action": "roblox_studio_start_stop_play", "resource": "*", "effect": "deny" },
+    { "action": "roblox_studio_multi_edit", "resource": "*", "effect": "deny" },
+    { "action": "roblox_studio_character_navigation", "resource": "*", "effect": "deny" },
+    { "action": "roblox_studio_http_get", "resource": "*", "effect": "deny" },
+    { "action": "roblox_studio_subagent", "resource": "*", "effect": "deny" }
   ]
 }

@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import plugin, { agentModel } from "./index"
 import { checkRunnerPolicy } from "../../../runner-policy.check"
 
+process.env.OPENCODE_JOB_MESSAGES_CONFIG = "/tmp/oc-lite-smoke-no-messaging-" + process.pid
+
 const agents = new Map<string, any>()
 agents.set("worker", { permissions: [], request: { body: {} }, model: { providerID: "legacy", id: "old-override" } })
 const hooks = new Map<string, Function>()
@@ -31,6 +33,11 @@ assert.equal(agents.get("worker").mode, "primary")
 assert.equal(agents.get("runner").mode, "subagent")
 assert.equal(agents.get("runner").hidden, false)
 assert.match(agents.get("runner").system, /You are Runner/)
+assert.match(agents.get("runner").system, /Parent-prepared game-session verification/)
+assert.match(agents.get("runner").system, /send the keyboard, mouse, or touch inputs/)
+assert.match(agents.get("runner").system, /The parent owns game launch, restart, stop\/close/)
+assert.match(agents.get("runner").system, /not permission to read private profile contents, directly edit\/reset saves/)
+assert.doesNotMatch(agents.get("runner").system, /run actual game\/provider\/image sends/)
 assert.equal(agents.get("worker").model, undefined)
 assert.deepEqual(agents.get("worker").request.body, {})
 assert.deepEqual(agents.get("runner").model, { providerID: "openai", id: "gpt-6-luna" })
@@ -103,7 +110,8 @@ const before = hooks.get("tool.execute.before")!
 await checkRunnerPolicy((action, resource) => effect("runner", action, resource), (command, tool) =>
   before({ tool, agent: "runner", input: { command } }))
 await before({ tool: "subagent", agent: "worker", input: { agent: "runner", prompt: "Inspect." } })
-for (const [parent, child] of [["worker", "worker"], ["worker", "general"], ["runner", "runner"], ["runner", "worker"], ["runner", "general"]]) {
+await before({ tool: "subagent", agent: "freefy-pr-reviewer", input: { agent: "runner", prompt: "Read-only review." } })
+for (const [parent, child] of [["freefy-pr-reviewer", "worker"], ["freefy-pr-reviewer", "general"], ["other-reviewer", "runner"], ["worker", "worker"], ["worker", "general"], ["runner", "runner"], ["runner", "worker"], ["runner", "general"]]) {
   assert.throws(() => before({ tool: "subagent", agent: parent, input: { agent: child } }), /oc-lite topology blocks/)
 }
 assert.throws(() => before({ tool: "subagent", agent: "worker", input: { subagent_type: "runner" } }), /oc-lite topology blocks/)

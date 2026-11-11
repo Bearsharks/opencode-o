@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "pstack",
+  "model": "openai/gpt-6.1-sol#high",
+  "experimental": {
+    "subagent_depth": 3
+  },
+  "plugins": [
+    "./plugins/pstack"
+  ],
+  "instructions": [
+    "/Users/ck/Documents/opencode-o/profiles/pstack/user-model-routing.md"
+  ],
+  "compaction": {
+    "auto": true
+  },
+  "agents": {
+    "poteto-agent": {
+      "model": "openai/gpt-6.1-sol#high"
+    },
+    "general": {
+      "model": "openai/gpt-6-luna#high"
+    },
+    "comment-sicko": {
+      "model": "openai/gpt-6-luna#high"
+    },
+    "build": {
+      "disabled": true
+    },
+    "plan": {
+      "disabled": true
+    }
+  }
+}

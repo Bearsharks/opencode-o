@@ -4,3 +4,6 @@ package-lock.json
 /profiles/pstack/service.json
 /profiles/pstack/pstack-models.json
 /profiles/pstack/local-skills/
+/profiles/oc-lite/service.json
+/profiles/oc-lite/service.json.*.tmp
+/profiles/pstack-*/service.json

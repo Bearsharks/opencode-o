@@ -1,3 +1,4 @@
+import { setupJobMessages } from "./job-messages"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { Model, Plugin } from "@opencode/plugin"
@@ -100,8 +101,10 @@ export default Plugin.define({
     await ctx.tool.hook("execute.before", (event) => {
       if (event.tool !== "subagent") return
       const child = (event.input as { agent?: unknown } | null)?.agent
-      if (event.agent === "worker" && child === "runner") return
+      // Explicitly approved review edge; Runner and every other parent stay fenced.
+      if ((event.agent === "worker" || event.agent === "freefy-pr-reviewer") && child === "runner") return
       throw new Error(`oc-lite topology blocks ${event.agent} -> ${String(child)}`)
     })
+    return setupJobMessages(ctx)
   },
 })

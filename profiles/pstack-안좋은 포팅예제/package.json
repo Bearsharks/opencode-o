@@ -1,0 +1,6 @@
+{
+  "name": "opencode-o-pstack",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@opencode/plugin": "2.0.14", "yaml": "2.9.1" }
+}

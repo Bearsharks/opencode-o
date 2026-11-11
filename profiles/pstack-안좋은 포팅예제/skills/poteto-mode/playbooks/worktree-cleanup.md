@@ -1,0 +1,10 @@
+### Worktree and simulator cleanup
+
+1. Snapshot the requested scope with `df -h /` and `git worktree list --porcelain`. Run the installed `poteto-mode/scripts/worktree-audit.sh` by its absolute path with `-b <verified-base-ref>` and the target repository path. The helper reports Git/PR evidence and `SESSION_USE=unknown`; it does not discover ownership or authorize removal.
+2. Resolve usage before proposing removal. Inspect the current project's OpenCode sessions through the native session API and confirm each exact worktree path with its known owner. Check running tasks, tools, simulators and other applications that may use it. A missing session record or a completed parent does not prove children have stopped. Leave unknown or in-use paths on hold.
+3. Inspect tracked, untracked and ignored files. A merged branch can still contain valuable local work. Record every candidate's branch, head, merge evidence, dirty state, native session ownership evidence and proposed action. Use `verify-session-use` as a request for evidence, not as `safe`.
+4. Obtain any decision the user's deletion scope does not already cover. Show uncommitted work and preserve required artifacts before removing anything. Follow project worktree lifecycle rules; managed worktrees must use their owner's archive/remove mechanism. Do not discard someone else's work or bypass a protection on the path.
+5. Remove only the confirmed unused paths using their supported Git or host lifecycle operation. Do not replace a failed managed cleanup with a broad recursive deletion. Verify the exact paths and registry entries, then compare disk use with the initial snapshot.
+6. Consider simulator runtimes and caches only if they are in the requested cleanup scope. Identify exact unused instances and ownership first; do not mass-delete active simulator devices or other applications' state. Report reclaimed space, retained paths and why they remain.
+
+**Reply:** before/after disk use, exact removed paths, verification evidence and unresolved ownership. Unknown use is never proof of safe deletion.
