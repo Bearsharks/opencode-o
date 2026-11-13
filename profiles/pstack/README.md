@@ -71,6 +71,8 @@ statechart는 임시 도구 환경의 Temurin 25.0.5와 TLC 1.7.4로 실제 검�
 직접 `opencode serve`를 사용할 때 기록 API는 `PSTACK_API_URL`과 해당 서버의 표준 인증 환경변수가 필요하다.
 일반 `oc-pstack` 관리 서비스에서는 자동 탐색한다. 비밀 값은 스킬이나 채팅에 넣지 않는다.
 
+이력 도구의 native 대비 범위, 검색 예제와 페이지 처리 계약은 [세션 이력 조회와 검색](docs/history.md)을 참고한다.
+
 ## 검증
 
 ```sh

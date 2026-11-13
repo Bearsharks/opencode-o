@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-11-10T20:44:23.428Z",
+  "checkedAt": "2026-11-13T13:26:16.115Z",
   "server": {
     "version": "2.2.7",
-    "pid": 13557,
+    "pid": 93025,
     "hostname": "ckui-Macmini.local",
     "urls": [
-      "http://127.0.0.1:57751"
+      "http://127.0.0.1:53693"
     ],
     "paths": {
       "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
@@ -409,7 +409,7 @@
     },
     {
       "name": "recall",
-      "fileSha256": "124f7a25bbea7bb69107051833c8ff48692dcc58425cf9be2cc2ef928b410a5e",
+      "fileSha256": "f3282aec693784677340b59422ba345a139c0bf6ed9d01626cec42fa074522c4",
       "contentEqual": true,
       "autoinvoke": false,
       "commandRegistered": true,

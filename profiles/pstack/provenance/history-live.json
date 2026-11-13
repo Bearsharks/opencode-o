@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-11-10T20:44:22.980Z",
+  "checkedAt": "2026-11-13T13:26:15.132Z",
   "server": {
     "version": "2.2.7",
-    "pid": 13534,
+    "pid": 92717,
     "hostname": "ckui-Macmini.local",
     "urls": [
-      "http://127.0.0.1:57746"
+      "http://127.0.0.1:53679"
     ],
     "paths": {
       "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
@@ -18,6 +18,14 @@
   "actualMessageRead": true,
   "currentChatIdentified": true,
   "topicSearch": true,
+  "nativeNoSessionInvocation": true,
+  "searchBeyondFirstMessagePage": true,
+  "multiSessionSearch": true,
+  "repositorySearch": true,
+  "matchingPagination": true,
+  "emptyScanContinuation": true,
+  "cursorScopeBinding": true,
+  "originalNoSessionQueries": true,
   "privateFullExport": true,
   "fullHistoryAfterCompaction": true,
   "foreignWorkspaceRefused": true,
