@@ -288,6 +288,12 @@
     "reason": "별도 VM 검수 요구를 로컬 작업으로 축소하지 않는다."
   },
   {
+    "file": "skills/poteto-mode/playbooks/shipping.md",
+    "before": "**Reply:** the verified run and its ceiling, each PR's verdict and who produced it, what landed and how you confirmed it, and what the next gap needs.\n",
+    "after": "**Reply:** the verified run and its ceiling, each PR's verdict and who produced it, what landed and how you confirmed it, and what the next gap needs.\n\n**임시 조치**\n\nVM 실행 환경이 없을 때는 이 Shipping에 한해 위의 VM 부재에 따른 중단 조건과 1단계의 별도 VM 요구만 아래 로컬 검증으로 대체한다. 나머지 merge 조건은 그대로 유지한다.\n\n- PR마다 작성자가 아닌 새 로컬 검증 에이전트를 배정하고, 정확한 parent/head SHA와 검증할 사용자 시나리오를 전달한다.\n- parent/head를 각각 별도 worktree에서 실행하고 설정·데이터·캐시·빌드 출력·포트·브라우저 프로필을 분리한다. 분리할 수 없는 GUI나 공유 자원은 순차로 검증한다.\n- 검증자가 직접 비교 실행한 뒤 SHA·명령/조작·결과·증거와 `로컬 검증(호스트 공유)`를 기록해 PR에 `PASS`, `PASS+NOTES`, `FAIL`을 남긴다. 작성자의 로그나 CI만으로 통과시키지 않는다.\n- 필수 사용자 경로를 실행하지 못했거나 필요한 보안 격리·OS 조건을 로컬에서 충족할 수 없으면 `BLOCKED`로 남기고 merge하지 않는다. worktree를 VM 수준의 보안 격리로 간주하지 않는다. 모든 필수 검증을 통과하면 위 2–6단계대로 진행한다.\n",
+    "reason": "Shipping 본문 아래에 VM 부재 시 적용할 로컬 독립 검증 임시 조치만 덧붙인다."
+  },
+  {
     "file": "skills/poteto-mode/playbooks/session-pickup.md",
     "before": "1. Locate the prior trail. A local transcript under the active workspace's `agent-transcripts/` directory (the system prompt names the path. Do not glob across `~/.cursor/projects/*/`, that crosses workspace boundaries and reads private chats from unrelated projects), a cloud-agent URL, or a pushed branch. Read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in a subagent and keep the reduced timeline in the main thread (the **principle-guard-the-context-window** skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",
     "after": "1. Locate the prior trail. A native session transcript read with `pstack_history` in the active workspace (set `relatedWorktrees: true` only for worktrees registered to this repository; never read unrelated projects), a remote-agent trail supplied by the user, or a pushed branch. Read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in native `subagent` with `agent: \"poteto-agent\", role: \"how explorer\", background: true` and keep the reduced timeline in the main thread (the **principle-guard-the-context-window** skill). Pick each subagent's reasoning level and fast or standard speed for the job, per the Subagents section.",

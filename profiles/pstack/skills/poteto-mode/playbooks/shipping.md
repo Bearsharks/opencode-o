@@ -12,3 +12,12 @@ The separate-VM verifier requirement below needs an actual configured VM executi
 6. **Stop at the ceiling.** Extending the run takes new verdicts, so it is a new pass through step 1.
 
 **Reply:** the verified run and its ceiling, each PR's verdict and who produced it, what landed and how you confirmed it, and what the next gap needs.
+
+**임시 조치**
+
+VM 실행 환경이 없을 때는 이 Shipping에 한해 위의 VM 부재에 따른 중단 조건과 1단계의 별도 VM 요구만 아래 로컬 검증으로 대체한다. 나머지 merge 조건은 그대로 유지한다.
+
+- PR마다 작성자가 아닌 새 로컬 검증 에이전트를 배정하고, 정확한 parent/head SHA와 검증할 사용자 시나리오를 전달한다.
+- parent/head를 각각 별도 worktree에서 실행하고 설정·데이터·캐시·빌드 출력·포트·브라우저 프로필을 분리한다. 분리할 수 없는 GUI나 공유 자원은 순차로 검증한다.
+- 검증자가 직접 비교 실행한 뒤 SHA·명령/조작·결과·증거와 `로컬 검증(호스트 공유)`를 기록해 PR에 `PASS`, `PASS+NOTES`, `FAIL`을 남긴다. 작성자의 로그나 CI만으로 통과시키지 않는다.
+- 필수 사용자 경로를 실행하지 못했거나 필요한 보안 격리·OS 조건을 로컬에서 충족할 수 없으면 `BLOCKED`로 남기고 merge하지 않는다. worktree를 VM 수준의 보안 격리로 간주하지 않는다. 모든 필수 검증을 통과하면 위 2–6단계대로 진행한다.
