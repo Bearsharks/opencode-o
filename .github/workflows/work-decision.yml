@@ -1,0 +1,27 @@
+name: Work decision replay
+on:
+  push:
+    paths:
+      - ".github/workflows/work-decision.yml"
+      - "profiles/pstack/plugins/pstack/*decision*.ts"
+      - "profiles/pstack/plugins/pstack/model-runtime.ts"
+      - "profiles/pstack/tests/*decision*"
+  pull_request:
+    paths:
+      - ".github/workflows/work-decision.yml"
+      - "profiles/pstack/plugins/pstack/*decision*.ts"
+      - "profiles/pstack/plugins/pstack/model-runtime.ts"
+      - "profiles/pstack/tests/*decision*"
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --experimental-strip-types --test profiles/pstack/tests/work-decision.test.mjs

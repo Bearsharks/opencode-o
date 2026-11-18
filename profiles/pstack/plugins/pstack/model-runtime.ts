@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { withDecision, decisionSchema } from "./work-decision";
+import { decisionSource } from "./decision-source";
 import { Schema } from "effect";
 import type { Context } from "@opencode/plugin/promise/plugin";
 import { roles, budgets, choices, entries, parseConfig, resolveRole, select, budgetPlan, validateModels, referenceFamily, type Config, type Role } from "./models";
@@ -85,12 +87,13 @@ export async function installModels(ctx: Context) {
         role: { type: "string", enum: Object.keys(roles), description: "Required workflow role. Saved role models and budgets apply to every invocation." },
         seat: { type: "integer", minimum: 0, description: "Zero-based panel seat returned by pstack_models. Required for panel roles." },
         difficulty: { enum: ["routine", "judgment", "standard", "hardest"] }, urgent: { type: "boolean" }, defaultModel: { type: "string", description: "Workflow-specific default from the advertised catalogue, e.g. cheap history mining. Used only when this role has no saved override." }, verification: { type: "boolean" }, independent: { type: "boolean", description: "Require proven cross-family independence; unknown families fail closed." }, independentOf: { type: "string", description: "Native model reference of the model that did the work; defaults to the parent model." },
+        decision: decisionSchema,
         retainedState: { type: "object", properties: { kind: { enum: ["checkout", "uncommitted-changes", "running-process"] }, reason: { type: "string", minLength: 1 } }, required: ["kind", "reason"], additionalProperties: false,
           description: "Reuse only if the new work strictly needs this expensive-to-move child state. Fixes, retries and follow-ups otherwise start fresh." },
         model: { type: "string", description: "Explicit user choice or a model assigned to a comparison/race arm. Otherwise omit: the required role selects the actual model." },
       }, required: [...schema.required, "role"], additionalProperties: false };
       tool.description += " Every pstack delegation must specify role, and panel calls specify seat. Fresh children are the default; preserve expensive local state only with retainedState. Do not encode roles in the description.";
-      tool.execute = async (input: any, context) => {
+      tool.execute = withDecision(async (input: any, context) => {
         const { role, seat, difficulty, urgent, verification, defaultModel, independent, independentOf, retainedState, ...native } = input;
         native.background ??= true;
         if (!Object.hasOwn(roles, role)) throw new Error("Missing pstack role; load the workflow and select its role before delegating");
@@ -121,7 +124,7 @@ export async function installModels(ctx: Context) {
           if (native.model && modelRefusal(message)) await rejections.add(context.sessionID, native.model);
           throw error;
         }
-      };
+      }, (source, context) => decisionSource(source, ctx.location.directory, context.sessionID));
     });
   });
 }

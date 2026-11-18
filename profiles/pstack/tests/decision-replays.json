@@ -1,0 +1,34 @@
+[
+  {
+    "name": "300/delegation",
+    "source": "msg_1e0240acd001wHYF6PlP51zJjW",
+    "agreement": "자기 전시공간에 물건이 놓이고, 그 위를 실제로 걸어 다니며 밟았을 때 발밑 반응을 체험하는 것",
+    "original": "먼저9본의전체affine Y-row(실Rigidrotation보다느슨한선형계)와실weights/원래vertices를사용해완전눌림surface평면+고정root+최대중앙travel제약의해가있는지rank/잔차를구한다.",
+    "criterion": "완전눌림surface평면",
+    "corrected": "기존 근거로 실제 발밑 반응을 알 수 없으면 한 종을 직접 밟는다. 반응이 확인되면 이 검사를 끝내고, 반응이 없으면 그 경로를 고친다."
+  },
+  {
+    "name": "300/verdict",
+    "source": "msg_1e16280f2001R9I2zbkVgqVKQ5",
+    "agreement": "자기 전시공간에 물건이 놓이고, 그 위를 실제로 걸어 다니며 밟았을 때 발밑 반응을 체험하는 것",
+    "original": "캐릭터는 높이 0.85의 고정 지지면에 서는데, 말랑볼의 눌린 외형은 발바닥보다 약 **0.108stud 아래**에 남습니다. 반대로 일부 장식이나 옆의 누르지 않은 돔은 발을 뚫고 올라옵니다.\n\n코드 회귀 검사는 통과했지만, 이 실제 기하 문제 때문에 전체 검사는 실패합니다. 현재 **16종은 실패, 9종은 증명 미완료**입니다. 최종 Studio 검증과 B 병합, C 착수는 하지 않았습니다.",
+    "criterion": "기하 문제 때문에 전체 검사는 실패",
+    "corrected": "기하 차이는 확인됐지만 그것만으로 보행 결함은 확정되지 않았다. 실제 접근과 발밑 반응을 확인하고 그 결과로 다음 작업을 결정한다."
+  },
+  {
+    "name": "309/delegation",
+    "source": "msg_1eeaf657d0011ZtnZC4QsYtleb",
+    "agreement": "포기하면 같은 층 상점 앞으로 돌아온다.",
+    "original": "Prefer former pose if valid; otherwise choose a supported nearby same-course landing at the same horizontal spot below the previous body where possible, not new run, not camp, not failure-state or entitlement mutation.",
+    "criterion": "choose a supported nearby same-course landing at the same horizontal spot",
+    "corrected": "포기를 확정한 뒤 이동이 실패해도 상점으로 안전하게 도달하는지 재현한다. 원위치 복구는 구현 선택이다. 실제 도달을 막는 원인만 고친다."
+  },
+  {
+    "name": "309/verdict",
+    "source": "issuecomment-6978890111",
+    "agreement": "포기하면 같은 층 상점 앞으로 돌아온다.",
+    "original": "**해소 조건:** 이전 pose의 지지 증거가 없으면 검증 가능한 안전 위치로 되돌리거나, 게임플레이 입력 잠금을 유지하면서 원래 포기·부활·상점 재시도 선택을 바로 복구한다. 실패할 별도 거점 요청을 선행 조건으로 두지 않는다.",
+    "criterion": "원래 포기·부활·상점 재시도 선택을 바로 복구",
+    "corrected": "상점에 갈 수 없었던 재현은 수정 근거다. 재시도 UI 복구를 유일한 해소 조건으로 삼지 말고 확정된 포기 후 상점 도착과 입력 복구를 확인한다."
+  }
+]
