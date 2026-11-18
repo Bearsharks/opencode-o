@@ -33,7 +33,7 @@ export async function decisionSource(ref: string, directory: string, sessionID: 
   )
     throw Error("Use the original working chat's user message or the project policy, not a delegate's brief.");
   const message = match
-    ? (await api.message.get({ sessionID: session.id, messageID: match[2] })).data
+    ? await api.session.message.get({ sessionID: session.id, messageID: match[2] })
     : (await api.session.context({ sessionID })).findLast((m) => m.type === "user");
   if (message?.type !== "user")
     throw Error("Use an actual user message in the project, not a reviewer or scheduled wake.");

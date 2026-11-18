@@ -48,7 +48,9 @@ try {
     await host.client.session.prompt({ sessionID: parent.id, text: row.agreement });
     await host.client.session.wait({ sessionID: parent.id });
     const children = async () => (await host.client.session.list({ parentID: parent.id })).data;
-    const run = async (prompt: string, outcome: string) => {
+    const agreement = (await host.client.session.context({ sessionID: parent.id })).find((m) => m.type === "user");
+    assert.ok(agreement);
+    const run = async (prompt: string, outcome: string, source = "request") => {
       const r = await host.client.rpc.call({
         location,
         rpcID: "pstack-test-probe",
@@ -62,7 +64,7 @@ try {
             prompt,
             description: "Review the observed outcome",
             background: false,
-            decision: { source: "request", outcome, onPass: "proceed", onFail: "repair" },
+            decision: { source, outcome, onPass: "proceed", onFail: "repair" },
           },
         },
       });
@@ -72,7 +74,10 @@ try {
     assert.match((await run(row.original, row.criterion)).toolError ?? "", /absent from the cited source/);
     assert.equal((await children()).length, 0);
     assert.equal(generation, before);
-    assert.equal((await run(row.corrected, row.correctedOutcome)).toolError, undefined);
+    assert.equal(
+      (await run(row.corrected, row.correctedOutcome, `msg:${parent.id}/${agreement.id}`)).toolError,
+      undefined,
+    );
     assert.equal((await children()).length, 1);
     assert.equal(generation, before + 1);
     console.log(
