@@ -20,7 +20,7 @@ const endpoint = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request
     const marker = JSON.stringify(users.at(-1)).match(/FAILURE_PARENT_(SYNC|BG)_(REJECT|RETRY)|CONTROL_CASE_\d+/)?.[0];
     if (marker && !emitted.has(marker)) {
       emitted.add(marker);
-      const calls = controls.has(marker) ? [controls.get(marker)] : ["bug-fix", "judgment and prose"].map(role => ({ agent: "general", role, difficulty: "routine", description: `${marker} ${role}`, background: marker.includes("_BG_"), prompt: marker.replace("PARENT", "CHILD") }));
+      const calls = controls.has(marker) ? [controls.get(marker)] : ["bug-fix", "judgment and prose"].map(role => ({ agent: "general", role, decision: { source: "request", outcome: marker, onPass: "proceed", onFail: "repair" }, difficulty: "routine", description: `${marker} ${role}`, background: marker.includes("_BG_"), prompt: marker.replace("PARENT", "CHILD") }));
       delta = { role: "assistant", tool_calls: calls.map((args, index) => ({ index, id: `${marker}_${index}`, type: "function", function: { name: "subagent", arguments: JSON.stringify(args) } })) };
       finish = "tool_calls";
     } else delta = { role: "assistant", content: "PARENT_DONE" };
@@ -47,7 +47,7 @@ try {
   const parent = await host.client.session.create({ location: { directory: host.project }, model: { providerID: "pstack-test", id: "gpt-parent", variant: "high" } });
   const control = async (args: object) => {
     const marker = `CONTROL_CASE_${controls.size}`;
-    controls.set(marker, { agent: "general", role: "bug-fix", description: marker, background: false, ...args });
+    controls.set(marker, { decision: { source: "request", outcome: marker, onPass: "proceed", onFail: "repair" }, agent: "general", role: "bug-fix", description: marker, background: false, ...args });
     await host.client.session.prompt({ sessionID: parent.id, text: marker });
     await host.client.session.wait({ sessionID: parent.id }, { signal: AbortSignal.timeout(15000) });
     const context = await host.client.session.context({ sessionID: parent.id });

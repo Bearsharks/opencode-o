@@ -1,0 +1,35 @@
+name: Work decision replay
+on:
+  push:
+    paths:
+      - ".github/workflows/work-decision.yml"
+      - "profiles/pstack/plugins/pstack/*decision*.ts"
+      - "profiles/pstack/plugins/pstack/model-runtime.ts"
+      - "profiles/pstack/tests/*decision*"
+      - "profiles/pstack/scripts/work-decision.live.ts"
+  pull_request:
+    paths:
+      - ".github/workflows/work-decision.yml"
+      - "profiles/pstack/plugins/pstack/*decision*.ts"
+      - "profiles/pstack/plugins/pstack/model-runtime.ts"
+      - "profiles/pstack/tests/*decision*"
+      - "profiles/pstack/scripts/work-decision.live.ts"
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --experimental-strip-types --test profiles/pstack/tests/work-decision.test.mjs
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+      - run: npm install --global @opencode/cli@2.2.7
+      - run: bun install --frozen-lockfile
+      - run: bun profiles/pstack/scripts/work-decision.live.ts
