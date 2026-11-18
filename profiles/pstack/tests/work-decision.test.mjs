@@ -19,8 +19,9 @@ for (const row of cases) {
     const role = row.name.startsWith("300") ? "hardest tasks" : "bug-fix";
     await assert.rejects(run({ role, prompt: row.original, decision }), /absent from the cited source/);
     assert.equal(spent, 0);
-    const output = await run({ role, prompt: row.corrected, decision: { ...decision, outcome: row.agreement } });
-    assert.ok(output.includes(row.agreement) && output.includes(row.corrected));
+    assert.ok(row.corrected.includes(row.correctedOutcome));
+    const output = await run({ role, prompt: row.corrected, decision: { ...decision, outcome: row.correctedOutcome } });
+    assert.ok(output.includes(row.correctedOutcome) && output.includes(row.corrected));
     assert.equal(spent, 1);
     console.log(row.name, "historical FAIL (0 worker starts); corrected PASS (1 worker start)");
     // The same words become a valid criterion when they actually ARE the requirement.

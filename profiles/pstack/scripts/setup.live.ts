@@ -7,7 +7,7 @@ const endpoint = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request
   const child = body.messages.some((m: any) => m.role === "user" && JSON.stringify(m.content).includes("SETUP_CHILD"));
   let delta: any, finish: string;
   if (child) { childModel = { model: body.model, effort: body.reasoning_effort }; delta = { role: "assistant", content: "CHILD_DONE" }; finish = "stop"; }
-  else if (!emitted) { emitted = true; delta = { role: "assistant", tool_calls: [{ index: 0, id: "setup_child", type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: "poteto-agent", role: "bug-fix", difficulty: "routine", description: "Check saved model", background: false, prompt: "SETUP_CHILD. Return done." }) } }] }; finish = "tool_calls"; }
+  else if (!emitted) { emitted = true; delta = { role: "assistant", tool_calls: [{ index: 0, id: "setup_child", type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: "poteto-agent", role: "bug-fix", decision: { source: "request", outcome: "Verify the saved role's real child call.", onPass: "proceed", onFail: "repair" }, difficulty: "routine", description: "Check saved model", background: false, prompt: "SETUP_CHILD. Return done." }) } }] }; finish = "tool_calls"; }
   else { delta = { role: "assistant", content: "DONE" }; finish = "stop"; }
   const chunk = { id: "setup-fixture", object: "chat.completion.chunk", created: 1, model: body.model, choices: [{ index: 0, delta, finish_reason: null }] };
   return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta: {}, finish_reason: finish }] })}\n\ndata: [DONE]\n\n`, { headers: { "content-type": "text/event-stream" } });
