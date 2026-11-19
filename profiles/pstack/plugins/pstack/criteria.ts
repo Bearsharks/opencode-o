@@ -4,7 +4,7 @@ import type { Context } from "@opencode/plugin/promise/plugin";
 
 const exec = promisify(execFile);
 export const configKey = "pstack.taskDoc";
-export type Criteria = { path: string; text: string; head?: string };
+export type Criteria = { path: string; text: string; head?: string; baseOid?: string };
 const git = async (cwd: string, ...args: string[]) =>
   (await exec("git", args, { cwd, maxBuffer: 4 * 1024 * 1024 })).stdout.trimEnd();
 function checkPath(path: string) {
@@ -43,14 +43,23 @@ export async function criteriaFor(cwd: string) {
   const path = await taskPath(cwd);
   return path ? taskDocument(cwd, path) : undefined;
 }
+export async function shippingHandoff(
+  ctx: Context,
+  sessionID: Parameters<Context["session"]["context"]>[0]["sessionID"],
+) {
+  const message = (await ctx.session.context({ sessionID })).findLast(
+    (m) => m.type === "user" && m.metadata?.shippingRequest,
+  );
+  if (message?.type !== "user") throw Error("No PR handoff in this Shipping session.");
+  const handoff = JSON.parse(message.text);
+  if (!/^[a-f0-9]{40}$/.test(handoff.baseOid ?? ""))
+    throw Error("SHIPPING_STALE: Resubmit this PR to pin the reviewed base commit.");
+  return handoff as { repo: string; pr: number; base: string; baseOid: string; head: string; path: string };
+}
 export async function delegationCriteria(ctx: Context, context: { agent: string; sessionID: any }) {
   if (context.agent === "shipping") {
-    const turn = (await ctx.session.context({ sessionID: context.sessionID })).findLast(
-      (m) => m.type === "user" && m.metadata?.shippingRequest,
-    );
-    if (turn?.type !== "user") throw Error("No PR handoff in this Shipping session.");
-    const { head, path } = JSON.parse(turn.text);
-    return taskDocument(ctx.location.directory, path, head);
+    const { head, path, baseOid } = await shippingHandoff(ctx, context.sessionID);
+    return { ...(await taskDocument(ctx.location.directory, path, head)), baseOid };
   }
   return criteriaFor(ctx.location.directory);
 }
@@ -74,14 +83,24 @@ export function prTaskPath(body: string) {
 export type PrState = {
   body: string;
   state: string;
+  url: string;
   baseRefName: string;
+  baseRefOid: string;
   headRefOid: string;
   mergeCommit: { oid: string } | null;
 };
 export async function readPR(cwd: string, repo: string, pr: number): Promise<PrState> {
   const { stdout } = await exec(
     "gh",
-    ["pr", "view", String(pr), "--repo", repo, "--json", "body,state,baseRefName,headRefOid,mergeCommit"],
+    [
+      "pr",
+      "view",
+      String(pr),
+      "--repo",
+      repo,
+      "--json",
+      "url,body,state,baseRefName,baseRefOid,headRefOid,mergeCommit",
+    ],
     { cwd, timeout: 60_000 },
   );
   return JSON.parse(stdout);

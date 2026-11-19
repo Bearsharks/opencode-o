@@ -54,7 +54,10 @@ export function withDecision<
         throw Error(
           "Proposed condition is absent from the current task document. Return unresolved expectations to the criteria owner.",
         );
-      task.prompt = `작업 기준: ${criteria.path} — ${criteria.head ? "PR head " + criteria.head + "에서" : "현재 워크트리에서"} 완료조건과 변경이력을 읽을 것.\n\nAssigned work:\n${task.prompt ?? ""}`;
+      const revisions = criteria.baseOid
+        ? `검수 대상: base ${criteria.baseOid}, head ${criteria.head}.\n`
+        : "";
+      task.prompt = `작업 기준: ${criteria.path} — ${criteria.head ? "PR head " + criteria.head + "에서" : "현재 워크트리에서"} 완료조건과 변경이력을 읽을 것.\n${revisions}\nAssigned work:\n${task.prompt ?? ""}`;
     }
     return execute(task, context, criteria);
   };

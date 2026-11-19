@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { ClientError } from "@opencode/client";
 import type { Context } from "@opencode/plugin/promise/plugin";
-import { prTaskPath, readPR, releaseMerged, taskDocument, taskPath } from "./criteria";
+import { prTaskPath, readPR, releaseMerged, shippingHandoff, taskDocument, taskPath } from "./criteria";
 import { localClient } from "./api";
-import { recordFailure, reconcile, pausedResult, type ReworkCycle } from "./rework";
+import { recordFailure, reconcile, rebuildLegacyCycle, pausedResult, type ReworkCycle } from "./rework";
 
 async function waitForSession(
   client: Awaited<ReturnType<typeof localClient>>,
@@ -78,7 +78,7 @@ async function waitForVerdict(
             .join("\n")
             .trim()
         : "";
-    const verdict = /^SHIPPING_RESULT: (MERGED|REWORK|BLOCKED|PENDING)(?:\r?\n|$)/.exec(text);
+    const verdict = /^SHIPPING_RESULT: (MERGED|REWORK|BLOCKED|PENDING|STALE)(?:\r?\n|$)/.exec(text);
     if (!missing.length && verdict) return { sessionID: id, status: verdict[1], result: text };
     if (missing.length) {
       // A child can become idle before its native completion reaches the parent's inbox.
@@ -118,7 +118,7 @@ async function waitForVerdict(
       resume: true,
       delivery: "queue",
       description: "Finalize Shipping verdict",
-      text: "Finish this PR's handoff after reading all reviewer results. Start the final reply with SHIPPING_RESULT: MERGED, REWORK, BLOCKED or PENDING on its own line. PENDING is for a confirmed forge queue only. Include the evidence and action for the caller.",
+      text: "Finish this PR's handoff after reading all reviewer results. Start the final reply with SHIPPING_RESULT: MERGED, REWORK, BLOCKED, STALE or PENDING on its own line. PENDING is for a confirmed forge queue only. Include the evidence and action for the caller.",
     });
   }
 }
@@ -130,6 +130,32 @@ export async function installShipping(ctx: Context) {
       agent.system = system;
     }),
   );
+  // Validate the actual merge target at the native shell permission boundary.
+  await ctx.permission.hook("evaluate", async (event) => {
+    if (event.agent !== "shipping" || event.action !== "shell" || event.effect === "deny") return;
+    const merges = event.resources.filter((command) => /^gh pr merge(?: |$)/.test(command));
+    if (!merges.length) return;
+    try {
+      const reviewed = await shippingHandoff(ctx, event.sessionID);
+      const current = await readPR(ctx.location.directory, reviewed.repo, reviewed.pr);
+      if (
+        current.state !== "OPEN" ||
+        current.baseRefName !== reviewed.base ||
+        current.baseRefOid !== reviewed.baseOid ||
+        current.headRefOid !== reviewed.head ||
+        prTaskPath(current.body) !== reviewed.path
+      )
+        throw Error(
+          `SHIPPING_STALE: reviewed ${reviewed.base}@${reviewed.baseOid} + ${reviewed.head}, current ${current.baseRefName}@${current.baseRefOid} + ${current.headRefOid}. Resubmit to assess the changed inputs.`,
+        );
+      const allowed = `gh pr merge ${current.url} --squash --match-head-commit ${reviewed.head}`;
+      if (merges.length !== 1 || merges[0] !== allowed)
+        throw Error("Use the reviewed merge command: " + allowed);
+    } catch (error) {
+      event.effect = "deny";
+      event.message = String(error);
+    }
+  });
   const busy = new Set<string>();
   await ctx.tool.transform((editor) =>
     editor.add({
@@ -169,10 +195,29 @@ export async function installShipping(ctx: Context) {
           const client = await localClient();
           let id = (await ctx.storage.get(key)) as string | undefined;
           let cycle: ReworkCycle = ((await ctx.storage.get(cycleKey)) as ReworkCycle | undefined) ?? {
+            version: 2,
             since: 0,
             heads: [],
           };
           const history = id ? await client.session.context({ sessionID: id }) : [];
+          if (cycle.version !== 2 && cycle.heads.length > 1) {
+            const histories = [history];
+            let after: string | undefined;
+            do {
+              const page = await ctx.storage.scan({ prefix: "shipping/", after });
+              for (const entry of page.entries) {
+                if (
+                  entry.value !== id &&
+                  typeof entry.value === "string" &&
+                  entry.key.toLowerCase().endsWith(`/${repo}/${input.pr}`)
+                )
+                  histories.push(await client.session.context({ sessionID: entry.value }));
+              }
+              after = page.next;
+            } while (after);
+            cycle = rebuildLegacyCycle(cycle, histories, repo, input.pr);
+          }
+          cycle.version = 2;
           reconcile(cycle, history, repo, input.pr);
           if (cycle.pause) {
             await ctx.storage.set(cycleKey, cycle);
@@ -189,7 +234,7 @@ export async function installShipping(ctx: Context) {
               user.text.trim() !== input.resumeInstruction.trim()
             )
               return { output: pausedResult(cycle) };
-            cycle = { since: user.time.created, heads: [cycle.heads[cycle.heads.length - 1]] };
+            cycle = { version: 2, since: user.time.created, heads: [cycle.heads[cycle.heads.length - 1]] };
           }
           await ctx.storage.set(cycleKey, cycle);
           const cwd = ctx.location.directory;
@@ -211,21 +256,25 @@ export async function installShipping(ctx: Context) {
           }
           if (prState.state !== "OPEN" || !linked)
             throw Error("Shipping requires an open PR and its matching worktree task document.");
+          if (!/^[a-f0-9]{40}$/.test(prState.baseRefOid ?? "")) throw Error("PR base commit unavailable.");
           await taskDocument(cwd, path, input.head);
           const finish = async (
             head: string,
             verdict: Awaited<ReturnType<typeof waitForVerdict>>,
             doc: string,
             base: string,
+            baseOid: string,
           ) => {
             recordFailure(cycle, head, verdict.status, verdict.result, Date.now());
             await ctx.storage.set(cycleKey, cycle);
             if (verdict.status === "MERGED") {
               const remote = await readPR(cwd, repo, input.pr);
               const released = await releaseMerged(cwd, doc, head, base, remote);
-              return { output: { ...verdict, path: doc, commit: remote.mergeCommit!.oid, released } };
+              return {
+                output: { ...verdict, head, baseOid, path: doc, commit: remote.mergeCommit!.oid, released },
+              };
             }
-            return { output: { ...(cycle.pause ? pausedResult(cycle) : verdict), path: doc } };
+            return { output: { ...(cycle.pause ? pausedResult(cycle) : verdict), head, baseOid, path: doc } };
           };
           if (!id) {
             const root = await client.session.create({
@@ -244,11 +293,18 @@ export async function installShipping(ctx: Context) {
             if (children.some((child) => !child.outcome)) {
               const result = await waitForVerdict(client, id, prior.id, context.signal);
               const priorInput = JSON.parse(prior.text);
-              const settled = await finish(priorInput.head, result, priorInput.path, priorInput.base);
+              const settled = await finish(
+                priorInput.head,
+                result,
+                priorInput.path,
+                priorInput.base,
+                priorInput.baseOid,
+              );
               if (
                 (priorInput.head === input.head &&
                   priorInput.path === path &&
-                  priorInput.base === prState.baseRefName) ||
+                  priorInput.base === prState.baseRefName &&
+                  priorInput.baseOid === prState.baseRefOid) ||
                 cycle.pause
               )
                 return settled;
@@ -261,6 +317,8 @@ export async function installShipping(ctx: Context) {
               ...input,
               path,
               base: prState.baseRefName,
+              baseOid: prState.baseRefOid,
+              url: prState.url,
               read: "git show " + input.head + ":" + path,
             }),
             metadata: { shippingRequest: request },
@@ -270,6 +328,7 @@ export async function installShipping(ctx: Context) {
             await waitForVerdict(client, id, request, context.signal),
             path,
             prState.baseRefName,
+            prState.baseRefOid,
           );
         } finally {
           busy.delete(cycleKey);

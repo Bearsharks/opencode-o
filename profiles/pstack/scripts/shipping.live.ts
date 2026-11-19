@@ -41,12 +41,15 @@ const structureDelivered = Promise.withResolvers<void>();
 const releaseBehavior = Promise.withResolvers<void>();
 const shippingRequests = new Set<string>();
 let docPathA = "";
+let initialBase = "";
 const limitHeads: string[] = [];
 let cancelTarget = "";
 let limitReviews = 0;
+let blockRepair = false;
+let advanceBaseBeforeMerge: (() => void) | undefined;
 const continuation = "PR 4: 실패 원인을 다시 조사하고 재작업을 계속해.";
-const comment = (verdict: string) =>
-  `gh pr comment 3 --body "기준: ${docPathA} ${verdict === "PASS" ? "Changed A criterion" : "Immediate entry"} | 관찰: fixture evidence | 판정: ${verdict}"`;
+const comment = (verdict: string, base = "", head = "") =>
+  `gh pr comment 3 --body "기준: ${docPathA} ${base} ${head} ${verdict === "PASS" ? "Changed A criterion" : "Immediate entry"} | 관찰: fixture evidence | 판정: ${verdict}"`;
 const cancelWaitOpen = Promise.withResolvers<() => void>();
 let cancelAttempts = 0;
 const endpoint = Bun.serve({
@@ -120,7 +123,9 @@ const endpoint = Bun.serve({
       }
     } else if (user.includes("limit-review-fixture")) {
       limitReviews++;
-      answer = "SHIPPING_RESULT: REWORK\nfixture regression still present";
+      answer = blockRepair
+        ? "SHIPPING_RESULT: BLOCKED\nStudio unavailable"
+        : "SHIPPING_RESULT: REWORK\nfixture regression still present";
     } else if (user.includes("round-probe") || user.includes(continuation)) {
       const head = /[a-f0-9]{40}/.exec(user)?.[0] ?? limitHeads.at(-1)!;
       if (!tools.length)
@@ -184,7 +189,7 @@ const endpoint = Bun.serve({
         : "구조 검수 실패, 행동 검수 대기 중";
       if (!both) structureDelivered.resolve();
       if (both && !JSON.stringify(tools).includes("fixture review published"))
-        calls = [call("shell", { command: comment("REWORK") })];
+        calls = [call("shell", { command: comment("REWORK", initialBase, firstHead) })];
     } else if (!tools.length) {
       assert.ok(user.includes(docPathA), "Shipping lost criteria ref");
       assert.ok(
@@ -214,8 +219,24 @@ const endpoint = Bun.serve({
       )!.id;
       answer = "검수 중";
     } else if (!JSON.stringify(tools).includes("fixture review published")) {
-      calls = [call("shell", { command: comment("PASS") })];
+      calls = [
+        call("shell", {
+          command: comment(
+            "PASS",
+            JSON.parse(
+              typeof body.messages[last].content === "string"
+                ? body.messages[last].content
+                : body.messages[last].content[0].text,
+            ).baseOid,
+            fixedHead,
+          ),
+        }),
+      ];
+    } else if (JSON.stringify(tools).includes("SHIPPING_STALE")) {
+      answer = "SHIPPING_RESULT: STALE\nBase changed during review";
     } else if (!JSON.stringify(tools).includes("fixture merged")) {
+      advanceBaseBeforeMerge?.();
+      advanceBaseBeforeMerge = undefined;
       if (tools.length > 2)
         throw new Error("Shipping shell did not execute the gh fixture: " + JSON.stringify(tools));
       calls = [call("shell", { command: merge() })];
@@ -331,10 +352,13 @@ try {
         state: "OPEN",
         body: "Fixture PR\n\nTask-Doc: " + path,
         baseRefName: "dev",
+        baseRefOid: fixtureGit(dev, "rev-parse", "HEAD"),
+        url: "https://github.invalid/fixture/project/pull/" + id,
         headRefOid: head,
         mergeCommit: null,
       }),
     );
+  initialBase = fixtureGit(dev, "rev-parse", "HEAD");
   setPR(3, firstHead, docA.path);
   setPR(8, bHead, docB.path);
   async function invoke(directory: string, sessionID: string, tool: string, args: object) {
@@ -480,7 +504,24 @@ try {
   fixtureGit(a, "commit", "-qam", "Adjust A only");
   fixedHead = fixtureGit(a, "rev-parse", "HEAD");
   setPR(3, fixedHead, docPathA);
+  const oldBase = fixtureGit(dev, "rev-parse", "HEAD");
+  advanceBaseBeforeMerge = () => {
+    writeFileSync(resolve(dev, "dependency.txt"), "updated dependency");
+    fixtureGit(dev, "add", "dependency.txt");
+    fixtureGit(dev, "commit", "-qm", "Advance base while reviewing the same head");
+    setPR(3, fixedHead, docPathA);
+  };
+  const drift = await submit(`재작업 반영 ${fixedHead}`);
+  assert.equal(drift.status, "STALE");
+  assert.equal(drift.baseOid, oldBase);
+  assert.equal(drift.head, fixedHead);
+  assert.doesNotMatch(readFileSync(log, "utf8"), /^pr merge /m);
+  assert.equal(fixtureGit(a, "config", "--worktree", "--get", "pstack.taskDoc"), docA.path);
+  const newBase = fixtureGit(dev, "rev-parse", "HEAD");
+  assert.notEqual(newBase, oldBase);
   const second = await submit(`재작업 반영 ${fixedHead}`);
+  assert.equal(second.baseOid, newBase);
+  assert.equal(second.head, fixedHead);
   assert.equal(second.sessionID, shipping.id);
   assert.equal(second.path, first.path);
   assert.equal(second.released, true);
@@ -526,7 +567,11 @@ try {
   for (const child of originalChildren) {
     const messages = await host.client.session.context({ sessionID: child.id });
     const briefs = messages.filter((m) => m.type === "user").map((m) => m.text);
-    assert.ok(briefs.some((text) => text.includes(firstHead)));
+    assert.ok(briefs.some((text) => text.includes(firstHead) && text.includes(oldBase)));
+    assert.equal(
+      briefs.some((text) => text.includes(newBase)),
+      child.id === structureID,
+    );
     assert.equal(
       briefs.some((text) => text.includes(fixedHead)),
       child.id === structureID,
@@ -538,8 +583,9 @@ try {
       .split("\n")
       .filter((line) => !line.startsWith("pr view ")),
     [
-      comment("REWORK").slice(3).replaceAll('"', ""),
-      comment("PASS").slice(3).replaceAll('"', ""),
+      comment("REWORK", oldBase, firstHead).slice(3).replaceAll('"', ""),
+      comment("PASS", oldBase, fixedHead).slice(3).replaceAll('"', ""),
+      comment("PASS", newBase, fixedHead).slice(3).replaceAll('"', ""),
       merge().slice(3),
     ],
   );
@@ -550,6 +596,14 @@ try {
     fixtureGit(a, "commit", "--allow-empty", "-qm", "Round " + i);
     limitHeads.push(fixtureGit(a, "rev-parse", "HEAD"));
   }
+  setPR(4, limitHeads[0], "docs/tasks/limit.md");
+  assert.equal((await submit("round-probe " + limitHeads[0])).status, "REWORK");
+  blockRepair = true;
+  for (const head of limitHeads.slice(1, 4)) {
+    setPR(4, head, "docs/tasks/limit.md");
+    assert.equal((await submit("round-probe " + head)).status, "BLOCKED");
+  }
+  blockRepair = false;
   for (const i of [0, 0, 1, 2, 3]) {
     setPR(4, limitHeads[i], "docs/tasks/limit.md");
     assert.equal((await submit("round-probe " + limitHeads[i])).status, i === 3 ? "AWAITING_USER" : "REWORK");
@@ -583,7 +637,7 @@ try {
   await Bun.sleep(750);
   assert.equal(cancelAttempts, 2, "User cancellation must not reconnect");
   console.log(
-    "PASS concurrent A/B worktrees, amended A document at new PR head, local squash merge clears only A, pause after three failed repairs, no new review while paused, explicit user continuation, disconnected child /wait retried on the same reviewer, user interruption stopped further /wait retries, poteto-mode handoff, worker merge denied, background reviewers drained before REWORK, targeted recheck and confirmed merge returned to worker.",
+    "PASS blocked stale-base merge before gh, refreshed reviewer base/head and targeted recheck, three environmental blocks do not pause rework, concurrent A/B worktrees, amended A document at new PR head, local squash merge clears only A, pause after three failed repairs, no new review while paused, explicit user continuation, disconnected child /wait retried on the same reviewer, user interruption stopped further /wait retries, poteto-mode handoff, worker merge denied, background reviewers drained before REWORK, targeted recheck and confirmed merge returned to worker.",
   );
 } finally {
   await host.close();
