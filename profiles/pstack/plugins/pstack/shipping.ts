@@ -163,7 +163,7 @@ export async function installShipping(ctx: Context) {
       name: "pstack_ship",
       options: { codemode: false },
       description:
-        "Hand one authorized PR to the independent Shipping primary. Return its review or confirmed merge result to this working session; resubmit the new head after rework.",
+        "Hand one authorized PR to the independent Shipping primary. If required CI has already started for this candidate, wait for that run to pass before calling and include its result in notes. Return its review or confirmed merge result to this working session; resubmit the new head after rework.",
       input: {
         type: "object",
         properties: {
