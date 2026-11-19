@@ -9,6 +9,8 @@ PR의 첫 검수에서는 작성자가 아닌 새 서브에이전트 두 명을 
 - **shipping-structure**는 생산자에서 소비자까지 바뀐 계약을 추적한다. 폐지된 경로·중복된 결정·예외 분기를 지적할 때는 코드 근거, 지켜야 할 조건, 해소 기준을 남긴다.
 - **shipping-behavior**는 기존 실행이 사용자 경로와 중요한 실패 경계를 다뤘는지, 동작이 깨지면 테스트가 이를 검출하는지 살핀다. 검출력이 불분명하면 해당 반례를 시험한다. 비교 실행이 필요하고 VM이 없으면 로컬 폴백에 따라 기준·변경 worktree와 데이터·캐시·출력·포트를 분리한다. 필수 동작의 근거가 부족하고 필요한 검증도 실행할 수 없으면 BLOCKED다.
 
+로컬 Git 워크트리가 필요할 때만 인계의 `reviewDirectory/<전체-SHA>-<구분>`에 해당 SHA로 `git worktree add --detach`를 실행한다. 구분에는 검수자와 용도를 적는다. 검수자는 반환 전에 실행을 종료하고 필요한 근거를 워크트리 밖에 보존한 뒤 직접 만든 임시 산출물을 정리한다. 프로젝트 전용 도구가 만든 워크트리는 생성한 담당자가 그 도구의 종료·반납 절차를 따른다. 이전 검수에서 이 경로 밖에 직접 만든 워크트리는 생성 기록과 사용 종료가 확인된 경로만 해당 소유 절차로 정리하고 결과를 남긴다.
+
 두 검수자는 결과와 근거를 이 세션에 반환한다. PR의 공식 검수 댓글은 Shipping 프라이머리만 취합해서 검수한 base/head SHA 쌍을 명시해 작성한다. 지적마다 다음 세 항목을 사용한다.
 
 - **기준** — 작업 문서 경로·검수 base/head SHA와 해당 행동·결과.
@@ -21,6 +23,6 @@ PR의 첫 검수에서는 작성자가 아닌 새 서브에이전트 두 명을 
 
 두 관점 모두 현재 후보에 PASS 또는 PASS+NOTES이고, 미해결 차단 사항이 없고 필수 CI와 저장소 병합 조건이 충족됐을 때만 병합한다. 병합 직전 PR 본문의 Task-Doc 경로와 대상 브랜치, base/head를 다시 확인한다. 인계한 조합과 달라 병합 명령이 SHIPPING_STALE로 거부되면 STALE을 반환한다. 재인계에서는 이전·현재의 예상 병합 트리가 같으면 기존 근거를 재사용한다. 다르면 변경이 호출자·설정·검증 환경에 미치는 영향을 살펴 해당 관점만 재검수하고, 재사용 근거와 새 SHA 쌍을 댓글에 남긴다. 기존 Shipping의 스택 순서를 따라 아래 PR부터 하나씩 대상 브랜치에 병합한다.
 
-일반 shell 도구에서 `gh pr merge <PR-URL> --squash --match-head-commit <검수한-head-SHA>`를 실행한다. 권한 우회나 자동 병합 예약을 사용하지 않는다. `gh pr view <PR-URL> --json state,baseRefName,mergeCommit`으로 결과를 확인하여 작업 에이전트에 PR·대상 브랜치·병합 커밋을 반환한다. 대기·실패·불명인 상태는 그대로 보고한다.
+일반 shell 도구에서 `gh pr merge <PR-URL> --squash --match-head-commit <검수한-head-SHA>`를 실행한다. 권한 우회나 자동 병합 예약을 사용하지 않는다. `gh pr view <PR-URL> --json state,baseRefName,mergeCommit`으로 결과를 확인하여 작업 에이전트에 PR·대상 브랜치·병합 커밋을 반환한다. 대기·실패·불명인 상태는 그대로 보고한다. 병합을 확인하고 검수가 종료되면 하네스가 이번 Shipping 세션의 Git 검수 워크트리를 정리한다. 작업 에이전트는 반환값 `worktreeCleanup`에서 제거한 경로와 보존한 경로·사유를 확인해 병합 결과와 함께 알린다.
 
 검수자가 실행 중일 때 보내는 진행 안내는 중간 응답이다. 모든 검수 결과를 받은 뒤 최종 답변 첫 줄에 `SHIPPING_RESULT: MERGED`, `SHIPPING_RESULT: REWORK`, `SHIPPING_RESULT: BLOCKED`, `SHIPPING_RESULT: STALE` 중 하나를 쓰고 근거를 적는다. GitHub가 실제 병합 큐에 넣은 것을 확인한 경우에만 `SHIPPING_RESULT: PENDING`을 쓴다.

@@ -57,7 +57,10 @@ export function withDecision<
       const revisions = criteria.baseOid
         ? `검수 대상: base ${criteria.baseOid}, head ${criteria.head}.\n`
         : "";
-      task.prompt = `작업 기준: ${criteria.path} — ${criteria.head ? "PR head " + criteria.head + "에서" : "현재 워크트리에서"} 완료조건과 변경이력을 읽을 것.\n${revisions}\nAssigned work:\n${task.prompt ?? ""}`;
+      const checkout = criteria.reviewDirectory
+        ? `Git 검수 워크트리가 필요할 때만 ${criteria.reviewDirectory}/<전체-SHA>-<구분>에 해당 SHA로 git worktree add --detach를 실행한다. 판정 전 직접 만든 산출물을 정리하고 실행을 종료한다.\n`
+        : "";
+      task.prompt = `작업 기준: ${criteria.path} — ${criteria.head ? "PR head " + criteria.head + "에서" : "현재 워크트리에서"} 완료조건과 변경이력을 읽을 것.\n${revisions}${checkout}\nAssigned work:\n${task.prompt ?? ""}`;
     }
     return execute(task, context, criteria);
   };

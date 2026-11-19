@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createServer, request as forward } from "node:http";
 import type { AddressInfo } from "node:net";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { ready, testHost } from "./test-host";
@@ -40,6 +40,16 @@ if(cmd==="merge"){
 const structureDelivered = Promise.withResolvers<void>();
 const releaseBehavior = Promise.withResolvers<void>();
 const shippingRequests = new Set<string>();
+const reviewRoots = new Map<string, string>();
+function createReview(user: string, task: string, sha: string) {
+  const root = /Git 검수 워크트리가 필요할 때만 (.+?)\/<전체-SHA>/.exec(user)?.[1];
+  assert.ok(root, "Missing Shipping worktree location in reviewer brief");
+  const path = resolve(root, sha + "-structure");
+  reviewRoots.set(task, root);
+  // The test uses its private temp directory and verifies quoting before forming a shell command.
+  assert.ok(!path.includes("'"));
+  return "git worktree add --detach '" + path + "' " + sha;
+}
 let docPathA = "";
 let initialBase = "";
 const limitHeads: string[] = [];
@@ -98,7 +108,9 @@ const endpoint = Bun.serve({
     } else if (user.includes("B_REVIEW")) {
       assert.ok(user.includes("docs/tasks/B.md") && !user.includes("docs/tasks/A.md"));
       if (!tools.length) calls = [call("shell", { command: "git show " + bHead + ":docs/tasks/B.md" })];
-      else answer = "PASS B result " + JSON.stringify(tools[0].content);
+      else if (user.includes("B_REVIEW structure") && tools.length === 1) {
+        calls = [call("shell", { command: createReview(user, "B", bHead) })];
+      } else answer = "PASS B result " + JSON.stringify(tools[0].content);
     } else if (user.includes("B_SHIP")) {
       assert.ok(user.includes("docs/tasks/B.md") && !user.includes("docs/tasks/A.md"));
       if (!tools.length)
@@ -169,6 +181,8 @@ const endpoint = Bun.serve({
       else if (tools.length === 1) {
         assert.ok(JSON.stringify(tools).includes(isFixed ? "Changed A criterion" : "Immediate entry"));
         calls = [call("shell", { command: comment("child write") })];
+      } else if (!isFixed && user.includes("REVIEW_LANE structure") && tools.length === 2) {
+        calls = [call("shell", { command: createReview(user, "A", firstHead) })];
       } else
         answer =
           !isFixed && user.includes("structure") ? "FAIL remove retired adapter" : "PASS inspected candidate";
@@ -504,6 +518,17 @@ try {
   fixtureGit(a, "commit", "-qam", "Adjust A only");
   fixedHead = fixtureGit(a, "rev-parse", "HEAD");
   setPR(3, fixedHead, docPathA);
+  const reviewA = resolve(reviewRoots.get("A")!, firstHead + "-structure");
+  const reviewB = resolve(reviewRoots.get("B")!, bHead + "-structure");
+  assert.notEqual(reviewRoots.get("A"), reviewRoots.get("B"));
+  assert.ok(existsSync(reviewA) && existsSync(reviewB), "REWORK and BLOCKED must keep worktrees");
+  const dirty = resolve(reviewRoots.get("A")!, fixedHead + "-behavior");
+  fixtureGit(a, "worktree", "add", "--detach", dirty, fixedHead);
+  const excludes = resolve(tmp, "test-excludes");
+  writeFileSync(excludes, "user-note\n");
+  fixtureGit(a, "config", "--local", "core.excludesFile", excludes);
+  writeFileSync(resolve(dirty, "user-note"), "keep this evidence");
+  assert.equal(fixtureGit(dirty, "check-ignore", "user-note"), "user-note");
   const oldBase = fixtureGit(dev, "rev-parse", "HEAD");
   advanceBaseBeforeMerge = () => {
     writeFileSync(resolve(dev, "dependency.txt"), "updated dependency");
@@ -519,11 +544,26 @@ try {
   assert.equal(fixtureGit(a, "config", "--worktree", "--get", "pstack.taskDoc"), docA.path);
   const newBase = fixtureGit(dev, "rev-parse", "HEAD");
   assert.notEqual(newBase, oldBase);
+  assert.ok(existsSync(reviewA), "STALE must keep worktrees");
   const second = await submit(`재작업 반영 ${fixedHead}`);
   assert.equal(second.baseOid, newBase);
   assert.equal(second.head, fixedHead);
   assert.equal(second.sessionID, shipping.id);
   assert.equal(second.path, first.path);
+  assert.deepEqual(second.worktreeCleanup.removed, [reviewA]);
+  assert.deepEqual(
+    second.worktreeCleanup.retained.map((entry: any) => entry.path),
+    [dirty],
+  );
+  assert.equal(existsSync(reviewA), false);
+  assert.equal(readFileSync(resolve(dirty, "user-note"), "utf8"), "keep this evidence");
+  assert.ok(fixtureGit(a, "worktree", "list", "--porcelain").includes(reviewB));
+  rmSync(resolve(dirty, "user-note"));
+  const retry = await submit(`재작업 반영 ${fixedHead}`);
+  assert.equal(retry.commit, second.commit);
+  assert.deepEqual(retry.worktreeCleanup, { removed: [dirty], retained: [] });
+  assert.equal(existsSync(reviewRoots.get("A")!), false);
+  assert.ok(existsSync(reviewB));
   assert.equal(second.released, true);
   assert.equal(second.commit, fixtureGit(dev, "rev-parse", "HEAD"));
   assert.equal(fixtureGit(dev, "rev-list", "--parents", "-n", "1", "HEAD").split(" ").length, 2);
@@ -637,7 +677,7 @@ try {
   await Bun.sleep(750);
   assert.equal(cancelAttempts, 2, "User cancellation must not reconnect");
   console.log(
-    "PASS blocked stale-base merge before gh, refreshed reviewer base/head and targeted recheck, three environmental blocks do not pause rework, concurrent A/B worktrees, amended A document at new PR head, local squash merge clears only A, pause after three failed repairs, no new review while paused, explicit user continuation, disconnected child /wait retried on the same reviewer, user interruption stopped further /wait retries, poteto-mode handoff, worker merge denied, background reviewers drained before REWORK, targeted recheck and confirmed merge returned to worker.",
+    "PASS Shipping cleans only its clean review worktrees after confirmed merge and retries retained worktrees without merging again, blocked stale-base merge before gh, refreshed reviewer base/head and targeted recheck, three environmental blocks do not pause rework, concurrent A/B worktrees, amended A document at new PR head, local squash merge clears only A, pause after three failed repairs, no new review while paused, explicit user continuation, disconnected child /wait retried on the same reviewer, user interruption stopped further /wait retries, poteto-mode handoff, worker merge denied, background reviewers drained before REWORK, targeted recheck and confirmed merge returned to worker.",
   );
 } finally {
   await host.close();

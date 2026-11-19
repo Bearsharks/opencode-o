@@ -4,7 +4,13 @@ import type { Context } from "@opencode/plugin/promise/plugin";
 
 const exec = promisify(execFile);
 export const configKey = "pstack.taskDoc";
-export type Criteria = { path: string; text: string; head?: string; baseOid?: string };
+export type Criteria = {
+  path: string;
+  text: string;
+  head?: string;
+  baseOid?: string;
+  reviewDirectory?: string;
+};
 const git = async (cwd: string, ...args: string[]) =>
   (await exec("git", args, { cwd, maxBuffer: 4 * 1024 * 1024 })).stdout.trimEnd();
 function checkPath(path: string) {
@@ -54,12 +60,20 @@ export async function shippingHandoff(
   const handoff = JSON.parse(message.text);
   if (!/^[a-f0-9]{40}$/.test(handoff.baseOid ?? ""))
     throw Error("SHIPPING_STALE: Resubmit this PR to pin the reviewed base commit.");
-  return handoff as { repo: string; pr: number; base: string; baseOid: string; head: string; path: string };
+  return handoff as {
+    repo: string;
+    pr: number;
+    base: string;
+    baseOid: string;
+    head: string;
+    path: string;
+    reviewDirectory?: string;
+  };
 }
 export async function delegationCriteria(ctx: Context, context: { agent: string; sessionID: any }) {
   if (context.agent === "shipping") {
-    const { head, path, baseOid } = await shippingHandoff(ctx, context.sessionID);
-    return { ...(await taskDocument(ctx.location.directory, path, head)), baseOid };
+    const { head, path, baseOid, reviewDirectory } = await shippingHandoff(ctx, context.sessionID);
+    return { ...(await taskDocument(ctx.location.directory, path, head)), baseOid, reviewDirectory };
   }
   return criteriaFor(ctx.location.directory);
 }

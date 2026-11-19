@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { ClientError } from "@opencode/client";
 import type { Context } from "@opencode/plugin/promise/plugin";
 import { prTaskPath, readPR, releaseMerged, shippingHandoff, taskDocument, taskPath } from "./criteria";
+import { cleanReviewWorktrees, reviewDirectory } from "./review-worktrees";
 import { localClient } from "./api";
 import { recordFailure, reconcile, rebuildLegacyCycle, pausedResult, type ReworkCycle } from "./rework";
 
@@ -247,12 +248,25 @@ export async function installShipping(ctx: Context) {
             if (!prState.mergeCommit?.oid) throw Error("Merge commit unconfirmed; task link retained.");
             const handoff = history.findLast((m) => m.type === "user" && m.metadata?.shippingRequest);
             const previous = handoff?.type === "user" ? JSON.parse(handoff.text) : undefined;
-            const released =
-              !!previous &&
-              previous.path === path &&
+            let released = false;
+            let worktreeCleanup;
+            if (
+              id &&
+              previous?.path === path &&
               previous.head === input.head &&
-              (await releaseMerged(cwd, path, input.head, previous.base, prState));
-            return { output: { status: "MERGED", commit: prState.mergeCommit!.oid, path, released } };
+              previous.base === prState.baseRefName
+            ) {
+              released = await releaseMerged(cwd, path, input.head, previous.base, prState);
+              // A caller may reconnect after gh merged but before reviewers have stopped.
+              await waitForSession(client, id, context.signal);
+              for (const child of (await client.session.list({ parentID: id })).data) {
+                if (!child.outcome) await waitForSession(client, child.id, context.signal);
+              }
+              worktreeCleanup = await cleanReviewWorktrees(cwd, id);
+            }
+            return {
+              output: { status: "MERGED", commit: prState.mergeCommit!.oid, path, released, worktreeCleanup },
+            };
           }
           if (prState.state !== "OPEN" || !linked)
             throw Error("Shipping requires an open PR and its matching worktree task document.");
@@ -271,7 +285,15 @@ export async function installShipping(ctx: Context) {
               const remote = await readPR(cwd, repo, input.pr);
               const released = await releaseMerged(cwd, doc, head, base, remote);
               return {
-                output: { ...verdict, head, baseOid, path: doc, commit: remote.mergeCommit!.oid, released },
+                output: {
+                  ...verdict,
+                  head,
+                  baseOid,
+                  path: doc,
+                  commit: remote.mergeCommit!.oid,
+                  released,
+                  worktreeCleanup: await cleanReviewWorktrees(cwd, id!),
+                },
               };
             }
             return { output: { ...(cycle.pause ? pausedResult(cycle) : verdict), head, baseOid, path: doc } };
@@ -319,6 +341,7 @@ export async function installShipping(ctx: Context) {
               base: prState.baseRefName,
               baseOid: prState.baseRefOid,
               url: prState.url,
+              reviewDirectory: await reviewDirectory(cwd, id),
               read: "git show " + input.head + ":" + path,
             }),
             metadata: { shippingRequest: request },
