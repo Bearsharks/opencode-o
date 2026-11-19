@@ -1,0 +1,14 @@
+{
+  "name": "acceptance-criteria",
+  "scope": "native/acceptance-criteria",
+  "registered": true,
+  "changes": "제품 레포의 관찰 가능한 완료조건을 고정한다.",
+  "equivalence": "oc-pstack 전용 스킬",
+  "rewrites": [],
+  "files": [
+    {
+      "path": "skills/acceptance-criteria/SKILL.md",
+      "portSha256": "098e0b7d63d0fdd0b69bb09af55d6395bde470bcb9872cb96537d0f5e20b68bb"
+    }
+  ]
+}

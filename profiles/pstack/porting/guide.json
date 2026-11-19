@@ -63,8 +63,8 @@
     {
       "file": "docs/guide/05-build-and-clean.md",
       "before": "[`/no-comments`](../../skills/no-comments/SKILL.md) spawns [Comment Sicko](../../agents/comment-sicko.md), a read-only reviewer with a short keep list: license headers, doc comments on a public API, links that explain what code can't, behavior forced by an external dependency you can't reshape. Everything else goes. A surprise in your own code gets no such pass. The comment comes back as a refactor flag, and `/no-comments` fixes the flags it accepts at the root cause. When a comment claims a constraint, \"do not remove\", the skill offers to encode the claim as a type, test, or lint. Either way, the comment comes out.",
-      "after": "[`/no-comments`](../../skills/no-comments/SKILL.md) spawns [Comment Sicko](../../agents/comment-sicko.md), a comment-only reviewer with a short keep list: license headers, doc comments on a public API, links that explain what code can't, behavior forced by an external dependency you can't reshape. Everything else goes. A surprise in your own code gets no such pass. The comment comes back as a refactor flag, and `/no-comments` fixes the flags it accepts at the root cause. When a comment claims a constraint, \"do not remove\", the skill offers to encode the claim as a type, test, or lint. Either way, the comment comes out.",
-      "reason": "원본 에이전트의 주석 수정 허용과 일치하도록 안내의 오기를 정정한다."
+      "after": "[`/no-comments`](../../skills/no-comments/SKILL.md) spawns [Comment Sicko](../../agent-templates/comment-sicko.md), a comment-only reviewer with a short keep list: license headers, doc comments on a public API, links that explain what code can't, behavior forced by an external dependency you can't reshape. Everything else goes. A surprise in your own code gets no such pass. The comment comes back as a refactor flag, and `/no-comments` fixes the flags it accepts at the root cause. When a comment claims a constraint, \"do not remove\", the skill offers to encode the claim as a type, test, or lint. Either way, the comment comes out.",
+      "reason": "원본 에이전트의 주석 수정 허용과 일치하도록 안내의 오기를 정정한다. 템플릿을 native 자동탐색 밖으로 옮긴 경로를 연결한다."
     },
     {
       "file": "docs/guide/06-verify-and-ship.md",
@@ -155,7 +155,7 @@
     {
       "path": "docs/guide/05-build-and-clean.md",
       "sourceSha256": "1284e80595ae4f214dfa7c5c5f7758ff90a47b3273aa7b8142e51e574f5c5290",
-      "portSha256": "bdf9ebe0e2bf845265c0d8c83f76df5d3c54788be70fde18fca104d5f62ee5ef",
+      "portSha256": "a2d2651caac7af2048b77a004e57f37ef4b6de1ae837d1919ede227460a30cac",
       "unchanged": false
     },
     {

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 /** Disposable native host. All callers must await close() in a finally block. */
-export async function testHost(config: object, options: { directory?: string; preserve?: boolean; skillSource?: string } = {}) {
+export async function testHost(config: object, options: { directory?: string; preserve?: boolean; skillSource?: string; apiProxy?: string } = {}) {
   const directory = options.directory ?? mkdtempSync(resolve(tmpdir(), "pstack-native-test-"));
   if (!directory.startsWith(resolve(tmpdir(), "pstack-native-test-"))) throw new Error("Test host must use its disposable directory");
   const project = resolve(directory, "project");
@@ -22,7 +22,7 @@ export async function testHost(config: object, options: { directory?: string; pr
     OPENCODE_CONFIG: resolve(profile, "opencode.json"), OPENCODE_CONFIG_CONTENT: "{}",
     XDG_CONFIG_HOME: resolve(directory, "config"), XDG_DATA_HOME: resolve(directory, "data"),
     XDG_STATE_HOME: resolve(directory, "state"), XDG_CACHE_HOME: resolve(directory, "cache"),
-    OPENCODE_DB: "pstack-native-test.db", OPENCODE_SERVER_USERNAME: "opencode", OPENCODE_SERVER_PASSWORD: password, PSTACK_API_URL: `http://127.0.0.1:${port}` };
+    OPENCODE_DB: "pstack-native-test.db", OPENCODE_SERVER_USERNAME: "opencode", OPENCODE_SERVER_PASSWORD: password, PSTACK_API_URL: options.apiProxy ?? `http://127.0.0.1:${port}` };
   const processHandle = Bun.spawn(["opencode", "serve", "--hostname", "127.0.0.1", "--port", String(port), "--print-logs"], { cwd: project, env, stdout: "pipe", stderr: "pipe" });
   let log = "";
   const read = async (stream: ReadableStream<Uint8Array>) => { for await (const chunk of stream) log += new TextDecoder().decode(chunk); };

@@ -1,6 +1,7 @@
 import { Plugin } from "@opencode/plugin";
 import { resolve } from "node:path";
 import { loadSkills } from "./skills";
+import { installCriteria } from "./criteria";
 import { installModels } from "./model-runtime";
 import { installTodos } from "./todos";
 import { installHistory } from "./history";
@@ -8,6 +9,7 @@ import { installRoutines } from "./routines";
 import { installAgents } from "./agents";
 import { installModes } from "./modes";
 import { installSchedules } from "./schedules";
+import { installShipping } from "./shipping";
 import { installSupervision } from "./supervision";
 import { installProjects } from "./projects";
 import { workspaceContext } from "./storage";
@@ -17,10 +19,12 @@ export default Plugin.define({
   async setup(ctx) {
     const workspace = await workspaceContext(ctx);
     await installAgents(ctx);
+    await installCriteria(ctx);
     await installModels(ctx);
     await installTodos(ctx);
     await installHistory(ctx);
     await installSupervision(ctx);
+    await installShipping(ctx);
     await installProjects(workspace);
     const skills = loadSkills(resolve(import.meta.dir, "../../skills"));
     await ctx.skill.transform(editor => {

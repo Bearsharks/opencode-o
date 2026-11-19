@@ -31,11 +31,13 @@
     "test:pstack-routines:live": "bun profiles/pstack/scripts/routines.live.ts",
     "test:pstack-modes:live": "bun profiles/pstack/scripts/modes-schedules.live.ts",
     "test:pstack-core:live": "bun profiles/pstack/scripts/core.live.ts",
+    "test:pstack-shipping:live": "bun profiles/pstack/scripts/shipping.live.ts",
     "test:pstack-topology:live": "bun profiles/pstack/scripts/topology.live.ts && bun profiles/pstack/scripts/topology.live.ts --check-depth-gate",
     "test:pstack-upstream": "bun test profiles/pstack/skills/poteto-mode/scripts/watch-pr profiles/pstack/skills/poteto-mode/scripts/check-plan.test.ts && bun run --cwd profiles/pstack/skills/poteto-mode/scripts typecheck",
     "test:pstack-failures:live": "bun profiles/pstack/scripts/model-failures.live.ts",
     "test:pstack-setup:live": "bun profiles/pstack/scripts/setup.live.ts",
-    "test:pstack-overrides:live": "bun profiles/pstack/scripts/overrides.live.ts"
+    "test:pstack-overrides:live": "bun profiles/pstack/scripts/overrides.live.ts",
+    "test:pstack-agents:live": "bun profiles/pstack/scripts/agents.live.ts"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.18.4",

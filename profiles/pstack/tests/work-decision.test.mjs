@@ -12,22 +12,29 @@ for (const row of cases) {
         spent++;
         return job.prompt;
       },
-      async () => row.agreement,
+      async () => ({ path: "fixture", text: row.agreement }),
     );
-    const decision = { source: "fixture", outcome: row.criterion, onPass: "proceed", onFail: "repair" };
+    const decision = { outcome: row.criterion, onPass: "proceed", onFail: "repair" };
     assert.ok(row.original.includes(row.criterion)); // quotation from the historical handoff/closure
     const role = row.name.startsWith("300") ? "hardest tasks" : "bug-fix";
-    await assert.rejects(run({ role, prompt: row.original, decision }), /absent from the cited source/);
+    await assert.rejects(
+      run({ role, prompt: row.original, decision }),
+      /absent from the current task document/,
+    );
     assert.equal(spent, 0);
     assert.ok(row.corrected.includes(row.correctedOutcome));
-    const output = await run({ role, prompt: row.corrected, decision: { ...decision, outcome: row.correctedOutcome } });
-    assert.ok(output.includes(row.correctedOutcome) && output.includes(row.corrected));
+    const output = await run({
+      role,
+      prompt: row.corrected,
+      decision: { ...decision, outcome: row.correctedOutcome },
+    });
+    assert.ok(output.includes("작업 기준: fixture") && output.includes(row.corrected));
     assert.equal(spent, 1);
     console.log(row.name, "historical FAIL (0 worker starts); corrected PASS (1 worker start)");
     // The same words become a valid criterion when they actually ARE the requirement.
     const authorized = withDecision(
       async () => true,
-      async () => row.criterion,
+      async () => ({ path: "fixture", text: row.criterion }),
     );
     assert.equal(await authorized({ role, prompt: row.original, decision }), true);
   });
@@ -36,26 +43,59 @@ test("no decision change costs zero workers, across unrelated domains", async ()
   for (const outcome of ["Export preserves row order", "Keep the payment idempotent"]) {
     const run = withDecision(
       async () => assert.fail("unexpected worker"),
-      async () => outcome,
+      async () => ({ path: "fixture", text: outcome }),
     );
     await assert.rejects(
       run({
         role: "swarm workers",
         verification: true,
         prompt: "Measure again",
-        decision: { source: "fixture", outcome, onPass: "proceed", onFail: "proceed" },
+        decision: { outcome, onPass: "proceed", onFail: "proceed" },
       }),
       /same next action/,
     );
   }
 });
-test("ordinary implementation keeps its original brief", async () => {
+test("discovery can proceed before criteria are fixed", async () => {
   const run = withDecision(
     async (job) => job.prompt,
-    async () => assert.fail("unexpected source read"),
+    async () => undefined,
   );
   assert.equal(
-    await run({ role: "feature, refactoring", prompt: "Implement the requested export" }),
-    "Implement the requested export",
+    await run({ role: "how explorer", prompt: "Explore the requested export" }),
+    "Explore the requested export",
+  );
+});
+
+test("implementation receives the worktree document path even without decision fields", async () => {
+  const task = { role: "feature, refactoring", prompt: "Implement the purchase action." };
+  await assert.rejects(
+    withDecision(
+      async () => assert.fail("unexpected writer"),
+      async () => undefined,
+    )(task),
+    /connect the worktree task document/,
+  );
+  const criteria = { path: "pinned reference", text: "Only one charge per order." };
+  const prompt = await withDecision(
+    async (job) => job.prompt,
+    async () => criteria,
+  )(task);
+  assert.ok(
+    prompt.includes(criteria.path) && !prompt.includes(criteria.text) && prompt.includes(task.prompt),
+  );
+});
+
+test("a retired condition in the change history cannot block a repair", async () => {
+  const run = withDecision(
+    async () => assert.fail("unexpected worker"),
+    async () => ({ path: "docs/task.md", text: "Return to the shop.\n## 변경이력\nRestore the old pose." }),
+  );
+  await assert.rejects(
+    run({
+      role: "bug-fix",
+      decision: { outcome: "Restore the old pose.", onPass: "proceed", onFail: "repair" },
+    }),
+    /absent from the current task document/,
   );
 });

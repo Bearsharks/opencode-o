@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-11-13T13:26:16.115Z",
+  "checkedAt": "2026-11-19T09:58:51.032Z",
   "server": {
     "version": "2.2.7",
-    "pid": 93025,
+    "pid": 74613,
     "hostname": "ckui-Macmini.local",
     "urls": [
-      "http://127.0.0.1:53693"
+      "http://127.0.0.1:52601"
     ],
     "paths": {
       "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
@@ -15,6 +15,14 @@
     }
   },
   "results": [
+    {
+      "name": "acceptance-criteria",
+      "fileSha256": "a6d47777d4516b767e3b6aa4683f80ba323073de1bdaffc67c54f4cd5d97cf2d",
+      "contentEqual": true,
+      "autoinvoke": true,
+      "commandRegistered": true,
+      "explicitSessionLoad": true
+    },
     {
       "name": "architect",
       "fileSha256": "ac37b3efa2969f38ee12b28f921a2cfd8c31211eaf9198f2bfcf141ad945b8c5",

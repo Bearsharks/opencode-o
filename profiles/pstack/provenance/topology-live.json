@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-11-10T20:47:17.390Z",
+  "checkedAt": "2026-11-19T10:53:49.622Z",
   "server": {
     "version": "2.2.7",
-    "pid": 15551,
+    "pid": 91499,
     "hostname": "ckui-Macmini.local",
     "urls": [
-      "http://127.0.0.1:58081"
+      "http://127.0.0.1:53889"
     ],
     "paths": {
       "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"

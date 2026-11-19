@@ -1,7 +1,7 @@
 # OpenCode pstack
 
 고정 원본 `de8ee15dd1194627d21eb5fcd41cb1873208dabb`의 58개 스킬을 순서대로 포팅했다.
-동반 스킬 `deslop`, `control-ui`, `control-cli`와 OpenCode용 `create-skill`, `visualize`를 포함해 63개를 등록한다.
+동반 스킬 `deslop`, `control-ui`, `control-cli`와 OpenCode용 `create-skill`, `visualize`, `acceptance-criteria`를 포함해 64개를 등록한다.
 원본과 치환 내역은 [스킬별 보고서](PORTING.md)에 있다. 모델에게 번역 어댑터를 읽히지 않으며,
 도구명·인자·경로는 설치 파일에서 native 형식으로 바꿨다. 이전 포트는 사용하지 않는다.
 
@@ -26,6 +26,10 @@ OpenCode 2.2.7에서 검증했다. OpenCode V2, Bun, Git이 필요하다. 설치
 - `/how`, `/why`, `/architect`, `/arena` 등의 명령: 각각의 전체 스킬을 로드한다.
 - `/loop 5m <작업>`: 반복 실행을 예약한다. 간격을 생략하면 모델이 다음 시각·이벤트를 정한다. `/loop stop`으로 취소한다.
 
+작업 에이전트는 병합 요청을 [독립 Shipping 에이전트](pr-review.md)에 인계하고 재작업 사유 또는 병합 커밋을 받는다.
+
+기획 확정 후 [/acceptance-criteria](skills/acceptance-criteria/SKILL.md)로 제품 레포의 작업 문서를 커밋하고 워크트리에 그 경로를 연결한다. 구현·Shipping·재검수는 같은 문서의 현재 기준을 읽으며 검수 댓글은 Shipping 프라이머리가 취합한다.
+
 ## 모델과 호출 정책
 
 17개 역할, 4개 예산(`unlimited→max`, `large→xhigh`, `medium→high`, `small→medium`),
@@ -36,10 +40,14 @@ OpenCode 2.2.7에서 검증했다. OpenCode V2, Bun, Git이 필요하다. 설치
 `difficulty`, `urgent`, `verification`은 원본 추론량·속도 조절에 연결한다.
 조절한 모델 거부 시 원래 설정부터 재시도하고, 동시 거부와 백그라운드 거부도 모델별로 기록한다.
 새 작업·수정·재시도는 새 자식이 기본이며, 꼭 필요한 이동 비용이 큰 상태를 명시한 소유 자식만 재사용한다.
+Shipping의 동일 PR·동일 관점 재검수는 기존 담당 세션을 이어 쓴다.
 필수 독립 감사는 다른 모델 계열을 증명하지 못하면 `NOT RUN`이다.
 
 원본 명시 호출 제한을 `metadata.opencode/autoinvoke`에 보존한다. 개인 모드 생성도 기본값은 `false`다.
 명령 로드, 자동 호출 가능 여부, 세션의 지속 모드는 서로 다른 기능이다.
+
+위임 에이전트 원본은 `agent-templates/`에 두고 pstack 플러그인만 등록한다. native 자동탐색 대상인
+`agents/`에 복사하면 경로 치환 전 원본이 최종 지침을 덮어쓸 수 있다.
 
 ## 프로젝트와 개인 설정
 
@@ -79,6 +87,7 @@ statechart는 임시 도구 환경의 Temurin 25.0.5와 TLC 1.7.4로 실제 검�
 bun run check:pstack
 bun run test:pstack-skills:live
 bun run test:pstack-models:live
+bun run test:pstack-agents:live
 bun run test:pstack-failures:live
 bun run test:pstack-setup:live
 bun run test:pstack-overrides:live

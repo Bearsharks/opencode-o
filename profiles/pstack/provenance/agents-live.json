@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-11-19T10:53:52.146Z",
+  "server": {
+    "version": "2.2.7",
+    "pid": 92361,
+    "hostname": "ckui-Macmini.local",
+    "urls": [
+      "http://127.0.0.1:53922"
+    ],
+    "paths": {
+      "tmp": "/private/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/opencode"
+    },
+    "capabilities": {
+      "persistentPty": true
+    }
+  },
+  "nativeProfileDiscovery": true,
+  "singleAgentRegistration": true,
+  "nativeChildReadWithoutParentPath": true,
+  "readAfterCompaction": true,
+  "readAfterAgentReload": true,
+  "readAfterServiceRestart": true,
+  "userPromptRemovedByCompaction": true,
+  "stages": [
+    "initial",
+    "compaction",
+    "reload",
+    "restart"
+  ],
+  "limits": "Isolated native service and database with a deterministic loopback provider. Verifies effective system paths and native read execution, not autonomous model judgment or automatic filesystem watching. The user's running service is not restarted."
+}

@@ -5,17 +5,17 @@ import { loadSkills } from "../plugins/pstack/skills";
 
 const root = resolve(import.meta.dir, "..");
 const expected = loadSkills(resolve(root, "skills"));
-if (expected.length !== 63) throw new Error(`Expected 58 original, 3 companion and 2 native skills; got ${expected.length}`);
+if (expected.length !== 64) throw new Error(`Expected 58 original, 3 companion and 3 native skills; got ${expected.length}`);
 if (realpathSync(resolve(root, "bundled-skills")) !== realpathSync(resolve(root, "skills"))) throw new Error("bundled-skills must resolve to the managed skill tree");
 if (!existsSync(resolve(root, "provenance/source.json"))) throw new Error("Pinned source manifest is missing");
 const wrapper = process.argv[2];
-if (!wrapper) { console.log("PASS profile assets and 63 skill definitions; pass a launcher path for the managed-service check"); process.exit(0); }
+if (!wrapper) { console.log("PASS profile assets and 64 skill definitions; pass a launcher path for the managed-service check"); process.exit(0); }
 
 const temp = mkdtempSync(join(tmpdir(), "pstack-launcher-test-"));
 const profile = join(temp, "profile"), project = process.env.PSTACK_DOCTOR_PROJECT ?? join(temp, "project");
 const scoped = (path: string) => `${path}?location%5Bdirectory%5D=${encodeURIComponent(project)}`;
 mkdirSync(profile); if (!process.env.PSTACK_DOCTOR_PROJECT) mkdirSync(project);
-for (const name of ["skills", "bundled-skills", "agents"]) symlinkSync(resolve(root, name), join(profile, name));
+for (const name of ["skills", "bundled-skills", "agent-templates"]) symlinkSync(resolve(root, name), join(profile, name));
 const config = JSON.parse(readFileSync(resolve(root, "opencode.jsonc"), "utf8"));
 config.plugins = [resolve(root, "plugins/pstack")];
 writeFileSync(join(profile, "opencode.jsonc"), JSON.stringify(config));
@@ -51,10 +51,12 @@ try {
   }
   const agents = JSON.parse(await cli(["api", "get", scoped("/api/agent")])).data;
   if (!agents.some((a: any) => a.id === "pstack" && a.mode === "primary") || agents.some((a: any) => a.id === "worker")) throw new Error("Wrong profile agent registration");
+  const poteto = agents.filter((a: any) => a.id === "poteto-agent");
+  if (poteto.length !== 1 || !poteto[0].system?.includes(resolve(root, "skills/poteto-mode/SKILL.md")) || poteto[0].system.includes("@PSTACK_MODE_FILE@")) throw new Error("Poteto delegate path binding failed under launcher discovery");
   const effective = JSON.parse(await cli(["api", "get", scoped("/api/config")]));
   const primary = Array.isArray(effective) ? effective.map(entry => entry.info?.default_agent).filter(Boolean).at(-1) : undefined;
   if (primary !== "pstack") throw new Error(`Unexpected default agent: ${primary}; source keys ${JSON.stringify(Array.isArray(effective) ? effective.map(entry => Object.keys(entry)) : Object.keys(effective))}`);
-  const result = { checkedAt: new Date().toISOString(), project, skills: expected.length, primary, managedService: true, freshIsolatedDatabase: true, noModelRequest: true, plugins: plugins.map(p => ({ id: p.id, state: p.state.status })) };
+  const result = { checkedAt: new Date().toISOString(), project, skills: expected.length, primary, potetoAgentBound: true, managedService: true, freshIsolatedDatabase: true, noModelRequest: true, plugins: plugins.map(p => ({ id: p.id, state: p.state.status })) };
   writeFileSync(resolve(root, `provenance/${process.env.PSTACK_DOCTOR_PROJECT ? "project" : "launcher"}-live.json`), JSON.stringify(result, null, 2) + "\n");
   console.log(`PASS launcher, isolated managed service, primary pstack and ${expected.length} effective skills${process.env.PSTACK_DOCTOR_PROJECT ? " in target project" : ""}`);
 } finally {

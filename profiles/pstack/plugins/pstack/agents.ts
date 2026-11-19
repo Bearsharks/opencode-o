@@ -4,7 +4,8 @@ import { parse } from "yaml";
 import type { Context } from "@opencode/plugin/promise/plugin";
 
 export async function installAgents(ctx: Context) {
-  const directory = resolve(import.meta.dir, "../../agents");
+  // Native agent discovery must not reload these unexpanded templates afterward.
+  const directory = resolve(import.meta.dir, "../../agent-templates");
   const agents = readdirSync(directory).filter(name => name.endsWith(".md")).map(file => {
     const text = readFileSync(resolve(directory, file), "utf8");
     const match = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text);

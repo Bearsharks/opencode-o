@@ -1,7 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "pstack",
-  "instructions": ["{env:OPENCODE_CONFIG_DIR}/requirements.md"],
+  "instructions": ["{env:OPENCODE_CONFIG_DIR}/model-routing.md", "{env:OPENCODE_CONFIG_DIR}/requirements.md"],
+  "permissions": [
+    { "action": "shell", "resource": "gh pr merge", "effect": "deny" },
+    { "action": "shell", "resource": "gh pr merge *", "effect": "deny" },
+    { "action": "shell", "resource": "gh -R * pr merge", "effect": "deny" },
+    { "action": "shell", "resource": "gh -R * pr merge *", "effect": "deny" },
+    { "action": "shell", "resource": "gh --repo * pr merge", "effect": "deny" },
+    { "action": "shell", "resource": "gh --repo * pr merge *", "effect": "deny" },
+    { "action": "shell", "resource": "origin pr merge", "effect": "deny" },
+    { "action": "shell", "resource": "origin pr merge *", "effect": "deny" },
+    { "action": "shell", "resource": "git merge", "effect": "deny" },
+    { "action": "shell", "resource": "git merge *", "effect": "deny" },
+    { "action": "shell", "resource": "git -C * merge", "effect": "deny" },
+    { "action": "shell", "resource": "git -C * merge *", "effect": "deny" }
+  ],
   "experimental": { "subagent_depth": 4 },
   "skills": [
     "{env:OPENCODE_CONFIG_DIR}/bundled-skills",
@@ -9,12 +23,61 @@
     ".opencode/pstack/skills"
   ],
   "agents": {
+    "shipping": {
+      "model": "openai/gpt-6.2-sol#medium",
+      "mode": "primary",
+      "permissions": [
+        { "action": "shell", "resource": "gh pr merge *", "effect": "allow" },
+        {
+          "action": "pstack_ship",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "shipping-structure": {
+      "model": "openai/gpt-6.2-sol#xhigh",
+      "mode": "subagent",
+      "system": "Inspect changed ownership, retired paths, exceptions and consumers independently. Cite evidence and closure conditions. Return findings and evidence only to the Shipping primary. The primary alone publishes review comments.",
+      "permissions": [
+        { "action": "shell", "resource": "gh pr comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh pr review *", "effect": "deny" },
+        { "action": "shell", "resource": "gh issue comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * pr comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * pr review *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * issue comment *", "effect": "deny" },
+        {
+          "action": "pstack_ship",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
+    "shipping-behavior": {
+      "model": "openai/gpt-6.2-sol#xhigh",
+      "mode": "subagent",
+      "system": "Independently assess the behavioral evidence using the Shipping coordinator's brief. Run a focused check only for a question the existing evidence leaves open. Return findings and evidence only to the Shipping primary. The primary alone publishes review comments.",
+      "permissions": [
+        { "action": "shell", "resource": "gh pr comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh pr review *", "effect": "deny" },
+        { "action": "shell", "resource": "gh issue comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * pr comment *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * pr review *", "effect": "deny" },
+        { "action": "shell", "resource": "gh * issue comment *", "effect": "deny" },
+        {
+          "action": "pstack_ship",
+          "resource": "*",
+          "effect": "deny"
+        }
+      ]
+    },
     "general": {
       "permissions": [{ "action": "subagent", "resource": "*", "effect": "allow" }]
     },
     "pstack": {
       "mode": "primary",
-      "description": "pstack workflow runner"
+      "description": "pstack workflow runner",
+      "system": "After product planning, use acceptance-criteria to commit the task document and connect its path to the worktree before splitting implementation. For an authorized PR merge, hand the PR to the independent Shipping primary via pstack_ship. Read the current task document as the repair target and the Shipping comment as the reproduction. On REWORK, distinguish the reviewer's observation, any cause the evidence establishes, and the behavior the product must guarantee. If the cause is unknown, include finding it in the assignment. Scope the work to the affected feature. Give the delegate the reported case as a regression and the observable product behavior as the completion criterion. If a different case breaks the same guarantee again, re-examine the premise of the previous fix before choosing another change. Have the delegate return the repair and its evidence to you. You own verification, resubmission from this working session, and reporting the confirmed outcome. After three failed repair rounds for a PR (excluding initial review), stop work on it and report the remaining blockers. AWAITING_USER applies across schedules and child notifications: do not edit, delegate, resubmit or schedule further work until the user explicitly directs how to proceed. A status question does not resume work. Do not merge directly."
     }
   },
   "plugins": ["./plugins/pstack"]

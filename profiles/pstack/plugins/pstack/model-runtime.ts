@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { withDecision, decisionSchema } from "./work-decision";
-import { decisionSource } from "./decision-source";
+import { delegationCriteria } from "./criteria";
 import { Schema } from "effect";
 import type { Context } from "@opencode/plugin/promise/plugin";
 import { roles, budgets, choices, entries, parseConfig, resolveRole, select, budgetPlan, validateModels, referenceFamily, type Config, type Role } from "./models";
@@ -92,18 +92,25 @@ export async function installModels(ctx: Context) {
           description: "Reuse only if the new work strictly needs this expensive-to-move child state. Fixes, retries and follow-ups otherwise start fresh." },
         model: { type: "string", description: "Explicit user choice or a model assigned to a comparison/race arm. Otherwise omit: the required role selects the actual model." },
       }, required: [...schema.required, "role"], additionalProperties: false };
-      tool.description += " Every pstack delegation must specify role, and panel calls specify seat. Fresh children are the default; preserve expensive local state only with retainedState. Do not encode roles in the description.";
+      tool.description += " Every pstack delegation must specify role, and panel calls specify seat. For a Shipping re-review pass the original perspective's sessionID. Other reuse requires retainedState. Do not encode roles in the description.";
       tool.execute = withDecision(async (input: any, context) => {
         const { role, seat, difficulty, urgent, verification, defaultModel, independent, independentOf, retainedState, ...native } = input;
         native.background ??= true;
         if (!Object.hasOwn(roles, role)) throw new Error("Missing pstack role; load the workflow and select its role before delegating");
         const s = await state(context.sessionID);
+        const shippingReviewer = native.agent === "shipping-structure" || native.agent === "shipping-behavior";
+        if (shippingReviewer && role !== "swarm workers") throw new Error("Use the swarm workers role for Shipping reviewers");
         if (native.sessionID) {
-          if (!retainedState?.reason || !["checkout", "uncommitted-changes", "running-process"].includes(retainedState.kind)) throw new Error("Start a fresh child unless expensive-to-move state is strictly required; consolidate all prior directives in its prompt");
+          const shippingRecheck = context.agent === "shipping" && shippingReviewer && verification === true;
+          if (!shippingRecheck && (!retainedState?.reason || !["checkout", "uncommitted-changes", "running-process"].includes(retainedState.kind))) throw new Error("Start a fresh child unless expensive-to-move state is strictly required; consolidate all prior directives in its prompt");
           const child: any = await ctx.session.get({ sessionID: native.sessionID });
           if (child.parentID !== context.sessionID || child.agent !== native.agent) throw new Error("Reused child must belong to this parent and retain its agent");
           native.model = ref(child.model);
           if (native.model && s.rejected.has(native.model)) throw new Error("The retained child's model was rejected; start a fresh child using the role fallback and transfer the necessary state");
+        } else if (shippingReviewer) {
+          const { data: reviewer } = await ctx.agent.get({ agentID: native.agent });
+          native.model = ref(reviewer.model);
+          if (!native.model || s.rejected.has(native.model)) throw new Error("Configured Shipping reviewer model unavailable: " + native.agent);
         } else {
           const kind = roles[role as Role];
           if (kind === "panel" && !Number.isInteger(seat)) throw new Error("Specify the zero-based panel seat from pstack_models");
@@ -118,13 +125,15 @@ export async function installModels(ctx: Context) {
           const reviewFamily = referenceFamily(native.model, s.config, s.catalog);
           if (!workFamily || !reviewFamily || workFamily === reviewFamily) throw new Error("Independent review requires a proven different model family; report NOT RUN instead of self-review");
         }
-        try { return await nativeExecute(native, context); }
+        try {
+          return await nativeExecute(native, context);
+        }
         catch (error: any) {
           const message = `${error?.message ?? error} ${JSON.stringify(error?.metadata ?? {})}`;
           if (native.model && modelRefusal(message)) await rejections.add(context.sessionID, native.model);
           throw error;
         }
-      }, (source, context) => decisionSource(source, ctx.location.directory, context.sessionID));
+      }, context => delegationCriteria(ctx,context));
     });
   });
 }

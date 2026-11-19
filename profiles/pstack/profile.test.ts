@@ -48,12 +48,17 @@ test("companion and dormant automation files preserve source bytes outside revie
 });
 
 test("comment-sicko preserves the complete original agent instructions", () => {
-  const path = resolve(root, "agents/comment-sicko.md");
+  const path = resolve(root, "agent-templates/comment-sicko.md");
   const before = split(original("pstack/agents/comment-sicko.md").toString());
   const after = split(readFileSync(path, "utf8"));
   expect(after.body).toBe(before.body);
   expect(after.attributes.description).toBe(before.attributes.description);
   expect(after.attributes.mode).toBe("subagent");
+});
+
+test("agent templates stay outside native agent discovery", () => {
+  for (const name of ["agent", "agents", "mode", "modes"]) expect(existsSync(resolve(root, name))).toBe(false);
+  expect(readdirSync(resolve(root, "agent-templates")).sort()).toEqual(["comment-sicko.md", "poteto-agent.md"]);
 });
 
 test("every guide file retains all bytes outside its reviewed substitutions", () => {

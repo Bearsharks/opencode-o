@@ -1,3 +1,4 @@
+import { connectFixture } from "./criteria-fixture";
 // Real native child sessions, offline provider. The transport boundary is the unit of cost.
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
@@ -45,12 +46,11 @@ try {
   for (const row of cases) {
     const location = { directory: host.project };
     const parent = await host.client.session.create({ agent: "pstack", location });
+    connectFixture(host.project, row.agreement);
     await host.client.session.prompt({ sessionID: parent.id, text: row.agreement });
     await host.client.session.wait({ sessionID: parent.id });
     const children = async () => (await host.client.session.list({ parentID: parent.id })).data;
-    const agreement = (await host.client.session.context({ sessionID: parent.id })).find((m) => m.type === "user");
-    assert.ok(agreement);
-    const run = async (prompt: string, outcome: string, source = "request") => {
+    const run = async (prompt: string, outcome: string) => {
       const r = await host.client.rpc.call({
         location,
         rpcID: "pstack-test-probe",
@@ -64,20 +64,20 @@ try {
             prompt,
             description: "Review the observed outcome",
             background: false,
-            decision: { source, outcome, onPass: "proceed", onFail: "repair" },
+            decision: { outcome, onPass: "proceed", onFail: "repair" },
           },
         },
       });
       return r.output as { toolError?: string };
     };
     const before = generation;
-    assert.match((await run(row.original, row.criterion)).toolError ?? "", /absent from the cited source/);
+    assert.match(
+      (await run(row.original, row.criterion)).toolError ?? "",
+      /absent from the current task document/,
+    );
     assert.equal((await children()).length, 0);
     assert.equal(generation, before);
-    assert.equal(
-      (await run(row.corrected, row.correctedOutcome, `msg:${parent.id}/${agreement.id}`)).toolError,
-      undefined,
-    );
+    assert.equal((await run(row.corrected, row.correctedOutcome)).toolError, undefined);
     assert.equal((await children()).length, 1);
     assert.equal(generation, before + 1);
     console.log(

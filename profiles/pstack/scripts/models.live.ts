@@ -1,3 +1,4 @@
+import { connectFixture } from "./criteria-fixture";
 import { resolve } from "node:path";
 import { writeFileSync, readFileSync } from "node:fs";
 import { testHost, ready } from "./test-host";
@@ -17,7 +18,7 @@ let commentSickoSystemVerified = false;
 const potetoSystemVerified = new Set<number>();
 let heldRequestStarted!: () => void;
 const heldStarted = new Promise<void>(resolve => { heldRequestStarted = resolve; });
-const commentSystem = readFileSync(resolve(import.meta.dir, "../agents/comment-sicko.md"), "utf8").replace(/^---\n[\s\S]*?\n---\n/, "").trim();
+const commentSystem = readFileSync(resolve(import.meta.dir, "../agent-templates/comment-sicko.md"), "utf8").replace(/^---\n[\s\S]*?\n---\n/, "").trim();
 let calls = 0;
 const endpoint = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request) {
   const body: any = await request.json();
@@ -42,7 +43,7 @@ const endpoint = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request
     phase++;
     const schema = body.tools?.find((tool: any) => tool.function?.name === "subagent")?.function?.parameters;
     schemaVerified = schema?.required?.includes("role") && schema?.properties?.role?.enum?.length === 17;
-    delta = { role: "assistant", tool_calls: cases.map(([role, , seat], i) => ({ index: i, id: `call_case_${i}`, type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: i < 4 ? "poteto-agent" : role === "judgment and prose" ? "comment-sicko" : role === "arena cross-judge pool" || role.startsWith("how ") ? "explore" : "general", description: `Case ${i} native delegation`, role, decision: { source: "request", outcome: "Exercise the native role delegation tools.", onPass: "proceed", onFail: "repair" }, ...(seat !== undefined ? { seat } : {}), verification: role === "swarm workers", background: false, prompt: `PSTACK_CHILD_CASE_${i}. Return CHILD_DONE only.` }) } })) };
+    delta = { role: "assistant", tool_calls: cases.map(([role, , seat], i) => ({ index: i, id: `call_case_${i}`, type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: i < 4 ? "poteto-agent" : role === "judgment and prose" ? "comment-sicko" : role === "arena cross-judge pool" || role.startsWith("how ") ? "explore" : "general", description: `Case ${i} native delegation`, role, decision: { onPass: "proceed", onFail: "repair" }, ...(seat !== undefined ? { seat } : {}), verification: role === "swarm workers", background: false, prompt: `PSTACK_CHILD_CASE_${i}. Return CHILD_DONE only.` }) } })) };
     finish = "tool_calls";
   } else { delta = { role: "assistant", content: "PSTACK_ALL_ROLES_DONE" }; finish = "stop"; }
   const chunk = (value: any, reason: string | null) => ({ id: `completion_${calls}`, object: "chat.completion.chunk", created: 1, model: body.model, choices: [{ index: 0, delta: value, finish_reason: reason }] });
@@ -54,6 +55,7 @@ const host = await testHost({ model: "pstack-test/gpt-parent#high", default_agen
 try {
   await ready(host, "pstack-test-models"); await ready(host, "pstack"); await ready(host, "pstack-test-probe");
   const session = await host.client.session.create({ location: { directory: host.project }, agent: "pstack", model: { providerID: "pstack-test", id: "gpt-parent", variant: "high" } });
+  connectFixture(host.project);
   await host.client.session.command({ sessionID: session.id, name: "architect", text: "Exercise the native role delegation tools." });
   await host.client.session.wait({ sessionID: session.id }, { signal: AbortSignal.timeout(60000) });
   const context = await host.client.session.context({ sessionID: session.id });

@@ -1,8 +1,9 @@
 {
-  "checkedAt": "2026-11-10T20:48:39.109Z",
-  "project": "/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/pstack-launcher-test-c1v3Tk/project",
+  "checkedAt": "2026-11-12T04:31:38.747Z",
+  "project": "/var/folders/mt/xg23bqy16bj9ts374myctd_m0000gn/T/pstack-launcher-test-yxXpcq/project",
   "skills": 63,
   "primary": "pstack",
+  "potetoAgentBound": true,
   "managedService": true,
   "freshIsolatedDatabase": true,
   "noModelRequest": true,

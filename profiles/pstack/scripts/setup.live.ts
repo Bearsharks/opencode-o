@@ -1,3 +1,4 @@
+import { connectFixture } from "./criteria-fixture";
 import { resolve } from "node:path";
 import { readFileSync, writeFileSync } from "node:fs";
 import { testHost, ready } from "./test-host";
@@ -7,7 +8,7 @@ const endpoint = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(request
   const child = body.messages.some((m: any) => m.role === "user" && JSON.stringify(m.content).includes("SETUP_CHILD"));
   let delta: any, finish: string;
   if (child) { childModel = { model: body.model, effort: body.reasoning_effort }; delta = { role: "assistant", content: "CHILD_DONE" }; finish = "stop"; }
-  else if (!emitted) { emitted = true; delta = { role: "assistant", tool_calls: [{ index: 0, id: "setup_child", type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: "poteto-agent", role: "bug-fix", decision: { source: "request", outcome: "Verify the saved role's real child call.", onPass: "proceed", onFail: "repair" }, difficulty: "routine", description: "Check saved model", background: false, prompt: "SETUP_CHILD. Return done." }) } }] }; finish = "tool_calls"; }
+  else if (!emitted) { emitted = true; delta = { role: "assistant", tool_calls: [{ index: 0, id: "setup_child", type: "function", function: { name: "subagent", arguments: JSON.stringify({ agent: "poteto-agent", role: "bug-fix", decision: { onPass: "proceed", onFail: "repair" }, difficulty: "routine", description: "Check saved model", background: false, prompt: "SETUP_CHILD. Return done." }) } }] }; finish = "tool_calls"; }
   else { delta = { role: "assistant", content: "DONE" }; finish = "stop"; }
   const chunk = { id: "setup-fixture", object: "chat.completion.chunk", created: 1, model: body.model, choices: [{ index: 0, delta, finish_reason: null }] };
   return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta: {}, finish_reason: finish }] })}\n\ndata: [DONE]\n\n`, { headers: { "content-type": "text/event-stream" } });
@@ -18,6 +19,7 @@ try {
   writeFileSync(path, JSON.stringify({ version: 1, budget: "large", roles: { "how critics": "auto", "bug-fix": "pstack-test/gpt-parent#high", "how explorer": "auto", "arena runners": ["inherit-parent", "pstack-test/claude-opus-5-5#high", "inherit-parent"] } }));
   for (const id of ["pstack", "pstack-test-models", "pstack-test-probe"]) await ready(host, id);
   const session = await host.client.session.create({ location: { directory: host.project }, model: { providerID: "pstack-test", id: "gpt-parent", variant: "high" } });
+  connectFixture(host.project);
   const call = async (args: object) => {
     const response: any = await host.client.rpc.call({ rpcID: "pstack-test-probe", method: "call", location: { directory: host.project }, input: { tool: "pstack_models", sessionID: session.id, args } });
     if (response.output.toolError) throw new Error(response.output.toolError);

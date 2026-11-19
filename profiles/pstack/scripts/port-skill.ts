@@ -45,7 +45,7 @@ export function renderReport() {
     const evidence = `[파일별 해시·검사 기록](porting/${name}.json)` + (verified ? "; [로드 증거](provenance/skills-live.json)" : "") + (record.runtimeEvidence ?? []).map((file: string) => `; [실행 검증](${file})`).join("");
     return `| ${i + 1} | [${name}](skills/${name}/SKILL.md) | ${status} | ${cell(record.changes)} | ${cell(record.equivalence)} | ${evidence} |`;
   });
-  const extras = source.additionalScope.map((scope: string) => {
+  const extras = [...source.additionalScope, "native/acceptance-criteria"].map((scope: string) => {
     const name = scope.startsWith("automations/benny/") ? "benny" : scope.split("/").at(-1);
     const path = resolve(root, `porting/additional/${name}.json`);
     if (!existsSync(path)) return `| ${scope} | 대기 | — | — |`;
