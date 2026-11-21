@@ -7,3 +7,16 @@ package-lock.json
 /profiles/oc-lite/service.json
 /profiles/oc-lite/service.json.*.tmp
 /profiles/pstack-*/service.json
+
+# bstack work state (PRDs only belong in .bstack/<name>/)
+/.bstack/runs/
+/.bstack/scratch/
+/.bstack/archive/
+/.bstack-build/
+/ecc/
+
+# logs and local caches
+*.log
+*.tmp
+__pycache__/
+*.pyc
