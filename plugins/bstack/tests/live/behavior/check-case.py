@@ -92,6 +92,8 @@ def quoted_blocks(request):
     for line in request.splitlines(keepends=True):
         if line.startswith(b"> "):
             block += line[2:]
+        elif line.rstrip(b"\r\n") == b">":
+            block += line[1:]
         elif block:
             yield block
             block = b""
@@ -145,7 +147,8 @@ def gate(turn, case, phase, prior):
         for value in objects(output):
             if ok and value.get("path") == str(turn.prd):
                 starts.append((order, end))
-            if value.get("verdict") in {"READY", "REVISE", "BLOCKED"}:
+            # Only a review command's own output is a review; reading the reviewer guide also prints example verdicts.
+            if value.get("verdict") in {"READY", "REVISE", "BLOCKED"} and re.search(r"\breview\b", args.get("command", "")):
                 reviews.append((order, end, ok, value))
             if value.get("error") in {"invalid_verdict", "review_run_failed", "rework_limit_reached",
                                        "preflight_failed", "review_in_progress", "submission_changed"}:

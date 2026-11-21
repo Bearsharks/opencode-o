@@ -41,7 +41,8 @@ fi
 cd -- "$root"
 export CLAUDE_PLUGIN_ROOT="$root/plugins/bstack"
 unset GIT_DIR GIT_WORK_TREE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_INDEX_FILE
-printf 'Operator cost ceiling: USD %s (not enforced by bstack-run)\n' "$cap" >&2
+export BSTACK_CLAUDE_MAX_BUDGET_USD="$cap"
+printf 'Cost ceiling: USD %s (claude --max-budget-usd)\n' "$cap" >&2
 printf 'Executing in %s:' "$root" >&2
 printf ' %q' "$CLAUDE_PLUGIN_ROOT/bin/bstack-run" "${args[@]}" >&2
 printf '\n' >&2

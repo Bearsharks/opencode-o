@@ -638,6 +638,8 @@ def perform_claude(directory, meta, worktree, brief, preamble, env, diagnostics)
     cmd += ["--resume" if meta["parent_id"] else "--session-id", session_id]
     if meta["plugin_dir"] is not None:
         cmd += ["--plugin-dir", meta["plugin_dir"]]
+    if env.get("BSTACK_CLAUDE_MAX_BUDGET_USD"):
+        cmd += ["--max-budget-usd", env["BSTACK_CLAUDE_MAX_BUDGET_USD"]]
     if worktree is not None:
         cmd += ["-w", *([worktree] if worktree else [])]
 
