@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bstack",
+  "version": "0.1.0",
+  "description": "Claude Code workflows that delegate implementation, exploration, and verification to OpenCode workers.",
+  "author": {
+    "name": "bynn"
+  },
+  "license": "MIT",
+  "keywords": [
+    "bstack",
+    "workflow",
+    "principles",
+    "opencode",
+    "verification",
+    "unslop"
+  ]
+}

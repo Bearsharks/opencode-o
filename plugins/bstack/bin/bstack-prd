@@ -1,0 +1,590 @@
+#!/usr/bin/env python3
+"""Initialize, independently review, and read the approval of a bstack PRD."""
+
+import argparse
+from contextlib import ExitStack, contextmanager
+import difflib
+import errno
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path, PurePosixPath
+import re
+import secrets
+import stat
+import struct
+import subprocess
+import sys
+
+
+PLUGIN = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
+REFS = PLUGIN / "skills/bstack-clarify/references"
+REVIEW_FILES = ("templates/preamble/reviewer.md", "skills/bstack-clarify/references/reviewer.md")
+NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+SHA = re.compile(r"[0-9a-f]{64}")
+RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+ROW_ID = r"[HF]-[0-9]{2,}"
+COLUMNS = ("ID", "성공 정의", "검증", "근거")
+VERDICTS = {"READY": 0, "REVISE": 1, "BLOCKED": 2}
+REVISE_LIMIT = 2
+DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+MARKER = b"bstack-prd 1\n"
+
+
+class Failure(Exception):
+    def __init__(self, error, detail, **fields):
+        super().__init__(detail)
+        self.output = {"error": error, "detail": detail, **fields}
+
+
+class Parser(argparse.ArgumentParser):
+    def error(self, message):
+        raise Failure("invalid_command", message)
+
+
+def git_root():
+    result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True)
+    cwd = Path.cwd()
+    if result.returncode or Path(os.fsdecode(result.stdout[:-1])) != cwd:
+        raise Failure("invalid_path", f"Run from the Git working tree root: {cwd}")
+    return cwd
+
+
+@contextmanager
+def directory(path, parent=None):
+    fd = os.open(path, DIR_FLAGS, dir_fd=parent)
+    try:
+        yield fd
+    finally:
+        os.close(fd)
+
+
+def try_lock(fd, mode):
+    try:
+        fcntl.flock(fd, mode | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return False
+    return True
+
+
+def read_file(path, parent=None):
+    fd = os.open(path, FILE_FLAGS, dir_fd=parent)
+    with os.fdopen(fd, "rb") as stream:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise Failure("invalid_path", f"Not a regular file: {path}")
+        return stream.read()
+
+
+def external_file(path):
+    # Open each component without following a symlink, including ancestor directories.
+    path = Path(path).absolute()
+    if ".." in path.parts or path == Path(path.anchor):
+        raise Failure("invalid_path", f"Invalid file path: {path}")
+    fd = os.open(path.anchor, DIR_FLAGS)
+    try:
+        for component in path.parts[1:-1]:
+            next_fd = os.open(component, DIR_FLAGS, dir_fd=fd)
+            os.close(fd)
+            fd = next_fd
+        return read_file(path.name, fd)
+    finally:
+        os.close(fd)
+
+
+def create_file(parent, name, data, mode=0o600):
+    fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode, dir_fd=parent)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(data)
+
+
+def atomic_write(parent, name, data):
+    temp = f".tmp-{secrets.token_hex(16)}"
+    try:
+        create_file(parent, temp, data)
+        os.replace(temp, name, src_dir_fd=parent, dst_dir_fd=parent)
+    finally:
+        unlink(parent, temp)
+
+
+def unlink(parent, name):
+    try:
+        os.unlink(name, dir_fd=parent)
+    except FileNotFoundError:
+        pass
+
+
+def optional_file(parent, name):
+    try:
+        return read_file(name, parent)
+    except FileNotFoundError:
+        return None
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def content_hash(files):
+    digest = hashlib.sha256()
+    for path in sorted(files, key=lambda p: p.encode("utf-8")):
+        for value in (path.encode("utf-8"), files[path]):
+            digest.update(struct.pack(">Q", len(value)))
+            digest.update(value)
+    return digest.hexdigest()
+
+
+def reviewer_instructions():
+    files = {path: external_file(PLUGIN / path) for path in REVIEW_FILES}
+    return b"\n\n".join(files.values()), content_hash(files)
+
+
+def capture(fd, *, snapshot=False):
+    files = {}
+
+    def walk(parent, prefix):
+        for name in os.listdir(parent):
+            if not snapshot and not prefix and name == "reviews":
+                continue
+            path = f"{prefix}/{name}" if prefix else name
+            info = os.stat(name, dir_fd=parent, follow_symlinks=False)
+            if stat.S_ISDIR(info.st_mode):
+                with directory(name, parent) as child:
+                    walk(child, path)
+            elif not stat.S_ISREG(info.st_mode):
+                raise Failure("invalid_path", f"Not a regular file or directory: {path}")
+            elif path.lower().endswith(".md"):
+                files[path] = read_file(name, parent)
+            elif snapshot:
+                raise Failure("invalid_path", f"Unexpected file in review snapshot: {path}")
+
+    try:
+        walk(fd, "")
+    except FileNotFoundError as exc:
+        raise Failure("submission_changed", f"Path disappeared during collection: {exc.filename}") from exc
+    return files
+
+
+def preflight(files, digest):
+    errors = []
+    index = files.get("index.md", b"").decode("utf-8", errors="replace").strip()
+    template = external_file(REFS / "template/index.md").decode("utf-8").strip()
+    if not index or index.splitlines() == template.splitlines():
+        errors.append("index.md: missing, empty, or unchanged template")
+    elif {match[1] for line in index.splitlines()
+          if (match := re.match(r"^\s*\|?\s*([HF])-[0-9]+\b[^|]*\|", line))} != {"H", "F"}:
+        errors.append("index.md: at least one H row and one F row required")
+    if "request.md" not in files:
+        errors.append("request.md: missing")
+    if errors:
+        raise Failure("preflight_failed", errors, hash=digest)
+
+
+def strict_json(text):
+    def object_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    def invalid_constant(value):
+        raise ValueError(f"invalid JSON constant: {value}")
+
+    return json.loads(text, object_pairs_hook=object_pairs, parse_constant=invalid_constant)
+
+
+def verdict(raw):
+    text = raw.strip()
+    if fence := re.fullmatch(r"```json[ \t]*\r?\n(.*?)\r?\n```", text, re.S):
+        text = fence[1]
+    value = strict_json(text)
+    if not isinstance(value, dict) or set(value) != {"verdict", "basis", "findings"}:
+        raise ValueError("expected exactly verdict, basis and findings")
+    name, basis, findings = (value[key] for key in ("verdict", "basis", "findings"))
+    if not isinstance(name, str) or name not in VERDICTS or not isinstance(basis, str) or not basis.strip():
+        raise ValueError("invalid verdict or blank basis")
+    if not isinstance(findings, list) or bool(findings) == (name == "READY"):
+        raise ValueError("READY must have no findings; REVISE/BLOCKED require findings")
+    for finding in findings:
+        if (not isinstance(finding, dict) or set(finding) != {"cell", "criterion", "gap", "resolve"}
+                or any(not isinstance(item, str) or not item.strip() for item in finding.values())):
+            raise ValueError("invalid finding schema or blank field")
+        if not re.fullmatch(rf"(?:{ROW_ID}(?:/(?:{'|'.join(COLUMNS[1:])}))?|request|전체)", finding["cell"]):
+            raise ValueError(f"invalid finding address: {finding['cell']!r}")
+    # Reject lone surrogates accepted by Python's JSON decoder.
+    json.dumps(value, ensure_ascii=False).encode("utf-8")
+    return value
+
+
+def json_bytes(value):
+    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+class PRD:
+    def __init__(self, cwd, name):
+        self.cwd = cwd
+        self.store = cwd / ".bstack"
+        self.name = name
+        self.path = self.store / name
+        self.index = self.path / "index.md"
+        self.reviews = self.path / "reviews"
+
+    def init(self, bstack, brief):
+        template = external_file(REFS / "template/index.md")
+        stage = f".prd-init-{secrets.token_hex(16)}"
+        os.mkdir(stage, 0o700, dir_fd=bstack)
+        try:
+            with directory(stage, bstack) as prd:
+                os.mkdir("reviews", 0o700, dir_fd=prd)
+                with directory("reviews", prd) as reviews:
+                    create_file(reviews, "format", MARKER)
+                create_file(prd, "index.md", template)
+                create_file(prd, "request.md", brief)
+            if self.name in os.listdir(bstack):
+                raise Failure("invalid_path", f"Path appeared during initialization: {self.path}")
+            os.rename(stage, self.name, src_dir_fd=bstack, dst_dir_fd=bstack)
+        except BaseException:
+            with directory(stage, bstack) as prd:
+                unlink(prd, "index.md")
+                unlink(prd, "request.md")
+                try:
+                    with directory("reviews", prd) as reviews:
+                        unlink(reviews, "format")
+                    os.rmdir("reviews", dir_fd=prd)
+                except FileNotFoundError:
+                    pass
+            os.rmdir(stage, dir_fd=bstack)
+            raise
+
+    @contextmanager
+    def locked(self, *, read_only=False):
+        with directory(self.store) as bstack, directory(self.name, bstack) as prd:
+            fcntl.flock(prd, fcntl.LOCK_SH if read_only else fcntl.LOCK_EX)
+            # Reject case aliases on case-insensitive file systems as well.
+            uninitialized = Failure("invalid_path", f"Not initialized by bstack-prd: {self.path}")
+            if self.name not in os.listdir(bstack) or "reviews" not in os.listdir(prd):
+                raise uninitialized
+            with directory("reviews", prd) as reviews:
+                if optional_file(reviews, "format") != MARKER:
+                    raise uninitialized
+                yield prd, reviews
+
+    def start(self, brief_path):
+        brief = sys.stdin.buffer.read() if brief_path == "-" else external_file(brief_path)
+        if not brief.strip():
+            raise Failure("invalid_brief", "Request brief is empty")
+        self.store.mkdir(exist_ok=True)
+        with directory(self.store) as bstack:
+            fcntl.flock(bstack, fcntl.LOCK_EX)
+            try:
+                os.stat(self.name, dir_fd=bstack, follow_symlinks=False)
+            except FileNotFoundError:
+                self.init(bstack, brief)
+        with self.locked() as (prd, reviews):
+            capture(prd)  # Refuse unsafe paths even when resuming unchanged content.
+            previous = read_file("request.md", prd)
+            if not brief.startswith(previous):
+                raise Failure("brief_not_append_only", f"Brief must preserve existing bytes: {self.path / 'request.md'}")
+            if brief != previous:
+                atomic_write(prd, "request.md", brief)
+            unlink(reviews, "active")
+        return 0, {"path": str(self.path)}
+
+    def history(self, reviews):
+        records = []
+        for name in sorted(os.listdir(reviews)):
+            if not re.fullmatch(r"[0-9]{20}-[0-9a-f]{32}\.json", name):
+                continue
+            data = json.loads(read_file(name, reviews))
+            # The raw response is audit evidence; the receipt was validated at write time.
+            if not isinstance(data, dict) or data.get("verdict") not in tuple(VERDICTS):
+                raise Failure("invalid_record", f"Malformed review record: {self.reviews / name}")
+            records.append((name, data))
+        return records
+
+    def record_run_id(self, name, data):
+        run_id = data.get("run_id")
+        if not isinstance(run_id, str) or not RUN_ID.fullmatch(run_id):
+            raise Failure("invalid_record", f"Missing or invalid run ID: {self.reviews / name}")
+        return run_id
+
+    def snapshot_token(self, name, data):
+        token = Path(name).stem.split("-", 1)[1]
+        if data.get("snapshot") != str(self.snapshot_path(token)):
+            raise Failure("invalid_record", f"Invalid snapshot path: {self.reviews / name}")
+        return token
+
+    def revise_records(self, history, reviews, request_hash):
+        if request_hash is None:
+            return []
+        records = []
+        for name, data in history:
+            if data["verdict"] != "REVISE":
+                continue
+            prior_hash = data.get("request_hash")
+            if prior_hash is None:
+                # Older receipts did not store a request hash.
+                token = self.snapshot_token(name, data)
+                with directory(token, reviews) as submission, directory("snapshot", submission) as snapshot:
+                    prior_hash = sha(read_file("request.md", snapshot))
+            elif not isinstance(prior_hash, str) or not SHA.fullmatch(prior_hash):
+                raise Failure("invalid_record", f"Invalid request hash: {self.reviews / name}")
+            if prior_hash == request_hash:
+                records.append(str(self.reviews / name))
+        return records
+
+    @staticmethod
+    def approval(history, digest, criteria):
+        matching = next(((name, data) for name, data in reversed(history)
+                         if data.get("hash") == digest and data.get("reviewer_hash") == criteria), None)
+        return matching if matching and matching[1]["verdict"] == "READY" else None
+
+    def status(self):
+        with self.locked(read_only=True) as (prd, reviews):
+            candidate = capture(prd)
+            digest = content_hash(candidate)
+            value = {"state": "draft", "index": str(self.index), "hash": digest}
+            history = self.history(reviews)
+            request = candidate.get("request.md")
+            records = self.revise_records(history, reviews, sha(request) if request is not None else None)
+            value.update(revise_count=len(records), revise_records=records)
+            _, criteria = reviewer_instructions()
+            if approved := self.approval(history, digest, criteria):
+                name, data = approved
+                return 0, {**value, "state": "approved", "run_id": self.record_run_id(name, data),
+                           "record": str(self.reviews / name)}
+            idle = try_lock(reviews, fcntl.LOCK_SH)
+            if idle:
+                fcntl.flock(reviews, fcntl.LOCK_UN)
+            if not idle and optional_file(reviews, "active") is not None:
+                reason = "A submission is active; no matching READY record"
+            elif not history:
+                reason = "No valid verdict recorded"
+            else:
+                reason = "No current READY verdict for both the content and reviewer criteria"
+            return 1, {**value, "detail": reason}
+
+    def snapshot_path(self, token):
+        return self.reviews / token / "snapshot"
+
+    def snapshot(self, reviews, token):
+        with directory(token, reviews) as submission, directory("snapshot", submission) as snapshot:
+            return capture(snapshot, snapshot=True)
+
+    def prepare(self, candidate, original, previous, reviews, token):
+        path = self.snapshot_path(token)
+        brief = original + (f"\n\n## 실제 입력 경로\n\n"
+                            f"- [제출 사본 절대경로]: `{path}`\n"
+                            f"- [작성 기준]: `{REFS / 'prd-format.md'}`\n").encode()
+        if previous:
+            name, previous = previous
+            old_token = self.snapshot_token(name, previous)
+            old = self.snapshot(reviews, old_token)
+            if content_hash(old) != previous.get("hash"):
+                raise Failure("invalid_record", f"Prior snapshot changed: {previous['snapshot']}")
+            if not isinstance(previous.get("findings"), list):
+                raise Failure("invalid_record", f"Missing or invalid findings: {self.reviews / name}")
+            changes = snapshot_diff(old, candidate)
+            findings = json.dumps(previous["findings"], ensure_ascii=False, indent=2)
+            brief += (f"\n## 직전 지적과 제출본 간 diff\n\n"
+                      f"직전 검수: `{self.record_run_id(name, previous)}` ({previous['verdict']})\n"
+                      f"직전 사본: `{previous['snapshot']}`\n"
+                      f"\n{findings}\n\n{changes}\n").encode()
+        else:
+            brief += "\n이번 제출은 전체 검수한다.\n".encode()
+        os.mkdir(token, 0o700, dir_fd=reviews)
+        with directory(token, reviews) as submission:
+            freeze(submission, candidate)
+        return brief
+
+    def run(self, *args, brief=None, pass_fds=()):
+        return subprocess.run([str(PLUGIN / "bin/bstack-run"), *args], cwd=self.cwd,
+                              input=brief, stdin=subprocess.DEVNULL if brief is None else None,
+                              capture_output=True, pass_fds=pass_fds)
+
+    def assess(self, brief, result, slot):
+        # A foreground launcher may outlive an interrupted bstack-prd process.
+        run = self.run("run", "--role", "panel", "--brief", "-", brief=brief, pass_fds=(slot,))
+        first = run.stdout.partition(b"\n")[0]
+        id_match = re.match(rb"id=([A-Za-z0-9][A-Za-z0-9_-]*)(?:[ \t]|\r?$)", first)
+        if not id_match:
+            raise Failure("review_run_failed", f"No run ID (exit {run.returncode}): {diagnostic(run)}")
+        run_id = result["run_id"] = id_match[1].decode("ascii")
+        status = self.run("status", run_id)
+        try:
+            meta = strict_json(status.stdout)
+        except (ValueError, RecursionError) as exc:
+            raise Failure("review_run_failed", f"{run_id}: cannot parse run status: {exc}; {diagnostic(status)}") from exc
+        if isinstance(meta, dict) and isinstance(meta.get("run_dir"), str):
+            result["run_record"] = str(Path(meta["run_dir"]) / "meta.json")
+        if (run.returncode or status.returncode or not isinstance(meta, dict)
+                or meta.get("status") != "done" or type(meta.get("exit_code")) is not int
+                or meta["exit_code"] != 0):
+            raise Failure("review_run_failed", f"{run_id}: run/status exit {run.returncode}/{status.returncode}; "
+                          f"status={meta!r}; {diagnostic(run)} {diagnostic(status)}")
+        answer = self.run("result", run_id)
+        if answer.returncode:
+            raise Failure("review_run_failed", f"{run_id}: result exited {answer.returncode}: {diagnostic(answer)}")
+        try:
+            raw = answer.stdout.decode("utf-8")
+            return verdict(raw), raw
+        except (ValueError, RecursionError) as exc:
+            raise Failure("invalid_verdict", f"{run_id}: {exc}") from exc
+
+    def confirm(self, prd, reviews, token, candidate, criteria):
+        if optional_file(reviews, "active") != token.encode("ascii"):
+            raise Failure("submission_changed", "Submission was invalidated")
+        try:
+            snapshot = self.snapshot(reviews, token)
+            _, current_criteria = reviewer_instructions()
+            current = capture(prd)
+        except (OSError, ValueError, Failure) as exc:
+            raise Failure("submission_changed", f"Candidate, snapshot, or criteria unreadable: {exc}") from exc
+        if current != candidate:
+            raise Failure("submission_changed", "Candidate content or paths changed")
+        if snapshot != candidate:
+            raise Failure("submission_changed", "Review snapshot changed")
+        if current_criteria != criteria:
+            raise Failure("submission_changed", "Reviewer criteria hash changed")
+
+    def review(self):
+        with ExitStack() as held:
+            with self.locked() as (prd, reviews):
+                # Keep the review lock while allowing status and start to access the PRD.
+                slot = os.dup(reviews)
+                held.callback(os.close, slot)
+                if not try_lock(slot, fcntl.LOCK_EX):
+                    raise Failure("review_in_progress", "A review for this PRD is already running")
+                candidate = capture(prd)
+                digest = content_hash(candidate)
+                original, criteria = reviewer_instructions()
+                history = self.history(reviews)
+                if approved := self.approval(history, digest, criteria):
+                    name, data = approved
+                    self.record_run_id(name, data)
+                    self.snapshot_token(name, data)
+                    return review_output(data, self.reviews / name)
+                preflight(candidate, digest)
+                request_hash = sha(candidate["request.md"])
+                records = self.revise_records(history, reviews, request_hash)
+                if len(records) >= REVISE_LIMIT:
+                    return 4, {"error": "rework_limit_reached",
+                               "detail": "재작업 한도 도달: 사용자와 쟁점을 다듬고 답을 request.md에 추가하세요.",
+                               "revise_count": len(records), "revise_records": records}
+                previous = history[-1] if history and history[-1][1].get("reviewer_hash") == criteria else None
+                number = int(history[-1][0].split("-")[0]) + 1 if history else 1
+                token = secrets.token_hex(16)
+                brief = self.prepare(candidate, original, previous, reviews, token)
+                atomic_write(reviews, "active", token.encode("ascii"))
+            result = {"hash": digest, "reviewer_hash": criteria, "snapshot": str(self.snapshot_path(token))}
+            return self.finish_review(brief, slot, token, number, candidate, request_hash, result)
+
+    def finish_review(self, brief, slot, token, number, candidate, request_hash, result):
+        try:
+            failure = None
+            try:
+                value, raw = self.assess(brief, result, slot)
+            except Failure as exc:
+                failure = exc
+            except (OSError, KeyboardInterrupt) as exc:
+                failure = Failure("review_run_failed", str(exc) or "Review run interrupted")
+            with self.locked() as (prd, reviews):
+                try:
+                    self.confirm(prd, reviews, token, candidate, result["reviewer_hash"])
+                    if failure:
+                        raise failure
+                    name = f"{number:020d}-{token}.json"
+                    record = {**result, **value, "response": raw, "request_hash": request_hash}
+                    atomic_write(reviews, name, json_bytes(record))
+                    return review_output(record, self.reviews / name)
+                finally:
+                    if optional_file(reviews, "active") == token.encode("ascii"):
+                        unlink(reviews, "active")
+        except Failure as exc:
+            if exc.output["error"] == "invalid_path":
+                raise Failure("submission_changed", f"PRD path changed: {exc}", **result) from exc
+            exc.output.update(result)
+            raise
+        except OSError as exc:
+            error = "submission_changed" if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ELOOP) else "io_error"
+            raise Failure(error, f"Cannot finalize {self.path}: {exc}", **result) from exc
+
+
+def snapshot_diff(old, new):
+    result = []
+    for path in sorted(old.keys() | new.keys(), key=lambda p: p.encode("utf-8")):
+        if old.get(path) == new.get(path):
+            continue
+        before = old.get(path, b"").decode("utf-8", errors="backslashreplace").splitlines(keepends=True)
+        after = new.get(path, b"").decode("utf-8", errors="backslashreplace").splitlines(keepends=True)
+        a = f"before/{path}" if path in old else "/dev/null"
+        b = f"after/{path}" if path in new else "/dev/null"
+        delta = list(difflib.unified_diff(before, after, a, b))
+        result.extend(delta or [f"--- {a}\n", f"+++ {b}\n"])
+    return "".join(line if line.endswith("\n") else line + "\n\\ No newline at end of file\n"
+                   for line in result) or "(사본 내용 차이 없음)"
+
+
+def freeze(submission, files):
+    def write_tree(parent, name, tree):
+        os.mkdir(name, 0o700, dir_fd=parent)
+        with directory(name, parent) as child:
+            for component, value in tree.items():
+                if isinstance(value, dict):
+                    write_tree(child, component, value)
+                else:
+                    create_file(child, component, value, 0o444)
+            os.fchmod(child, 0o555)
+
+    tree = {}
+    for relative, data in files.items():
+        parent = tree
+        *folders, name = PurePosixPath(relative).parts
+        for folder in folders:
+            parent = parent.setdefault(folder, {})
+        parent[name] = data
+    write_tree(submission, "snapshot", tree)
+
+
+def diagnostic(process):
+    return (process.stderr or process.stdout).decode("utf-8", errors="replace").strip()[:1000]
+
+
+def review_output(data, path):
+    fields = ("verdict", "basis", "findings", "hash", "reviewer_hash", "run_id", "snapshot")
+    return VERDICTS[data["verdict"]], {**{key: data[key] for key in fields}, "record": str(path)}
+
+
+def main():
+    parser = Parser(prog="bstack-prd", add_help=False, allow_abbrev=False)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for command in ("start", "review", "status"):
+        sub = commands.add_parser(command, add_help=False, allow_abbrev=False)
+        sub.add_argument("name")
+        if command == "start":
+            sub.add_argument("--brief", required=True, metavar="FILE",
+                             help="request brief file, or - to read stdin")
+    args = parser.parse_args()
+    if not NAME.fullmatch(args.name) or args.name in {"runs", "scratch"}:
+        raise Failure("invalid_name", f"Expected non-reserved lowercase kebab-case NAME: {args.name!r}")
+    prd = PRD(git_root(), args.name)
+    if args.command == "start":
+        return prd.start(args.brief)
+    return getattr(prd, args.command)()
+
+
+if __name__ == "__main__":
+    try:
+        code, output = main()
+    except Failure as exc:
+        code, output = 3, exc.output
+    except (OSError, ValueError, RecursionError) as exc:
+        code, output = 3, {"error": "io_error" if isinstance(exc, OSError) else "invalid_data",
+                          "detail": str(exc)}
+    except KeyboardInterrupt:
+        code, output = 3, {"error": "interrupted", "detail": "Command interrupted"}
+    print(json.dumps(output, ensure_ascii=True))
+    sys.exit(code)

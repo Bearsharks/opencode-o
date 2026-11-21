@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+"""Opt-in Claude Code coordinator using the CLIProxyAPI Codex backend."""
+import fcntl
+import json
+import os
+from pathlib import Path
+import shutil
+import secrets
+import signal
+import socket
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+ROOT = Path(__file__).resolve().parents[1]
+USAGE = "usage: bstack-claude [start | install VERIFIED_BINARY | login | serve | stop | remove]\nDefault: start"
+OWNER = "bstack-cliproxyapi-runtime-v1\n"
+MODEL = "gpt-6.2-astra"
+
+
+def model_list(base, token, wait_for_model=False, child=None):
+    local = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    req = urllib.request.Request(base + "/v1/models", headers={"Authorization": "Bearer " + token})
+    deadline = time.monotonic() + 10
+    while True:
+        if child is not None and child.poll() is not None:
+            sys.exit("Proxy failed to start. Run bstack-claude serve to see the error.")
+        try:
+            with local.open(req, timeout=2) as response:
+                models = {m["id"] for m in json.load(response)["data"] or []}
+            if not wait_for_model or MODEL in models or time.monotonic() >= deadline:
+                return models
+        except urllib.error.HTTPError:
+            raise
+        except urllib.error.URLError:
+            if time.monotonic() >= deadline:
+                raise
+        time.sleep(0.15)
+
+
+def main(args):
+    if not args:
+        args = ["start"]
+    if args in (["-h"], ["--help"]):
+        print(USAGE)
+        return
+    if not ((len(args) == 2 and args[0] == "install") or
+            (len(args) == 1 and args[0] in {"login", "serve", "start", "stop", "remove"})):
+        sys.exit(USAGE)
+    command = args[0]
+    home = Path.home() / ".local/share/bstack-cliproxyapi"
+    marker = home / ".bstack-owner"
+    cli = home / "cli-proxy-api"
+    config_path = home / "config.yaml"
+    if command == "install":
+        src = Path(args[1]).resolve(strict=True)
+        if not src.is_file() or not os.access(src, os.X_OK):
+            sys.exit("Expected a checksum-verified CLIProxyAPI executable.")
+        home.parent.mkdir(parents=True, exist_ok=True)
+        home.mkdir(mode=0o700)  # never adopt or overwrite an existing directory
+        try:
+            marker.write_text(OWNER)
+            shutil.copyfile(src, cli)
+            cli.chmod(0o700)
+            with open(config_path, "x", opener=lambda p, f: os.open(p, f, 0o600)) as f:
+                json.dump({
+                    "config-version": 8,
+                    "server": {"host": "127.0.0.1", "port": 17891},
+                    "management": {"disable-control-panel": True, "disable-auto-update-panel": True},
+                    "access": {"api-keys": [secrets.token_urlsafe(32)]},
+                    "oauth": {"auth-dir": str(home / "auth")},
+                }, f)
+        except OSError:
+            shutil.rmtree(home)
+            raise
+        print(f"Installed in {home}; next: bstack-claude login")
+        return
+    if not home.exists() and not home.is_symlink():
+        if command == "remove":
+            print("Not installed; nothing to remove.")
+            return
+        sys.exit("Run bstack-claude install VERIFIED_BINARY first.")
+    if home.is_symlink() or marker.is_symlink() or not marker.is_file() or marker.read_text() != OWNER:
+        sys.exit(f"Refusing to manage an unrecognized runtime directory: {home}")
+    # Hold across exec so removal cannot race a foreground server or active session.
+    lock = marker.open()
+    try:
+        mode = fcntl.LOCK_EX if command == "remove" else fcntl.LOCK_SH
+        fcntl.flock(lock, mode | fcntl.LOCK_NB)
+    except BlockingIOError:
+        sys.exit("Exit proxy sessions and run bstack-claude stop (or Ctrl-C in serve) before removing.")
+    if command == "remove":
+        shutil.rmtree(home)
+        print(f"Removed {home}. Use claude --plugin-dir {ROOT}")
+        return
+    os.set_inheritable(lock.fileno(), True)
+    # Upstream loads cwd/.env. Run it only in the private runtime.
+    env = {k: os.environ[k] for k in ("PATH", "LANG", "LC_ALL", "TERM", "TMPDIR",
+                                      "SSL_CERT_FILE", "SSL_CERT_DIR") if k in os.environ}
+    env.update(HOME=str(home), WRITABLE_PATH=str(home))
+    proxy = [str(cli), "-config", str(config_path), "-local-model"]
+    login = [*proxy, "-codex-login"]
+    if command == "login":
+        os.chdir(home)
+        os.umask(0o077)
+        os.execve(cli, login, env)
+
+    startup = (home / ".startup").open("a")
+    fcntl.flock(startup, fcntl.LOCK_EX)
+    serving = (home / ".serving").open("a")
+    try:
+        fcntl.flock(serving, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        running = False
+    except BlockingIOError:
+        running = True
+    pidfile = home / ".auto-pid"
+    if command == "stop":
+        if not running:
+            pidfile.unlink(missing_ok=True)
+            print("Proxy already stopped.")
+            return
+        if not pidfile.exists():
+            sys.exit("Manual proxy: use Ctrl-C in the serve terminal.")
+        clients = (home / ".clients").open("a")
+        try:
+            fcntl.flock(clients, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            sys.exit("Exit active bstack-claude sessions before stopping the proxy.")
+        pid = int(pidfile.read_text())
+        if pid <= 1 or subprocess.run(["ps", "-ww", "-p", str(pid), "-o", "command="],
+                                      capture_output=True, text=True).stdout.strip() != " ".join(proxy):
+            sys.exit("Cannot verify the managed proxy PID; not stopping another process.")
+        os.kill(pid, signal.SIGTERM)
+        deadline = time.monotonic() + 6
+        while True:
+            try:
+                fcntl.flock(serving, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    sys.exit("Proxy is still shutting down.")
+                time.sleep(0.1)
+        pidfile.unlink()
+        print("Proxy stopped.")
+        return
+    if command == "serve":
+        if running:
+            sys.exit("bstack-claude proxy is already running.")
+        pidfile.unlink(missing_ok=True)
+        os.set_inheritable(serving.fileno(), True)
+        os.chdir(home)
+        os.umask(0o077)
+        os.execve(cli, proxy, env)
+
+    config = json.loads(config_path.read_text())
+    if config["server"]["host"] != "127.0.0.1":
+        sys.exit("Only a loopback CLIProxyAPI listener is supported.")
+    base = f"http://127.0.0.1:{config['server']['port']}"
+    token = config["access"]["api-keys"][0]
+    overrides = {
+        "ANTHROPIC_BASE_URL": base, "ANTHROPIC_AUTH_TOKEN": token,
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": MODEL,
+    }
+    if any(os.environ.get(key) for key in (*overrides, "ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN")):
+        sys.exit("Start from a shell without explicit Anthropic credentials, endpoint or Haiku override.")
+    child = None
+    if not running:
+        # Do not send our access key to an unrelated listener on the configured port.
+        with socket.socket() as s:
+            if s.connect_ex(("127.0.0.1", config["server"]["port"])) == 0:
+                sys.exit("Proxy port already in use by another listener; not connecting.")
+        child = subprocess.Popen(proxy, cwd=home, env=env, umask=0o077, start_new_session=True,
+                                 pass_fds=(serving.fileno(), lock.fileno()), stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        pidfile.write_text(str(child.pid))
+    serving.close()
+    models = model_list(base, token, child=child)
+    if not models and sys.stdin.isatty() and not any((home / "auth").glob("*.json")):
+        print("Starting first-time Codex sign-in…", file=sys.stderr)
+        result = subprocess.run(login, cwd=home, env=env, umask=0o077)
+        if result.returncode:
+            sys.exit("Sign-in did not complete; run bstack-claude to try again.")
+        models = model_list(base, token, wait_for_model=True, child=child)
+    if MODEL not in models:
+        sys.exit(f"CLIProxyAPI does not offer {MODEL}. Run bstack-claude login and check Codex access.")
+    clients = (home / ".clients").open("a")
+    fcntl.flock(clients, fcntl.LOCK_SH)
+    os.set_inheritable(clients.fileno(), True)
+    startup.close()
+    os.environ.update(overrides, BSTACK_CPA_COORDINATOR="1")
+    picker = json.dumps({"modelPicker": {"options": [
+        {"model": model, "label": label, "behavesAs": "claude-opus-5"}
+        for model, label in [(MODEL, "GPT-6.2 Astra (Codex)"), ("gpt-6.2-sol", "GPT-6.2 Sol (Codex)")]
+        if model in models
+    ]}})
+    bypass = ",".join(filter(None, [os.environ.get("no_proxy"), os.environ.get("NO_PROXY"),
+                                    "127.0.0.1"]))
+    os.environ["no_proxy"] = os.environ["NO_PROXY"] = bypass
+    os.execvp("claude", ["claude", "--plugin-dir", str(ROOT), "--settings", picker,
+                         "--model", MODEL])
+
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1:])
+    except (OSError, ValueError, KeyError) as error:
+        sys.exit(str(error))
