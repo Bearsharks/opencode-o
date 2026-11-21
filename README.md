@@ -76,6 +76,10 @@ you want the two commands to remain independent.
 If `~/.local/bin` is not on `PATH`, add it to your shell configuration or invoke
 the wrapper by its absolute path.
 
+## Install bstack separately
+
+The [bstack profile](profiles/bstack/README.md) provides a primary working agent for investigation, planning, implementation, and verification. Its first specialized workflow is the optional `bstack-clarify` planning skill. Install with `./scripts/install/bstack.sh` and run `oc-bstack` in the target project. No pstack installation is required.
+
 ## Install pstack separately
 
 The [pstack profile](profiles/pstack/README.md) ports the pinned upstream's 58

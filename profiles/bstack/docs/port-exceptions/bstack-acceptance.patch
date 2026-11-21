@@ -1,0 +1,15 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,9 +1,11 @@
+ ---
+-name: acceptance-criteria
++name: bstack-acceptance
+ description: "Turn an agreed product plan into observable acceptance criteria in the product repository. Use after planning and before splitting implementation, or when review uncovers an undecided expectation."
+ metadata:
+   opencode/autoinvoke: true
+ ---
++
++**bstack 실행 경계 (아래 원본에서 이 부분만 대체):** 기획 후 문서화 단계가 아니라 미결 기능 칸에 적용한다. 두 방향 반례와 최소 관찰은 수행하되 작업 문서·git config·커밋·Shipping은 실행하지 않는다.
+ 
+ # 완료조건 결정
+ 

@@ -1,0 +1,44 @@
+---
+name: bstack-swarm
+description: "Fan out N parallel workers, drain them, and return one report. Use for /swarm, 'swarm this', or parallel coverage, races, gauntlets, and exploration."
+metadata:
+  opencode/autoinvoke: false
+---
+
+**bstack 실행 경계 (아래 원본에서 이 부분만 대체):** 별도 todo/모델 플러그인 대신 아래 단계와 완료 조건을 대화에 기록한다. 사용자 컴퓨터의 증거를 조사할 때만 bstack-reader에 독립 범위를 병렬 위임하고 근거 있는 보고를 받는다. VM·특정 모델·격리된 측정이 필요하고 확보하지 못하면 생성 전에 BLOCKED로 보고한다.
+
+# Swarm
+
+## Start
+
+Use `pstack_todo(action: "write")` to open a todolist with one entry per phase before launching anything.
+
+1. Frame
+2. Fan out
+3. Aggregate
+4. Report
+
+## Phase A: Frame
+
+1. State the done predicate and the artifact or report the swarm must return.
+2. Choose the shape. Partition into slices, race N workers on identical briefs, or mix both. For a race or mixed shape, declare `first pass`, `rank all`, or `best-of` before spawning.
+3. Resolve `swarm workers` with `pstack_models(action: "resolve", role: "swarm workers")`. Its saved value in `$OPENCODE_CONFIG_DIR/pstack-models.json` overrides the default, Grok 4.7 at xhigh reasoning and fast speed. Missing settings retain that default. `auto` and `inherit-parent` retain the parent model. A refused adjustment returns to the configured baseline before the workflow default and then an advertised model of the same family; report fallback notices. For a model race, name each arm's native `provider/model#variant` up front. Pick each subagent's `difficulty` and `urgent` speed for the job, per the Subagents section of the **poteto-mode** skill. Verification uses `verification: true` and preserves the configured worker speed.
+4. Give each worker its own writable output when it writes. When workers verify or measure commits, each brief names the exact SHAs. A measurement brief also names the method (sample count, what one sample is, order). The worker records both in its result.
+
+## Phase B: Fan out
+
+Spawn all N workers concurrently with `subagent(agent: "general", role: "swarm workers", background: true, ...)` and the step 3 difficulty and speed settings. For a declared model race, pass each arm's explicit native `model`; otherwise omit `model` so the role executor applies its saved value or default. The workflow requires an isolated cloud VM for each worker by default, with local execution only when that worker needs access to something on the user's computer. This profile does not provision or transport native subagent calls to cloud VMs. If cloud execution is required and no verified external worker backend is available, report the affected workers as `BLOCKED` before spawning. Do not silently substitute local sessions or worktrees for cloud isolation.
+
+When a cloud worker must start from a non-default pushed branch, require the external worker backend to select and verify that pushed branch before the worker starts. Native `subagent` has no cloud base-branch argument; this prerequisite remains `BLOCKED` without that backend.
+
+Every brief stands alone. Include the goal, scope, exact slice or race arm, how to verify, and what to report. Reports use `PASS`, `ISSUES`, or `BLOCKED` with evidence. A worker that can prove a defect reports `ISSUES` and lists every issue it can prove, not only the first.
+
+If a worker drops out, proceed with N-1 and note it.
+
+## Phase C: Aggregate
+
+Read the terminal results. Drop a result that does not record the SHAs and method its brief names, and respawn that worker once. After a second miss, record a gap. A gap does not count as a pass. For coverage, every required slice needs a result. For a race, apply the selection rule declared up front. Use first pass, rank all, or best-of. Do not paste raw worker dumps.
+
+## Phase D: Report
+
+Return one consolidated in-chat report with a result table, issue one-liners, gaps or dropouts, and the race rule when used.

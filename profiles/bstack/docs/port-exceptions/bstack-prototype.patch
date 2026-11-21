@@ -1,0 +1,13 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,3 +1,10 @@
++---
++name: bstack-prototype
++description: Decide one ambiguous criterion with a throwaway observation.
++---
++
++**bstack 실행 경계 (아래 원본에서 이 부분만 대체):** 격리된 일회용 비교만 한다. 대화 내 목업은 사용자에게 실제로 비교를 요청한다. 기획 결정을 가를 때는 메인이 허용된 임시 환경에서 작은 실험을 직접 수행하고 조건·결과·한계를 PRD에 남긴다. 필요한 권한이나 표면이 실제로 없을 때만 사용자에게 요청한다. 미실행을 실험 성공으로 바꾸지 않고 Feature로 진행하지 않는다.
++
+ ### Prototype
+ 
+ **You own the design decision, not the code. The prototype is a throwaway instrument. The real build follows Feature.**

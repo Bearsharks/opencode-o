@@ -1,0 +1,14 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,8 +1,10 @@
+ ---
+-name: context-and-decisions
++name: bstack-context-decisions
+ description: >-
+   Govern stable domain context with a narrowly scoped CONTEXT.md when needed, and route hard-to-reverse decisions to ECC's existing architecture-decision-records skill. Use when domain terms require repeated explanation, one term has multiple meanings, unclear language causes module-boundary mistakes, or domain semantics must remain separate from architecture decisions.
+ ---
++
++**bstack 실행 경계 (아래 원본에서 이 부분만 대체):** 도메인별 용어와 충돌 사례를 대조한다. 기존 결정과 미확정을 구분해 채팅으로 반환하고 glossary·ADR·tracker를 수정하지 않는다.
+ 
+ # Domain Context and Decision Handoff
+ 

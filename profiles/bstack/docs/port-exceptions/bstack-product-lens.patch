@@ -1,0 +1,15 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -1,9 +1,11 @@
+ ---
+-name: product-lens
++name: bstack-product-lens
+ description: Validate the why before building through four product diagnostics — a YC-style product diagnostic that produces PRODUCT-BRIEF.md with a go/no-go recommendation, a founder review scoring product-market-fit signals, a user journey audit measuring time-to-value, and ICE feature prioritization. Use when pressure-testing product direction, choosing between features, sanity-checking a launch, or converting a vague idea into a product brief.
+ metadata:
+   origin: ECC
+ ---
++
++**bstack 실행 경계 (아래 원본에서 이 부분만 대체):** 진단 질문은 보존한다. PRODUCT-BRIEF·로드맵 대신 현재 미정인 제품 행에만 답하고 engineering 인계는 수행하지 않는다.
+ 
+ # Product Lens — Think Before You Build
+ 

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source_path=${BASH_SOURCE[0]}
+if [[ -L "$source_path" ]]; then source_path=$(readlink "$source_path"); fi
+root=$(CDPATH= cd -- "$(dirname -- "$source_path")/.." && pwd -P)
+export OPENCODE_CONFIG_DIR="$root" OPENCODE_CONFIG="$root/opencode.jsonc"
+export XDG_CONFIG_HOME="${BSTACK_CONFIG_HOME:-$HOME/.config/opencode-o/bstack}"
+export XDG_STATE_HOME="${BSTACK_STATE_HOME:-$HOME/.local/state/opencode-o/bstack}"
+export OPENCODE_DB=opencode-bstack.db OPENCODE_O_PROFILE=bstack
+unset OPENCODE_CONFIG_CONTENT OPENCODE_CLI_CONFIG_CONTENT
+case "${1:-}" in
+  serve|--version|-v|--help|-h) exec opencode "$@" ;;
+  debug) if [[ ${2:-} == paths || ${2:-} == --help ]]; then exec opencode "$@"; fi ;;
+esac
+exec opencode --standalone "$@"
