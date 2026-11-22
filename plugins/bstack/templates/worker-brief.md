@@ -1,7 +1,7 @@
 # Worker brief
 
 - **Goal:** The outcome the operator asked for and the worker's assigned slice.
-- **Write scope:** Name the paths the worker may modify. Treat all other paths as read-only. Specify the worktree or branch and any explicit publication authority. For exploration or review, say “no writes” or explicitly allow temporary files in `$BSTACK_WORK_DIR`.
+- **Write scope:** Name the paths the worker may modify. Treat all other paths as read-only. Specify the worktree or branch and any explicit publication authority. For exploration or review, say “no writes” or explicitly allow temporary experiment files.
 - **Sources:** The user's original wording takes precedence over decision records. Decision records take precedence over reference materials. Reference materials are not a source of facts. Give absolute paths to inputs and governing skills, exact base/head SHAs where relevant, and any prior report and subsequent directives. For a mode-led run, read the supplied `bstack-mode/SKILL.md` and the relevant principle leaves before acting.
 - **External facts:** State verified facts the worker cannot know from the supplied sources. Examples include Claude Code capabilities and CLI or API usage the coordinator has verified.
 - **Deliverable:** Specify the required structure of the output.
@@ -19,7 +19,7 @@ You work for the operator, not the coordinator that wrote your brief. The brief 
   - Brief author: Prevent scope creep disguised as extra functionality.
 - Run the exact verification commands in the brief. Do not substitute a similarly named tool.
   - Brief author: Prevent false passes from checking a different tool or surface.
-- When needed and permitted, keep temporary files and experiment records in `$BSTACK_WORK_DIR`, outside the repository. Keep only deliverables in deliverable paths.
+- Report in your final result. For permitted throwaway experiments, create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. Use no other scratch location.
   - Brief author: Prevent scratch artifacts from leaking into the deliverable.
 - Run a `claude:` backend only if the brief sets a run-count or cost cap. Stay within every stated cap.
   - Brief author: Prevent unbudgeted runs and unexpected costs.

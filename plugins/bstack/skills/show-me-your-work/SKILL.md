@@ -45,18 +45,18 @@ A run is one agent conversation, including its later turns and any summary of it
 
 ## Where it lives
 
-By default the log is a working artifact, not committed. Write it only if a trail is needed, under `$BSTACK_WORK_DIR` in a worker or in an external state directory in a coordinator. Use a separate `decisions.tsv` per effort.
+Write a separate `decisions.tsv` per effort only if a trail is needed. Workers report in their final result. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. For a throwaway log or experiment files, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing; use no other scratch location. Coordinators can keep their logs in external state.
 
 Commit a copy only when the trail is an authorized deliverable that the reviewer needs to trust the result.
 
 ## Rules
 
-- Append-only. A wrong call gets a new row that supersedes it. Never edit or delete history.
+- Append-only while the log is in use. A wrong call gets a new row that supersedes it.
 - Prefer evidence produced by committed scripts over hand-made one-offs (the **encode-lessons-in-structure** principle skill).
 
 ## Audit the log against the transcript
 
-At the end of the run, before handing back, check the log told the truth. Delegate the comparison against this worker's native session (`export_cmd` or `transcript_path` from `bstack-run status ID`), or the identified Claude session under `~/.claude/projects/<slug>/*.jsonl` for coordinator actions. Restrict the read to this task, project, and relevant turns. Check each stretch from the run's `start` row (or first row) to its next `start` row:
+At the end of the run, before handing back or deleting a throwaway log, check the log told the truth. Delegate the comparison against this worker's native session (`export_cmd` or `transcript_path` from `bstack-run status ID`), or the identified Claude session under `~/.claude/projects/<slug>/*.jsonl` for coordinator actions. Restrict the read to this task, project, and relevant turns. Check each stretch from the run's `start` row (or first row) to its next `start` row:
 
 - Check that every row maps to a real decision or action.
 - Check that each row's evidence resolves and shows what the row claims.

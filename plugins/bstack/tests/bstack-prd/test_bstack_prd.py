@@ -187,8 +187,16 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(self.request.read_bytes(), appended.encode())
         self.assertEqual(self.calls(), [])
 
+    def test_formerly_reserved_names_can_be_prds(self):
+        for name in ("runs", "scratch"):
+            with self.subTest(name=name):
+                path = self.cwd / ".bstack" / name
+                self.cli_call(["start", name, "--brief", self.brief], path=str(path))
+                self.assertEqual((path / "request.md").read_bytes(), self.brief.read_bytes())
+        self.assertEqual(self.calls(), [])
+
     def test_argument_and_path_refusals_make_no_runs(self):
-        for name in ("../jot", "Jot", "two--parts", "runs", "scratch", "space here", "/tmp"):
+        for name in ("../jot", "Jot", "two--parts", "space here", "/tmp"):
             with self.subTest(name=name):
                 self.cli_call(["start", name, "--brief", self.brief], 3, error="invalid_name")
         for args in ([], ["--help"], ["check", "jot"], ["start", "jot", "--b", self.brief],

@@ -598,8 +598,8 @@ def main():
             sub.add_argument("--brief", required=True, metavar="FILE",
                              help="request brief file, or - to read stdin")
     args = parser.parse_args()
-    if not NAME.fullmatch(args.name) or args.name in {"runs", "scratch"}:
-        raise Failure("invalid_name", f"Expected non-reserved lowercase kebab-case NAME: {args.name!r}")
+    if not NAME.fullmatch(args.name):
+        raise Failure("invalid_name", f"Expected lowercase kebab-case NAME: {args.name!r}")
     prd = PRD(git_root(), args.name)
     if args.command == "start":
         return prd.start(args.brief)

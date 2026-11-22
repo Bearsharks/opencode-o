@@ -421,7 +421,6 @@ def prepare(root, args, resources):
     fcntl.flock(owner, fcntl.LOCK_EX)
     owner.write(brief)
     owner.flush()
-    (directory / "work").mkdir(mode=0o700)
     write_meta(directory, meta)
     if parent:
         with run_lock(parent_directory):
@@ -627,8 +626,7 @@ def perform_opencode(directory, meta, worktree, brief, preamble, env, diagnostic
 
 def perform_claude(directory, meta, worktree, brief, preamble, env, diagnostics):
     cmd = [meta["cli"], "-p", "--model", meta["model"].removeprefix("claude:"),
-           "--output-format", "json", "--permission-mode", meta["permission_mode"],
-           "--add-dir", env["BSTACK_WORK_DIR"]]
+           "--output-format", "json", "--permission-mode", meta["permission_mode"]]
     if meta["allowed_tools"]:
         cmd += ["--allowedTools", *meta["allowed_tools"]]
     if preamble is not None:
@@ -716,7 +714,7 @@ def perform(directory, meta, worktree):
     except (OSError, ValueError) as exc:
         diagnostics.error(exc)
         return finish(directory, meta, 1, diagnostics)
-    env = dict(os.environ, BSTACK_WORK_DIR=str(directory / "work"))
+    env = dict(os.environ)
     backend = perform_claude if is_claude(meta["model"]) else perform_opencode
     return backend(directory, meta, worktree, brief, preamble, env, diagnostics)
 

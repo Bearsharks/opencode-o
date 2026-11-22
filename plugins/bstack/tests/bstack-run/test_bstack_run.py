@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 import time
 import unittest
+import uuid
 
 
 BSTACK = Path(__file__).resolve().parents[2] / "bin" / "bstack-run"
@@ -46,17 +47,14 @@ def event(kind, part_type, **fields):
     print(json.dumps({"type": kind, "sessionID": sid,
                       "part": {"type": part_type, **fields}}), flush=True)
 
-work = Path(os.environ["BSTACK_WORK_DIR"])
 sys.stdout.buffer.write(b"non-JSON diagnostic: \\xff\\r\\n")
 sys.stdout.buffer.flush()
 print("worker stderr", file=sys.stderr)
 event("step_start", "step-start", messageID="msg_tools")
 event("text", "text", text="NOT THE FINAL ANSWER")
 brief = sys.stdin.buffer.read().decode("utf-8")
-fixture = Path(os.environ["FAKE_FIXTURES"]) / f"{work.parent.name}.json"
-fixture.write_text(json.dumps(dict(argv=args, brief=brief, work=str(work))))
-if mode == "work":
-    (work / "experiment.txt").write_text("worker temporary output")
+if fixture := os.environ.get("FAKE_INPUT_RECORD"):
+    Path(fixture).write_text(json.dumps(dict(argv=args, brief=brief)))
 event("tool_use", "tool", state={"output": "X" * 110000})
 event("step_finish", "step-finish", reason="tool-calls")
 if mode == "gate":
@@ -118,8 +116,8 @@ else:
         "route_env": [k for k in ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN",
                                   "ANTHROPIC_DEFAULT_HAIKU_MODEL") if k in os.environ],
     }
-    work = Path(os.environ["BSTACK_WORK_DIR"])
-    (Path(os.environ["FAKE_FIXTURES"]) / f"{work.parent.name}.json").write_text(json.dumps(payload))
+    if fixture := os.environ.get("FAKE_INPUT_RECORD"):
+        Path(fixture).write_text(json.dumps(payload))
     print(json.dumps(payload, indent=2))
 """
 
@@ -134,6 +132,7 @@ class BstackRunTest(unittest.TestCase):
         self.root = self.base / "state" / "runs"
         self.fixtures = self.base / "fixtures"
         self.fixtures.mkdir()
+        self.input_records = {}
         self.fake = self.cwd / "fake cli"
         self.fake.write_text(FAKE_CLI, encoding="utf-8")
         self.fake.chmod(0o700)
@@ -148,7 +147,7 @@ class BstackRunTest(unittest.TestCase):
         self.gate = self.cwd / "release"
         self.api_log = self.cwd / "api.jsonl"
         self.env = dict(os.environ, BSTACK_CLI=str(self.fake), FAKE_GATE=str(self.gate),
-                         BSTACK_STATE_DIR=str(self.root.parent), FAKE_FIXTURES=str(self.fixtures),
+                         BSTACK_STATE_DIR=str(self.root.parent),
                          BSTACK_CONFIG=str(self.config_path),
                          BSTACK_CLAUDE_CLI=str(self.claude), FAKE_CLAUDE_READY=str(self.claude_ready),
                          CLAUDE_CONFIG_DIR=str(self.claude_config),
@@ -161,12 +160,17 @@ class BstackRunTest(unittest.TestCase):
 
     def call(self, *args, mode=None, stdin=None):
         env = dict(self.env)
+        fixture = self.fixtures / f"{uuid.uuid4().hex}.json"
+        if args[0] in {"run", "ask"}:
+            env["FAKE_INPUT_RECORD"] = str(fixture)
         if mode:
             env["FAKE_MODE"] = mode
-        return subprocess.run(
+        proc = subprocess.run(
             [str(BSTACK), *args], cwd=self.cwd, env=env, capture_output=True,
             input=stdin, encoding="utf-8", timeout=5,
         )
+        proc.input_record = fixture
+        return proc
 
     def setup_models(self, update):
         writer = PLUGIN_ROOT / "skills" / "setup-bstack" / "write-models.py"
@@ -329,6 +333,7 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual(proc.stderr, stderr)
         match = re.match(r"id=(\d{8}-\d{6}-\w+-[a-f0-9]{4})(?:[ \n])", proc.stdout)
         self.assertIsNotNone(match, proc.stdout[:200])
+        self.input_records[match[1]] = proc.input_record
         return match[1]
 
     def status(self, run_id):
@@ -359,7 +364,7 @@ class BstackRunTest(unittest.TestCase):
         return [json.loads(line) for line in self.api_log.read_text().splitlines()]
 
     def worker_input(self, run_id):
-        return json.loads((self.fixtures / f"{run_id}.json").read_bytes())
+        return json.loads(self.input_records[run_id].read_bytes())
 
     def worker_argv(self, run_id):
         return self.worker_input(run_id)["argv"]
@@ -399,7 +404,6 @@ class BstackRunTest(unittest.TestCase):
                          for name in ("bstack-run", "bstack-prd")]
         self.assertEqual(self.claude_input(run_id)["argv"], [
             "-p", "--model", "sonnet", "--output-format", "json", "--permission-mode", "acceptEdits",
-            "--add-dir", str(self.root / run_id / "work"),
             "--allowedTools", *allowed_tools,
             "--session-id", sid,
         ])
@@ -411,7 +415,7 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual({key: meta[key] for key in expected}, expected)
         artifact = (self.root / run_id / "result.md").read_text()
         self.assertEqual({p.name for p in (self.root / run_id).iterdir()},
-                         {"brief.md", "meta.json", "result.md", "work"})
+                         {"brief.md", "meta.json", "result.md"})
         self.assertTrue(artifact.startswith("fake Claude answer\n"))
         for field in (f'`session_id`: `"{sid}"`', "`is_error`: `false`",
                       "`total_cost_usd`: `0.0123`"):
@@ -467,7 +471,6 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual(parent_meta["allowed_tools"], allowed_tools)
         self.assertEqual(self.assert_claude_preamble(parent, "impl", self.claude_input(parent)), [
             "-p", "--model", "opus", "--output-format", "json", "--permission-mode", "plan",
-            "--add-dir", str(self.root / parent / "work"),
             "--allowedTools", *allowed_tools,
             "--session-id", parent_meta["session_id"], "--plugin-dir", str(plugin), "-w", "my-tree",
         ])
@@ -475,7 +478,6 @@ class BstackRunTest(unittest.TestCase):
         payload = self.claude_input(child)
         self.assertEqual(self.assert_claude_preamble(child, "impl", payload), [
             "-p", "--model", "opus", "--output-format", "json", "--permission-mode", "plan",
-            "--add-dir", str(self.root / child / "work"),
             "--allowedTools", *allowed_tools,
             "--resume", parent_meta["session_id"], "--plugin-dir", str(plugin),
         ])
@@ -498,7 +500,6 @@ class BstackRunTest(unittest.TestCase):
                 self.assertEqual(self.claude_input(run_id)["argv"], [
                     "-p", "--model", "haiku", "--output-format", "json",
                     "--permission-mode", "acceptEdits",
-                    "--add-dir", str(self.root / run_id / "work"),
                     *(["--allowedTools", *rules] if rules else []),
                     "--session-id", meta["session_id"],
                 ])
@@ -691,7 +692,7 @@ class BstackRunTest(unittest.TestCase):
                 self.assertEqual(self.worker_input(run_id)["brief"],
                                  preamble + "\n\nhello" if template else "hello")
                 directory = self.root / run_id
-                files = {"brief.md", "meta.json", "result.md", "work"}
+                files = {"brief.md", "meta.json", "result.md"}
                 self.assertEqual({path.name for path in directory.iterdir()}, files)
                 self.assertEqual((directory / "brief.md").read_bytes(), b"hello")
                 self.assertEqual((directory / "result.md").read_text(), "fake answer")
@@ -766,7 +767,7 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual(meta["status"], "running")
         self.assertIsNone(meta["ended_at"])
         self.assertEqual({p.name for p in (self.root / run_id).iterdir()},
-                         {"brief.md", "meta.json", "work"})
+                         {"brief.md", "meta.json"})
         for command in [("result", run_id), ("wait", run_id, "--timeout", "0")]:
             running = self.call(*command)
             self.assertEqual((running.returncode, running.stdout, running.stderr),
@@ -811,22 +812,24 @@ class BstackRunTest(unittest.TestCase):
 
     def test_killed_foreground_ask_is_orphaned_even_during_new_ask(self):
         parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
+        fixture = self.fixtures / "abandoned.json"
         with subprocess.Popen(
             [str(BSTACK), "ask", parent, "--message", "abandoned"],
-            cwd=self.cwd, env=dict(self.env, FAKE_MODE="gate"),
+            cwd=self.cwd, env=dict(self.env, FAKE_MODE="gate", FAKE_INPUT_RECORD=str(fixture)),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ) as launcher:
             try:
                 deadline = time.monotonic() + 4
                 while time.monotonic() < deadline:
                     paths = [p for p in self.root.glob("*/meta.json") if p.parent.name != parent]
-                    if paths and (self.fixtures / f"{paths[0].parent.name}.json").is_file():
+                    if paths and fixture.is_file():
                         break
                     time.sleep(.01)
                 else:
                     self.fail("foreground ask did not start its backend")
                 record = paths[0]
                 abandoned = record.parent.name
+                self.await_session(abandoned)
                 running = self.status(abandoned)
                 self.assertEqual(running["status"], "running")
                 self.assertNotIn("child_pid", running)  # OpenCode regression.
@@ -1048,12 +1051,11 @@ class BstackRunTest(unittest.TestCase):
         self.cwd.mkdir()
         (repo / ".bstack/jot").mkdir(parents=True)
         run_id = self.run_id(self.call("run", "--role", "impl", "--brief", "-",
-                                       stdin="in repo\n", mode="work"))
+                                       stdin="in repo\n"))
         directory = self.root / run_id
         self.assertEqual(self.status(run_id)["run_dir"], str(directory))
-        work = directory / "work"
-        self.assertEqual(self.worker_input(run_id)["work"], str(work))
-        self.assertEqual((work / "experiment.txt").read_text(), "worker temporary output")
+        self.assertEqual({p.name for p in directory.iterdir()},
+                         {"brief.md", "meta.json", "result.md"})
         self.assertEqual(list((repo / ".bstack").iterdir()), [repo / ".bstack/jot"])
         self.assertFalse(list(self.base.rglob("raw.jsonl")))
         self.assertFalse((self.cwd / ".bstack").exists())
