@@ -9,7 +9,8 @@ import sys
 tool = Path(__file__).absolute()
 real = tool.with_name("bstack-run.real")
 args = sys.argv[1:]
-audit = Path(os.environ["BSTACK_STATE_DIR"]) / "turns"
+root = tool.parents[3]  # <fixture>/plugins/bstack/bin/bstack-run
+audit = root.parent / f".{root.name}-state" / "turns"
 marker = audit / "recovery-injected"
 if args[:1] == ["result"] and len(args) == 2 and not marker.exists():
     # bstack-prd calls result as a subprocess; distinguish that call from a

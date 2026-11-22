@@ -17,7 +17,8 @@ ID = r"\d{8}-\d{6}-(?:impl|hard|explore|panel)-[0-9a-f]{4}"
 
 
 def runs_dir():
-    return state_dir(Path.cwd()) / "runs"
+    repo = Path.cwd()
+    return PLUGIN / "state" / "runs" / f"{repo.name}-{sha(os.fsencode(repo))[:12]}"
 
 
 def audit_dir():
@@ -66,7 +67,8 @@ def boundary():
         runs[path.parent.name] = sha(json.dumps(record, sort_keys=True).encode())
     return {
         "prd": manifest(Path(".bstack")),
-        "project": manifest(Path("."), (".git", ".bstack"), ("__pycache__", ".pytest_cache")),
+        "project": manifest(Path("."), (".git", ".bstack", (PLUGIN / "state").as_posix()),
+                            ("__pycache__", ".pytest_cache")),
         "runs": runs,
     }
 
@@ -91,8 +93,7 @@ def transcript_bytes(run_id):
 
 
 def record(folder, label, args, brief=None):
-    proc = subprocess.run(args, input=brief, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          env=dict(os.environ, BSTACK_STATE_DIR=str(state_dir(Path.cwd()))))
+    proc = subprocess.run(args, input=brief, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (folder / f"{label}.stdout").write_bytes(proc.stdout)
     (folder / f"{label}.stderr").write_bytes(proc.stderr)
     put_json(folder / f"{label}.exit", proc.returncode)

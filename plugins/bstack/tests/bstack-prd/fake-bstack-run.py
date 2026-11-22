@@ -10,7 +10,7 @@ import uuid
 
 
 cmd, *args = sys.argv[1:]
-state = Path(os.environ["BSTACK_STATE_DIR"])
+state = Path(__file__).resolve().parents[1] / "state"
 state.mkdir(parents=True, exist_ok=True)
 token = (os.environ.get("FAKE_ID") or "run-" + uuid.uuid4().hex) if cmd == "run" else None
 log = state / "calls.jsonl"

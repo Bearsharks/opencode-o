@@ -10,6 +10,7 @@ package-lock.json
 
 # bstack work state (PRDs only belong in .bstack/<name>/)
 /.bstack/runs/
+/plugins/bstack/state/
 /.bstack/scratch/
 /.bstack/archive/
 /.bstack-build/

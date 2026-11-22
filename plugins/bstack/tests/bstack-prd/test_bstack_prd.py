@@ -49,9 +49,9 @@ class PRDTest(unittest.TestCase):
         base = Path(home.name).resolve()
         self.cwd = base / "repo"
         self.cwd.mkdir()
-        self.state = base / "state"
         subprocess.run(["git", "init", "-q"], cwd=self.cwd, check=True)
         self.plugin = self.cwd / "plugin"
+        self.state = self.plugin / "state"
         bin_dir = self.plugin / "bin"
         bin_dir.mkdir(parents=True)
         self.cli = bin_dir / "bstack-prd"
@@ -73,7 +73,7 @@ class PRDTest(unittest.TestCase):
 
     def proc(self, args, config=None, token="", **kwargs):
         env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(self.plugin), FAKE_CONFIG=json.dumps(config or {}),
-                   FAKE_ID=token, BSTACK_STATE_DIR=str(self.state))
+                   FAKE_ID=token)
         return subprocess.Popen([self.cli, *args], env=env, cwd=kwargs.get("cwd", self.cwd),
                                 stdin=kwargs.get("stdin"), stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True, encoding="utf-8")

@@ -16,7 +16,7 @@ printf '%s' "$VERIFY_BRIEF" | "$BSTACK_RUN" run --role impl --worktree --brief -
 
 Use background Bash completion notifications or Monitor for long work. One wait per ID; do not loop over `status` or `result`. Read `status ID` to confirm terminal state and exit code: a `wait` or `result` report is not itself a success verdict. `result ID` prints the full final answer. `run`, `ask`, `steer`, and `queue` accept `--brief -` for UTF-8 stdin instead of a staging file.
 
-Run records live in `${XDG_STATE_HOME:-$HOME/.local/state}/bstack/<repo-name>-<path-hash>/runs/<id>/`, shared by a repository's Git worktrees. `BSTACK_STATE_DIR` overrides the directory directly above `runs/`. `status ID` reports `run_dir`; records contain `brief.md`, `meta.json`, and `result.md` once finalized. Only failed or interrupted runs save a bounded diagnostic tail in `stderr.log`. If a run ID is missing from the new store, `status ID`, `result ID`, and `wait ID` can still read the old in-repository record without modifying it.
+Run records are kept indefinitely in `<plugin root>/state/runs/<repo-name>-<sha256(repo path)[:12]>/<run id>/`, shared by a repository's Git worktrees. `status ID` reports `run_dir`; records contain `brief.md`, `meta.json`, and `result.md` once finalized. Only failed or interrupted runs save a bounded diagnostic tail in `stderr.log`.
 
 Workers report in their final result. For permitted throwaway experiments, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. There is no other scratch location.
 

@@ -14,8 +14,7 @@ import unittest
 import uuid
 
 
-BSTACK = Path(__file__).resolve().parents[2] / "bin" / "bstack-run"
-PLUGIN_ROOT = BSTACK.parents[1]
+SOURCE_PLUGIN = Path(__file__).resolve().parents[2]
 FAKE_CLI = """\
 #!/usr/bin/env python3
 import json
@@ -129,7 +128,15 @@ class BstackRunTest(unittest.TestCase):
         self.base = Path(temporary.name).resolve()
         self.cwd = self.base / "repo"
         self.cwd.mkdir()
-        self.root = self.base / "state" / "runs"
+        self.plugin = self.base / "plugin"
+        for name in ("bin", "config", "templates"):
+            shutil.copytree(SOURCE_PLUGIN / name, self.plugin / name)
+        self.bstack = self.plugin / "bin" / "bstack-run"
+        self.writer = self.plugin / "skills" / "setup-bstack" / "write-models.py"
+        self.writer.parent.mkdir(parents=True)
+        shutil.copy2(SOURCE_PLUGIN / self.writer.relative_to(self.plugin), self.writer)
+        key = hashlib.sha256(os.fsencode(self.cwd)).hexdigest()[:12]
+        self.root = self.plugin / "state" / "runs" / f"{self.cwd.name}-{key}"
         self.fixtures = self.base / "fixtures"
         self.fixtures.mkdir()
         self.input_records = {}
@@ -142,12 +149,11 @@ class BstackRunTest(unittest.TestCase):
         self.claude_ready = self.cwd / "claude-ready"
         self.claude_config = self.cwd / "claude config"
         self.config_path = self.cwd / "test models.json"
-        self.config = json.loads((PLUGIN_ROOT / "config" / "models.json").read_bytes())
+        self.config = json.loads((self.plugin / "config" / "models.json").read_bytes())
         self.write_config()
         self.gate = self.cwd / "release"
         self.api_log = self.cwd / "api.jsonl"
         self.env = dict(os.environ, BSTACK_CLI=str(self.fake), FAKE_GATE=str(self.gate),
-                         BSTACK_STATE_DIR=str(self.root.parent),
                          BSTACK_CONFIG=str(self.config_path),
                          BSTACK_CLAUDE_CLI=str(self.claude), FAKE_CLAUDE_READY=str(self.claude_ready),
                          CLAUDE_CONFIG_DIR=str(self.claude_config),
@@ -166,16 +172,15 @@ class BstackRunTest(unittest.TestCase):
         if mode:
             env["FAKE_MODE"] = mode
         proc = subprocess.run(
-            [str(BSTACK), *args], cwd=self.cwd, env=env, capture_output=True,
+            [str(self.bstack), *args], cwd=self.cwd, env=env, capture_output=True,
             input=stdin, encoding="utf-8", timeout=5,
         )
         proc.input_record = fixture
         return proc
 
     def setup_models(self, update):
-        writer = PLUGIN_ROOT / "skills" / "setup-bstack" / "write-models.py"
         return subprocess.run(
-            ["python3", str(writer)], cwd=self.cwd,
+            ["python3", str(self.writer)], cwd=self.cwd,
             env=dict(self.env, BSTACK_CONFIG=self.config_path.name),
             input=json.dumps(update), capture_output=True, encoding="utf-8", timeout=5,
         )
@@ -201,7 +206,7 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual([tuple(cell.strip() for cell in line.split("|")) for line in lines[1:-1]], [
             ("Role", "Default model", "--fast model", "Preamble"),
             ("impl", "test/build#high", "test/build-fast#high",
-             str(PLUGIN_ROOT / "templates" / "preamble" / "impl.md")),
+             str(self.plugin / "templates" / "preamble" / "impl.md")),
             ("hard", "test/hard", "test/hard", str(preamble)),
             ("explore", "test/already-fast", "test/already-fast", "-"),
             ("panel", "claude:opus", "claude:opus", "-"),
@@ -255,8 +260,8 @@ class BstackRunTest(unittest.TestCase):
         self.config["preamble"] = {"hard": "missing-preamble.md", "explore": "templates"}
         self.write_config()
         proc = self.assert_config_failure("preamble.hard: not a file:")
-        self.assertIn(str(PLUGIN_ROOT / "missing-preamble.md"), proc.stdout)
-        self.assertIn(f"preamble.explore: not a file: {PLUGIN_ROOT / 'templates'}", proc.stdout)
+        self.assertIn(str(self.plugin / "missing-preamble.md"), proc.stdout)
+        self.assertIn(f"preamble.explore: not a file: {self.plugin / 'templates'}", proc.stdout)
 
     def test_config_checks_claude_aliases_independently_of_deny(self):
         self.config["deny"] = []
@@ -379,7 +384,7 @@ class BstackRunTest(unittest.TestCase):
             self.assertIsNone(meta["preamble"])
             self.assertIsNone(meta["preamble_sha256"])
             return ""
-        source = PLUGIN_ROOT / "templates" / "preamble" / f"{template}.md"
+        source = self.plugin / "templates" / "preamble" / f"{template}.md"
         data = source.read_bytes()
         self.assertEqual(meta["preamble"], str(source))
         self.assertEqual(meta["preamble_sha256"], hashlib.sha256(data).hexdigest())
@@ -400,7 +405,7 @@ class BstackRunTest(unittest.TestCase):
         sid = meta["session_id"]
         self.assertEqual(proc.stdout, f"id={run_id} status=done model=claude:sonnet "
                                       f"session={sid} fast=false\nfake Claude answer")
-        allowed_tools = [f"Bash({shlex.quote(str(PLUGIN_ROOT / 'bin' / name))}:*)"
+        allowed_tools = [f"Bash({shlex.quote(str(self.plugin / 'bin' / name))}:*)"
                          for name in ("bstack-run", "bstack-prd")]
         self.assertEqual(self.claude_input(run_id)["argv"], [
             "-p", "--model", "sonnet", "--output-format", "json", "--permission-mode", "acceptEdits",
@@ -814,7 +819,7 @@ class BstackRunTest(unittest.TestCase):
         parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
         fixture = self.fixtures / "abandoned.json"
         with subprocess.Popen(
-            [str(BSTACK), "ask", parent, "--message", "abandoned"],
+            [str(self.bstack), "ask", parent, "--message", "abandoned"],
             cwd=self.cwd, env=dict(self.env, FAKE_MODE="gate", FAKE_INPUT_RECORD=str(fixture)),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ) as launcher:
@@ -966,7 +971,7 @@ class BstackRunTest(unittest.TestCase):
 
     def test_interrupt_status_survives_worker_exit(self):
         with subprocess.Popen(
-            [str(BSTACK), "run", "--role", "explore", "--message", "start"], cwd=self.cwd,
+            [str(self.bstack), "run", "--role", "explore", "--message", "start"], cwd=self.cwd,
             env=dict(self.env, FAKE_MODE="gate"), stdout=subprocess.PIPE, text=True,
         ) as worker:
             try:
@@ -1062,11 +1067,8 @@ class BstackRunTest(unittest.TestCase):
         self.assertEqual(self.status(run_id)["cwd"], str(self.cwd.resolve()))
 
     @unittest.skipUnless(shutil.which("git"), "git not installed")
-    def test_default_state_is_shared_by_linked_worktree_and_scoped_per_repo(self):
+    def test_plugin_state_is_shared_by_linked_worktree_and_scoped_per_repo(self):
         repo = self.cwd
-        self.env.pop("BSTACK_STATE_DIR")
-        state = self.base / "xdg state"
-        self.env["XDG_STATE_HOME"] = str(state)
 
         def git(*args):
             subprocess.run(["git", *args], cwd=self.cwd, check=True, capture_output=True)
@@ -1076,41 +1078,26 @@ class BstackRunTest(unittest.TestCase):
             "commit", "-qm", "fixture", "--allow-empty")
         other = self.base / "linked"
         git("worktree", "add", "--detach", str(other))
-        key = hashlib.sha256(os.fsencode(repo)).hexdigest()[:12]
-        directory = state / "bstack" / f"{repo.name}-{key}" / "runs"
         a = self.run_id(self.call("run", "--role", "impl", "--message", "main"))
         self.cwd = other
         self.assertEqual(self.call("result", a).stdout, "fake answer\n")
         b = self.run_id(self.call("ask", a, "--message", "linked"))
-        self.assertEqual(self.status(b)["run_dir"], str(directory / b))
+        self.assertEqual(self.status(b)["run_dir"], str(self.root / b))
         self.cwd = repo
-        self.assertEqual(self.status(a)["run_dir"], str(directory / a))
+        self.assertEqual(self.status(a)["run_dir"], str(self.root / a))
         self.assertEqual(self.status(b)["cwd"], str(other))
         self.cwd = self.base / "other" / repo.name
         self.cwd.mkdir(parents=True)
         git("init", "-q")
         self.assertEqual(self.call("status", a).returncode, 2)
 
-    def test_legacy_lookup_is_read_only_and_new_store_takes_precedence(self):
+    def test_run_records_live_under_the_plugin_copy(self):
         run_id = self.run_id(self.call("run", "--role", "impl", "--message", "test"))
-        directory = self.root / run_id
-        legacy = self.cwd / ".bstack/runs" / run_id
-        legacy.parent.mkdir(parents=True)
-        shutil.copytree(directory, legacy)
-        (legacy / "result.md").write_text("legacy answer")
-        (legacy / "raw.jsonl").write_text("legacy stream")
-        before = {p: (p.stat().st_mtime_ns, p.read_bytes()) for p in legacy.iterdir() if p.is_file()}
-        self.assertEqual(self.call("result", run_id).stdout, "fake answer\n")
-        shutil.rmtree(directory)
-        self.assertEqual(self.status(run_id)["run_dir"], str(legacy))
-        for command in ("result", "wait"):
-            proc = self.call(command, run_id)
-            self.assertEqual((proc.returncode, proc.stdout), (0, "legacy answer\n"))
-        for command, args in (("ask", ("--message", "no")), ("interrupt", ()), ("brief-bundle", ())):
-            self.assertEqual(self.call(command, run_id, *args).returncode, 2)
-        self.assertEqual(before, {p: (p.stat().st_mtime_ns, p.read_bytes())
-                                  for p in legacy.iterdir() if p.is_file()})
-        self.assertFalse(directory.exists())
+        key = hashlib.sha256(os.fsencode(self.cwd)).hexdigest()[:12]
+        directory = self.plugin / f"state/runs/{self.cwd.name}-{key}/{run_id}"
+        self.assertEqual(self.status(run_id)["run_dir"], str(directory))
+        self.assertEqual({path.name for path in directory.iterdir()},
+                         {"brief.md", "meta.json", "result.md"})
 
 
 if __name__ == "__main__":

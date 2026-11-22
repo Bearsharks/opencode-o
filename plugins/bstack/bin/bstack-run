@@ -51,30 +51,25 @@ def git_output(*args):
     return git.stdout if git.returncode == 0 else None
 
 
-def repository_roots():
+def repository_root():
     top = git_output("rev-parse", "--show-toplevel")
     if not top:
-        return Path.cwd(), Path.cwd()
+        return Path.cwd()
     checkout = Path(os.fsdecode(top.removesuffix(b"\n"))).resolve()
     common = git_output("rev-parse", "--git-common-dir")
     if common:
         git_dir = Path(os.fsdecode(common.removesuffix(b"\n"))).resolve()
         if git_dir.name == ".git":
-            return checkout, git_dir.parent
+            return git_dir.parent
     # Git lists the main worktree first, from the common dir's metadata.
     worktrees = git_output("worktree", "list", "--porcelain", "-z") or b""
     first = worktrees.split(b"\0", 1)[0]
-    main = Path(os.fsdecode(first[9:])).resolve() if first.startswith(b"worktree ") else checkout
-    return checkout, main
+    return Path(os.fsdecode(first[9:])).resolve() if first.startswith(b"worktree ") else checkout
 
 
 def run_root(repo):
-    override = os.environ.get("BSTACK_STATE_DIR")
-    if override:
-        return Path(override).expanduser().resolve() / "runs"
-    base = os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state"
     key = hashlib.sha256(os.fsencode(repo)).hexdigest()[:12]
-    return Path(base).expanduser().resolve() / "bstack" / f"{repo.name or 'root'}-{key}" / "runs"
+    return PLUGIN_ROOT / "state" / "runs" / f"{repo.name or 'root'}-{key}"
 
 
 def read_meta(directory):
@@ -136,22 +131,12 @@ def record_directive(directory, meta, kind, **payload):
     write_meta(directory, meta)
 
 
-def legacy_directives(directory):
-    entries = []
-    for path in directory.glob("directive-*.md"):
-        match = re.fullmatch(r"directive-([1-9][0-9]*)\.md", path.name)
-        if match and path.is_file():
-            entries.append((int(match[1]), path))
-    return sorted(entries)
-
-
-def lookup(root, run_id, *fallbacks):
+def lookup(root, run_id):
     if not RUN_ID.fullmatch(run_id):
         raise UsageError(f"invalid run id: {run_id}")
-    for store in (root, *fallbacks):
-        directory = store / run_id
-        if (directory / "meta.json").is_file():
-            return directory
+    directory = root / run_id
+    if (directory / "meta.json").is_file():
+        return directory
     raise UsageError(f"run not found: {run_id}")
 
 
@@ -866,11 +851,7 @@ def show_bundle(directory):
     print(f"# Brief bundle: {directory.name}\n\n## Original brief\n")
     sys.stdout.write((directory / "brief.md").read_bytes().decode("utf-8"))
     print("\n\n## Directives")
-    old = legacy_directives(directory)
-    for _, path in old:
-        sys.stdout.write("\n\n" + path.read_bytes().decode("utf-8"))
-    offset = old[-1][0] if old else 0
-    for index, directive in enumerate(read_meta(directory).get("directives", []), offset + 1):
+    for index, directive in enumerate(read_meta(directory).get("directives", []), 1):
         print(f"\n\n### Directive {index}: {directive['kind']}\n\nTime: {directive['time']}\n")
         if directive["kind"] == "ask":
             child = directory.parent / directive["run_id"]
@@ -968,24 +949,21 @@ def main():
     args = parser().parse_args()
     if args.command == "config":
         return show_config()
-    checkout, repo = repository_roots()
-    root = run_root(repo)
+    root = run_root(repository_root())
     if args.command in ("run", "ask"):
         with ExitStack() as resources:
             directory, meta, owner_fd = prepare(root, args, resources)
             return launch(directory, meta, args, owner_fd)
     if args.command == "status" and args.id is None:
         return show_recent(root)
-    legacy = [path / ".bstack" / "runs" for path in dict.fromkeys((checkout, repo))]
-    readers = ("status", "result", "wait")
-    directory = lookup(root, args.id, *(legacy if args.command in readers else []))
+    directory = lookup(root, args.id)
     if args.command in ("steer", "queue", "interrupt"):
         return control(directory, args)
     if args.command == "brief-bundle":
         return show_bundle(directory)
     meta = observed_meta(directory)
     if args.command == "status":
-        meta["directive_count"] = len(meta.pop("directives", [])) + len(legacy_directives(directory))
+        meta["directive_count"] = len(meta.pop("directives", []))
         meta["run_dir"] = str(directory)
         print(json.dumps(meta, ensure_ascii=False, indent=2))
         return 0

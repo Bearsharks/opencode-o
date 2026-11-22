@@ -5,7 +5,6 @@ plugin=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/bstack-claude-smoke.XXXXXX")
 trap 'rm -rf -- "$scratch"' EXIT
 cd -- "$scratch"
-export BSTACK_STATE_DIR="$scratch/state"
 
 run_case() {
   local name=$1 prompt=$2 output header id meta rc=0
@@ -20,7 +19,8 @@ run_case() {
     return 1
   fi
   if (( rc != 0 )); then
-    cat "$BSTACK_STATE_DIR/runs/$id/stderr.log" >&2
+    run_dir=$("$plugin/bin/bstack-run" status "$id" | python3 -c 'import json, sys; print(json.load(sys.stdin)["run_dir"])')
+    cat "$run_dir/stderr.log" >&2
     return 1
   fi
   meta=$("$plugin/bin/bstack-run" status "$id") || return 1

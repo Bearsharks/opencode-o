@@ -18,7 +18,7 @@ bash "$suite/run-case.sh" question opus --max-cost-usd "${CAP_CONFIRM:?}" --ask 
 ```
 
 다른 사례도 표의 이름과 모델을 사용한다. 판정은 사람이 한다. 각 턴의 마지막 메시지와 PRD를 읽고 아래 표의 기대와 비교한다.
-첫 턴은 `${XDG_STATE_HOME:-$HOME/.local/state}/bstack/behavior/<case>/`에 별도 Git 루트와 제품·플러그인 복사본을 생성한다. 입력 및 검증 기록은 Git 루트 옆의 `.<case>-state/`에 둔다.
+첫 턴은 `<source plugin>/state/behavior/<case>/`에 별도 Git 루트와 제품·플러그인 복사본을 생성한다. 입력 및 검증 기록은 Git 루트 옆의 `.<case>-state/`에 둔다.
 모델 없이 생성만 하려면 `python3 -B "$suite/fixture.py" <case>`를 실행한다. `run-case.sh` 첫 실행은
 기존 경로를 덮지 않으므로 재시험 전 기존 픽스처와 상태 디렉터리를 다른 곳에 보관한다.
 
@@ -40,9 +40,9 @@ bash "$suite/run-case.sh" question opus --max-cost-usd "${CAP_CONFIRM:?}" --ask 
 ## 기록
 
 턴별 명령, 종료 코드, 전후 경로/바이트 목록, 요청 원문, `status`와 `result`는
-`.<case>-state/turns/{first,answered,confirmed}/`에 남는다. 실행기는 `BSTACK_STATE_DIR`을
-`.<case>-state/`로 지정한다. run 기록은 해당 픽스처에서 `bstack-run status ID`와
-`bstack-run result ID`로 확인할 수 있다(같은 `BSTACK_STATE_DIR` 사용).
+`.<case>-state/turns/{first,answered,confirmed}/`에 남는다. Run 기록은
+`<fixture>/plugins/bstack/state/runs/<repo-name>-<sha256(repo path)[:12]>/<run id>/`에 무기한 보관된다.
+해당 픽스처에서 플러그인 복사본의 `bstack-run status ID`와 `bstack-run result ID`로 확인할 수 있다.
 
 ## 비용 없는 검증
 

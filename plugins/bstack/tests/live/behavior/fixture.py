@@ -8,7 +8,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 PLUGIN = HERE.parents[2]
-SCRATCH = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state").expanduser() / "bstack/behavior"
+SCRATCH = PLUGIN / "state" / "behavior"
 MODELS = {"clear": "opus", "clear-auto": "opus", "question": "opus",
           "mode-positive": "opus", "mode-negative": "sonnet",
           "availability": "sonnet", "resume": "sonnet", "recover": "sonnet"}
@@ -186,12 +186,13 @@ def prepare(case):
                               "GIT_OBJECT_DIRECTORY", "GIT_INDEX_FILE")}
         subprocess.run(["git", "init", "--quiet", "--template=", str(root)],
                        check=True, env=env)
+        put(root, ".git/info/exclude", "/plugins/bstack/state/\n")
         plugin = root / "plugins/bstack"
         ignore = shutil.ignore_patterns("__pycache__", ".git", ".bstack", ".env", ".env.*",
                                        ".credentials.json")
-        # Do not copy this harness (which contains future user replies) into the Git root.
-        shutil.copytree(PLUGIN, plugin,
-                        ignore=lambda path, names: ignore(path, names) | ({"tests"} if Path(path) == PLUGIN else set()))
+        # Omit run records and the harness (which contains future user replies).
+        shutil.copytree(PLUGIN, plugin, ignore=lambda path, names:
+                        ignore(path, names) | ({"state", "tests"} if Path(path) == PLUGIN else set()))
         recipe = {"question": question, "mode-positive": mode_positive, "mode-negative": mode_negative,
                   "availability": availability, "resume": resolved_jot}.get(case, clear)
         text = recipe(root)
