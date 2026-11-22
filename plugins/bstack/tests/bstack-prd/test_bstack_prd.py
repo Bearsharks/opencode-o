@@ -13,8 +13,9 @@ import unittest
 
 HERE = Path(__file__).resolve().parent
 PLUGIN = HERE.parents[1]
+FIXTURES = HERE / "fixtures"
 READY = '{"verdict":"READY","basis":"checked","findings":[]}'
-FINDING = dict(cell="F-01/검증", criterion="actual result", gap="prior gap", resolve="add the check")
+FINDING = dict(cell="F-01/검증 근거", criterion="actual result", gap="prior gap", resolve="add the check")
 
 
 def answer(name, *findings):
@@ -36,7 +37,7 @@ def independent_hash(path):
 
 
 def independent_reviewer_hash(plugin):
-    paths = ("skills/bstack-clarify/references/reviewer.md", "templates/preamble/reviewer.md")
+    paths = ("skills/bstack-feature/references/reviewer.md", "templates/preamble/reviewer.md")
     data = (value for path in paths for value in (path.encode(), (plugin / path).read_bytes()))
     return hashlib.sha256(b"".join(struct.pack(">Q", len(value)) + value for value in data)).hexdigest()
 
@@ -57,14 +58,14 @@ class PRDTest(unittest.TestCase):
         shutil.copy2(PLUGIN / "bin/bstack-prd", self.cli)
         shutil.copyfile(HERE / "fake-bstack-run.py", bin_dir / "bstack-run")
         (bin_dir / "bstack-run").chmod(0o755)
-        shutil.copytree(PLUGIN / "skills/bstack-clarify", self.plugin / "skills/bstack-clarify")
+        self.feature = self.plugin / "skills/bstack-feature"
+        shutil.copytree(PLUGIN / self.feature.relative_to(self.plugin), self.feature)
         self.preamble = self.plugin / "templates/preamble/reviewer.md"
         self.preamble.parent.mkdir(parents=True)
         shutil.copyfile(PLUGIN / self.preamble.relative_to(self.plugin), self.preamble)
-        self.refs = self.plugin / "skills/bstack-clarify/references"
-        self.example = self.refs / "example-prd"
+        self.refs = self.feature / "references"
         self.brief = self.cwd / "brief.md"
-        self.brief.write_bytes((self.example / "request.md").read_bytes())
+        self.brief.write_bytes((FIXTURES / "request.md").read_bytes())
         self.prd = self.cwd / ".bstack/jot"
         self.index = self.prd / "index.md"
         self.request = self.prd / "request.md"
@@ -108,9 +109,8 @@ class PRDTest(unittest.TestCase):
     def example_candidate(self):
         self.start(path=str(self.prd))
         self.assertEqual(self.index.read_bytes(), (self.refs / "template/index.md").read_bytes())
-        for path in self.example.glob("*.md"):
-            if path.name != "request.md":
-                shutil.copyfile(path, self.prd / path.name)
+        shutil.copyfile(FIXTURES / "index.md", self.index)
+        shutil.copytree(FIXTURES / "evidence", self.prd / "evidence")
 
     def calls(self):
         path = self.state / "calls.jsonl"
@@ -200,7 +200,7 @@ class PRDTest(unittest.TestCase):
         self.prd.mkdir(parents=True)
         self.start(3, error="invalid_path")
         self.prd.rmdir()
-        self.prd.symlink_to(self.example, target_is_directory=True)
+        self.prd.symlink_to(FIXTURES, target_is_directory=True)
         self.start(3)
         self.prd.unlink()
         original = self.brief.with_name("original.md")
@@ -220,24 +220,37 @@ class PRDTest(unittest.TestCase):
 
     def test_preflight_blocks_only_missing_basics(self):
         self.start()
-        for index in (None, " \r\n", self.index.read_text(), "# No rows",
-                      "| H-01 | result |", "| F-01 | result |"):
+        for index in (None, " \r\n", self.index.read_text()):
             with self.subTest(index=index):
                 if index is None:
                     self.index.unlink()
                 else:
                     self.index.write_text(index)
                 self.review(3, error="preflight_failed")
-        self.index.write_bytes((self.example / "index.md").read_bytes())
+        self.index.write_bytes((FIXTURES / "index.md").read_bytes())
         self.request.unlink()
         value = self.review(3, error="preflight_failed")
         self.assertIn("request.md: missing", value["detail"])
         self.assertEqual(self.calls(), [])
 
+    def test_preflight_requires_f_row_but_not_a_hypothesis(self):
+        self.example_candidate()
+        candidate = self.index.read_bytes()
+        for index in ("# No rows", "| H-01 | hypothesis |"):
+            with self.subTest(index=index):
+                self.index.write_text(index)
+                result = self.review(3, error="preflight_failed")
+                self.assertIn("index.md: at least one F row required", result["detail"])
+                self.assertEqual(self.calls(), [])
+        self.index.write_bytes(candidate)
+        result = self.review(verdict="READY")
+        self.assertFalse((Path(result["snapshot"]) / "hypothesis.md").exists())
+        self.status("approved")
+
     def test_preflight_leaves_markup_and_request_format_to_reviewer(self):
         self.brief.write_text("# Natural title\n> A request about <id>.\n")
         self.start()
-        self.index.write_text("# Example\n```\n| H-01 | <id> |\n| F-05 | [ref](missing.md#absent) |\n```\n")
+        self.index.write_text("# Example\n```\n| F-05 | [ref](missing.md#absent) |\n```\n")
         result = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
         snapshot = Path(result["snapshot"])
         self.assertEqual((snapshot / "request.md").read_bytes(), self.brief.read_bytes())
@@ -246,11 +259,14 @@ class PRDTest(unittest.TestCase):
         receipt = json.loads(Path(result["record"]).read_bytes())
         self.assertEqual(receipt["run_record"], str(self.latest_brief().with_name("meta.json")))
         self.assertTrue(self.latest_brief().is_file())
+        self.assertIn(f"[작성 기준]: `{self.feature / 'SKILL.md'}`", self.latest_brief().read_text())
         self.assertFalse((snapshot.parent / "brief.md").exists())
         self.assertEqual(list((self.cwd / ".bstack").iterdir()), [self.prd])
 
     def test_ready_framing_snapshot_and_read_only_reuse(self):
         self.example_candidate()
+        hypothesis = self.prd / "hypothesis.md"
+        hypothesis.write_text("# Product hypothesis\n\nSelf-service recovery reduces support requests.\n")
         self.review(verdict="READY", config={"answer": "\n```json\r\n" + READY + "\r\n```\n"})
         first = self.status("approved")
         record = json.loads(Path(first["record"]).read_bytes())
@@ -260,6 +276,7 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(set(first), {"state", "index", "hash", "revise_count", "revise_records",
                                       "run_id", "record"})
         snapshot = Path(record["snapshot"])
+        self.assertEqual((snapshot / "hypothesis.md").read_bytes(), hypothesis.read_bytes())
         self.assertEqual(independent_hash(snapshot), record["hash"])
         self.assertTrue(all(not p.stat().st_mode & 0o222 for p in [snapshot, *snapshot.rglob("*")]))
         self.assertTrue(all(stat.S_ISREG(p.lstat().st_mode) for p in snapshot.rglob("*.md")))
@@ -281,7 +298,7 @@ class PRDTest(unittest.TestCase):
             "```\n" + READY + "\n```", "```json\n" + READY + "\n```\n```json\n" + READY + "\n```",
             READY.replace('"basis"', '"verdict":"READY","basis"'),
             READY.replace('"basis"', '"extra":0,"basis"'), READY.replace("checked", " "),
-            answer("REVISE", dict(FINDING, cell="F-01/근거(pilot)")),
+            answer("REVISE", dict(FINDING, cell="F-01/근거")),
             answer("REVISE", dict(FINDING, cell="F-01,H-01")),
             answer("REVISE", dict(FINDING, gap=" ")), answer("REVISE"),
             answer("REVISE", dict(FINDING, extra="no")), answer("READY", FINDING),
@@ -292,7 +309,8 @@ class PRDTest(unittest.TestCase):
                 self.review(3, config={"answer": text}, error="invalid_verdict")
                 self.status()
                 self.assertEqual(list(self.reviews.glob("*.json")), [])
-        self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
+        self.review(1, config={"answer": answer("REVISE", FINDING, dict(FINDING, cell="F-01/성공 정의 근거"))},
+                    verdict="REVISE")
         self.status()
         self.review(2, config={"answer": answer("BLOCKED", dict(FINDING, cell="F-99"))}, verdict="BLOCKED")
         self.status()
@@ -367,13 +385,13 @@ class PRDTest(unittest.TestCase):
     def test_each_content_change_drafts_and_criteria_change_forces_full_review(self):
         self.example_candidate()
         old = self.review(verdict="READY")
-        for path in (self.request, self.prd / "evidence.md"):
+        evidence = self.prd / "evidence/local-list.md"
+        for path in (self.request, evidence):
             before = path.read_bytes()
             self.append(path, "\nchange\n")
             self.assertNotEqual(self.status()["hash"], old["hash"])
             path.write_bytes(before)
             self.assertEqual(self.status("approved")["run_id"], old["run_id"])
-        evidence = self.prd / "evidence.md"
         evidence.rename(evidence.with_name("renamed.md"))
         self.status()
         evidence.with_name("renamed.md").rename(evidence)
@@ -427,17 +445,16 @@ class PRDTest(unittest.TestCase):
         self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
         self.append(self.brief, "\nnew-answer-from-user\n")
         self.start()
-        self.append(self.prd / "verification.md", "\nfixture changed\n")
+        self.append(self.prd / "evidence/local-list.md", "\nfixture changed\n")
         (self.prd / "detail.md").write_text("# Added detail\n")
         self.review(verdict="READY")
         brief = self.latest_brief().read_text()
         diff = brief.split("## 직전 지적과 제출본 간 diff", 1)[1]
         for part in ("prior gap", "+++ after/request.md", "+new-answer-from-user",
-                     "+++ after/verification.md", "+fixture changed", "--- /dev/null",
+                     "+++ after/evidence/local-list.md", "+fixture changed", "--- /dev/null",
                      "+++ after/detail.md"):
             self.assertIn(part, diff)
-        for part in ("after/index.md", "after/evidence.md"):
-            self.assertNotIn(part, diff)
+        self.assertNotIn("after/index.md", diff)
 
     def test_only_one_review_at_a_time(self):
         self.example_candidate()

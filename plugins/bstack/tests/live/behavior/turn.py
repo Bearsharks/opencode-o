@@ -12,7 +12,7 @@ import sys
 from fixture import ANSWERS, state_dir
 
 PLUGIN = Path("plugins/bstack")
-REFS = PLUGIN / "skills/bstack-clarify/references"
+REFS = PLUGIN / "skills/bstack-feature/references"
 ID = r"\d{8}-\d{6}-(?:impl|hard|explore|panel)-[0-9a-f]{4}"
 
 

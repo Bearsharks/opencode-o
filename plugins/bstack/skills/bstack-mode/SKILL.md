@@ -122,7 +122,7 @@ Write short declarative sentences with no long dash and no colon as a connector.
 
 Before routing, determine whether the request adds a new feature. Bug fixes, typo corrections, and small behavior-preserving changes do not require a PRD or a waiver. If it is unclear whether the request adds a new feature, ask the user before routing implementation; do not assume either answer.
 
-For a new feature, unless the user explicitly waives the PRD, Read `${CLAUDE_PLUGIN_ROOT}/skills/bstack-clarify/SKILL.md` to match or prepare the PRD for this exact request. Require a current approved index path and independent review run ID before routing implementation. A question or tooling blocker is not approval. Use the same gate when defining a new feature's scope or acceptance criteria; a plan-only request does not authorize implementation.
+For a new feature, unless the user explicitly waives the PRD, Read `${CLAUDE_PLUGIN_ROOT}/skills/bstack-feature/SKILL.md` to match or prepare the PRD for this exact request. When the user asks for a planning or hypothesis review, or gives only a product goal, first Read `${CLAUDE_PLUGIN_ROOT}/skills/bstack-hypothesis/SKILL.md`; that step is optional otherwise. Require a current approved index path and independent review run ID before routing implementation. A question or tooling blocker is not approval. Use the same gate when defining a new feature's scope or acceptance criteria; a plan-only request does not authorize implementation.
 
 Match the task to a playbook and open its steps at `playbooks/<title>.md`, with the title in kebab case. Copy its steps into the todolist tool first. Large, cross-cutting, or unattended work, or a task no playbook fits, routes to the **figure-it-out** skill.
 

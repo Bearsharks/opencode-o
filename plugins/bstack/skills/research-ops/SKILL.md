@@ -12,8 +12,6 @@ Use this when the user asks to research something current, compare options, enri
 
 This workflow tells you when and how to combine local evidence, current web discovery, and deeper research.
 
-When opened by `bstack-clarify`, return the result and its evidence to the relevant PRD cell instead of writing a separate research artifact.
-
 ## Research Capabilities
 
 Use the capabilities relevant to the ask:

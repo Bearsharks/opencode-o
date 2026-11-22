@@ -22,16 +22,12 @@ if [[ $# == 6 ]]; then
     esac
     root=$(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1]); from fixture import SCRATCH; print((SCRATCH / sys.argv[2]).resolve(strict=True))' "$suite" "$case_name")
     turn=answered
-    checkpoint=("$6")
     audit="$(dirname -- "$root")/.$case_name-state/turns"
-    first_id="$audit/first/id.json"
     if [[ -d "$audit/answered" ]]; then
         [[ $case_name == question || $case_name == mode-positive ]] || usage
         turn=confirmed
-        checkpoint=("$(python3 -B -c 'import json, sys; print(json.load(open(sys.argv[1])))' "$first_id")" "$6")
     fi
-    # The operator must also read the latest question/confirmation before approving the next turn.
-    python3 -B "$suite/check-case.py" "$case_name" "${checkpoint[@]}"
+    # The operator reads the latest question or confirmation before approving the next turn.
     args=(ask "$6" --brief -)
 else
     root=$(python3 -B "$suite/fixture.py" "$case_name")

@@ -10,8 +10,6 @@ metadata:
 
 This lane owns product diagnosis, not implementation-ready specification writing.
 
-When opened by `bstack-clarify`, return the result to the relevant PRD cell instead of creating a separate product brief, roadmap, or specification.
-
 If the user needs a durable PRD-to-SRS or capability-contract artifact outside clarification, hand off specification writing with `${CLAUDE_PLUGIN_ROOT}/bin/bstack-run run --role impl --brief FILE`.
 
 ## When to Use

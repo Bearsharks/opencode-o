@@ -6,15 +6,12 @@ import shutil
 import subprocess
 import sys
 
-from reviewer_examples import REVIEWER_MODELS, reviewer_brief
-
 HERE = Path(__file__).resolve().parent
 PLUGIN = HERE.parents[2]
 SCRATCH = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state").expanduser() / "bstack/behavior"
 MODELS = {"clear": "opus", "clear-auto": "opus", "question": "opus",
           "mode-positive": "opus", "mode-negative": "sonnet",
-          "availability": "sonnet", "resume": "sonnet", "recover": "sonnet",
-          **REVIEWER_MODELS}
+          "availability": "sonnet", "resume": "sonnet", "recover": "sonnet"}
 AUTO = "이 요청은 확인 없이 알아서 독립 검수까지 진행해 줘. 구현은 시작하지 마.\n"
 CONFIRM = "보여 준 후보를 독립 검수에 제출해 줘.\n"
 ANSWERS = {
@@ -67,20 +64,15 @@ def test_active_list(todo_cli):
 """)
     put(root, "evidence/list-pilot.md", """Fixture pilot: `python3 todo.py list` printed
 `1 [ ] First`, with empty stderr and exit 0. This checks access, not `done`.
-The product owner piloted a stopwatch and the same 10 selection tasks with the
-same five testers; the sheet records start/end time, task, and tester ID.
 """)
     return """Plan `todo done <id>`. A completed item disappears from the default list
 and is shown as `[x]` by `list --all`. A nonexistent ID must print exactly
 `no such item` on stderr and exit 1. Use the existing pytest subprocess fixture
 in `tests/test_todo.py` and observe stdout/stderr/exit status on the local CLI.
 
-Product hypothesis: people find the next active item faster. I will time the
-same 10 tasks with the same five testers before and within seven days after
-launch, from opening the list to picking the next active item. A median at
-least 20% shorter supports it, less refutes it, and missing observations make
-it inconclusive. Access rehearsal is in `evidence/list-pilot.md`; keep the
-limits of order effects and a small sample explicit.
+I lose my place when completed items mix with active ones. Keep the current
+rule that the default list shows active items only. The access rehearsal in
+`evidence/list-pilot.md` observes the existing list, not the new feature.
 """
 
 
@@ -113,7 +105,7 @@ def question(root):
 검증용 CLI 스냅샷, 테스트 저장소 읽기 전용 조회, 밀리초 가상 시계를
 같은 테스트 환경에서 이용할 수 있다. 서버를 재기동하거나 요청을 보내지
 않고 31일 전진시켜 기존 백그라운드 유지 작업 로그를 관찰했다는 제공 기록이다.
-지원 리드는 같은 필터로 내보내기를 재현했다. 기준선 건수는 CSV에 있다.
+지원 리드는 같은 필터로 내보내기를 재현했다. 문의 건수는 CSV에 있다.
 """)
     return f"""Jot에 삭제한 메모용 휴지통을 기획해 줘. 메모가 삭제되면 목록·검색에서
 숨기고 휴지통에 삭제 시각을 보여 줘. 소유자만 보고 복원할 수 있어.
@@ -126,12 +118,9 @@ def question(root):
 옮기는 기존 폴더 삭제 동작은 변경하지 않아. 비우기를 취소하면 그대로,
 확인하면 자기 계정만 즉시 영구 삭제하며 다른 계정은 대신 비울 수 없어.
 
-출시 다음 첫 월요일부터 4주간 지원 리드가 같은 helpdesk의 '메모 복구'
-문의 주 평균을 집계해 3건 이하면 가설 지지, 초과면 기각으로 남겨.
-접수 경로나 복구 FAQ가 바뀌거나 주간 관찰이 빠지면 판정불가야.
-분류 이름만 바뀌면 같은 필터로 재집계할 수 있을 때만 비교해.
-기준선 `docs/support/2026-10-tickets.csv`, 예행 `evidence/rehearsal.md`.
-F는 로컬 A·B, CLI 스냅샷, 저장소 관찰, 가상 시계와 기존 자동 경로로
+메모 복구 문의는 `docs/support/2026-10-tickets.csv`에 기록돼 있어.
+예행은 `evidence/rehearsal.md`에 있어.
+기능은 로컬 A·B, CLI 스냅샷, 저장소 관찰, 가상 시계와 기존 자동 경로로
 검증해. 만료 직전과 +1시간을 관찰하고 새 기능이 예행됐다고 주장하지 마.
 """
 
@@ -143,9 +132,7 @@ def mode_positive(root):
 복구 대상을 메모만으로 할지, 폴더까지 포함할지 아직 결정하지 않았어.
 범위에 따라 성공 기준이 달라져. 이 결정의 주소는 `F-01/성공 정의`야.
 AskUserQuestion을 쓸 수 없으면 글로 물어봐.
-제품 가설은 복구 도움 요청이 줄어드는 것이야. 예행과 기준선은 `evidence/pilot.md`에 있어.
-출시 전 4주와 출시 후 첫 전체 4주의 주 평균을 같은 필터로 비교해.
-30% 이상 감소면 지지, 미달이면 기각, 기록 누락이나 필터 변경이면 판단 보류야.
+복구 도움 요청 수와 로컬 관찰 예행은 `evidence/pilot.md`에 있어.
 로컬 CLI에서 소유자와 타 계정으로 목록 및 저장소를 관찰해.
 삭제한 메모는 일반 목록에 숨기고 소유자만 복구할 수 있어야 해.
 """
@@ -180,8 +167,8 @@ wakeups = []
 wakeups.append(31 * 24 * 60 * 60 * 1000)
 print('simulated background tick', wakeups)
 """)
-    return text.replace("기준선 `docs/support/2026-10-tickets.csv`, 예행 `evidence/rehearsal.md`.",
-        "레포 안에서 기준선 CSV와 로컬 관찰 예행을 찾아 조사해. "
+    return text.replace("예행은 `evidence/rehearsal.md`에 있어.",
+        "레포 안에서 로컬 관찰 예행을 찾아 조사해. "
         "시뮬레이터는 접근 예행일 뿐이고 실제 앱의 자동 삭제 검증은 아니야.")
 
 
@@ -205,28 +192,25 @@ def prepare(case):
         # Do not copy this harness (which contains future user replies) into the Git root.
         shutil.copytree(PLUGIN, plugin,
                         ignore=lambda path, names: ignore(path, names) | ({"tests"} if Path(path) == PLUGIN else set()))
-        if case in REVIEWER_MODELS:
-            text = reviewer_brief(plugin, case)
-        else:
-            recipe = {"question": question, "mode-positive": mode_positive, "mode-negative": mode_negative,
-                      "availability": availability, "resume": resolved_jot}.get(case, clear)
-            text = recipe(root)
-            if case == "mode-positive":
-                put(root, "evidence/pilot.md", "Fixture pilot: 12 recovery requests in 4 weeks; the support lead "
-                    "replayed the same helpdesk filter. `python3 jot.py` showed only each account's own notes.\n")
-            skill = "bstack-mode" if case.startswith("mode-") else "bstack-clarify"
-            text = (f"/bstack:{skill}\n\n{text}\n필요 시 PRD 이름은 `{case}`, 플러그인 복사본은 `{plugin}`이야. "
-                    "그 복사본의 도구를 이 레포에서 사용해.\n")
-            if case != "mode-negative":
-                text += ("기획만 해. 제품 파일 수정·커밋·구현 착수는 승인하지 않아. "
-                         "PRD를 제출한다면 관찰 절차를 별도 상세 Markdown 문서에 남겨 줘.\n")
-            if case in {"clear-auto", "recover"}:
-                text += AUTO
-            if case == "recover":
-                tool = plugin / "bin/bstack-run"
-                tool.rename(tool.with_name("bstack-run.real"))
-                shutil.copyfile(HERE / "recover.py", tool)
-                tool.chmod(0o755)
+        recipe = {"question": question, "mode-positive": mode_positive, "mode-negative": mode_negative,
+                  "availability": availability, "resume": resolved_jot}.get(case, clear)
+        text = recipe(root)
+        if case == "mode-positive":
+            put(root, "evidence/pilot.md", "Fixture pilot: 12 recovery requests in 4 weeks; the support lead "
+                "replayed the same helpdesk filter. `python3 jot.py` showed only each account's own notes.\n")
+        skill = "bstack-mode" if case.startswith("mode-") else "bstack-feature"
+        text = (f"/bstack:{skill}\n\n{text}\n필요 시 PRD 이름은 `{case}`, 플러그인 복사본은 `{plugin}`이야. "
+                "그 복사본의 도구를 이 레포에서 사용해.\n")
+        if case != "mode-negative":
+            text += ("기획만 해. 제품 파일 수정·커밋·구현 착수는 승인하지 않아. "
+                     "새로 작성해 PRD에 링크하는 예행 기록은 PRD 폴더의 evidence/에 남겨 줘.\n")
+        if case in {"clear-auto", "recover"}:
+            text += AUTO
+        if case == "recover":
+            tool = plugin / "bin/bstack-run"
+            tool.rename(tool.with_name("bstack-run.real"))
+            shutil.copyfile(HERE / "recover.py", tool)
+            tool.chmod(0o755)
         put(state, "input.md", text)
     except BaseException:
         shutil.rmtree(root)

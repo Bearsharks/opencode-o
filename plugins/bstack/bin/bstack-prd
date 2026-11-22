@@ -19,13 +19,14 @@ import sys
 
 
 PLUGIN = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
-REFS = PLUGIN / "skills/bstack-clarify/references"
-REVIEW_FILES = ("templates/preamble/reviewer.md", "skills/bstack-clarify/references/reviewer.md")
+FEATURE = PLUGIN / "skills/bstack-feature"
+REFS = FEATURE / "references"
+REVIEW_FILES = ("templates/preamble/reviewer.md", "skills/bstack-feature/references/reviewer.md")
 NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 SHA = re.compile(r"[0-9a-f]{64}")
 RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 ROW_ID = r"[HF]-[0-9]{2,}"
-COLUMNS = ("ID", "성공 정의", "검증", "근거")
+COLUMNS = ("ID", "성공 정의", "성공 정의 근거", "검증", "검증 근거")
 VERDICTS = {"READY": 0, "REVISE": 1, "BLOCKED": 2}
 REVISE_LIMIT = 2
 DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -172,9 +173,8 @@ def preflight(files, digest):
     template = external_file(REFS / "template/index.md").decode("utf-8").strip()
     if not index or index.splitlines() == template.splitlines():
         errors.append("index.md: missing, empty, or unchanged template")
-    elif {match[1] for line in index.splitlines()
-          if (match := re.match(r"^\s*\|?\s*([HF])-[0-9]+\b[^|]*\|", line))} != {"H", "F"}:
-        errors.append("index.md: at least one H row and one F row required")
+    elif not re.search(r"^[ \t]*\|?[ \t]*F-[0-9]+\b[^|\r\n]*\|", index, re.M):
+        errors.append("index.md: at least one F row required")
     if "request.md" not in files:
         errors.append("request.md: missing")
     if errors:
@@ -378,7 +378,7 @@ class PRD:
         path = self.snapshot_path(token)
         brief = original + (f"\n\n## 실제 입력 경로\n\n"
                             f"- [제출 사본 절대경로]: `{path}`\n"
-                            f"- [작성 기준]: `{REFS / 'prd-format.md'}`\n").encode()
+                            f"- [작성 기준]: `{FEATURE / 'SKILL.md'}`\n").encode()
         if previous:
             name, previous = previous
             old_token = self.snapshot_token(name, previous)

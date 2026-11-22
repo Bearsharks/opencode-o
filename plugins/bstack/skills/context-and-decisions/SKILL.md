@@ -8,8 +8,6 @@ description: >-
 
 Govern “what these business terms mean” separately from “why this option was chosen.” Do not create an empty shell when no stable content exists.
 
-When opened by `bstack-clarify`, return the result to the relevant PRD cell instead of writing a separate glossary, ADR, history entry, or tracker update.
-
 ## Domain Context Artifact: Domain Language Only
 
 When terms require repeated explanation, one term has multiple meanings, or unclear language causes module-boundary errors, first reuse the repository's existing glossary/domain-model document or the `context` role in `.governance/docs-map.json`. If an existing context map identifies separate business contexts, follow its links to the relevant glossary; ask when the topic's owner is unclear. Different contexts may legitimately use the same word differently. Do not create a glossary for every directory or impose one meaning across unrelated contexts. Only when no equivalent exists and a term has been resolved should you propose the default `CONTEXT.md` from `templates/context.example.md`. Obtain the user's explicit approval to create that new artifact before writing it, and stay within the authorized documentation scope. General permission to update documentation does not itself approve a new artifact; editing an existing mapped glossary within the authorized scope does not require a new-artifact approval.
