@@ -12,7 +12,7 @@ Fill in every field. Use `none` for absent inputs or permissions.
 
 Follow the Shipping playbook. You may start independent reviewers using the supplied absolute `bstack-run` path. Each perspective needs its own `bstack-run` session, with a reviewer who did not author the change. In-session helpers such as oc-lite runner do not count.
 
-Start each reviewer brief with `NO-PREAMBLE`, then give the absolute path to the [reviewer preamble](preamble/reviewer.md) and have them apply it first.
+Launch each reviewer with `--role review`, which attaches the [reviewer preamble](preamble/reviewer.md) and uses the configured review model.
 
 ## Report to Claude
 

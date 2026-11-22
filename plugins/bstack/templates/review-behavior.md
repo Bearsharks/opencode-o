@@ -1,6 +1,6 @@
 # Shipping review: behavior
 
-Apply the [reviewer preamble](preamble/reviewer.md) first.
+Launched with `--role review`, which attaches the [reviewer preamble](preamble/reviewer.md).
 
 - **Candidate:** <forge, repository, PR URL, base ref, full base and head SHAs>.
 - **Criteria:** <approved PRD (work document if there is no PRD); path and pinned identity or `none`, applicable Verification rows or work criteria, and criteria owner>.

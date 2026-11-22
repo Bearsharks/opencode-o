@@ -16,7 +16,7 @@ LAUNCHER = PLUGIN_ROOT / "bin" / "bstack-run"
 EDITABLE = {"roles", "fast", "deny"}
 MODEL = re.compile(r"[^/#\s]+/[^/#\s]+(?:#[^/#\s]+)?")
 BARE_MODEL = re.compile(r"[^/#\s]+/[^/#\s]+")
-ROLES = ("impl", "hard", "explore", "panel")
+ROLES = ("impl", "hard", "explore", "review", "panel")
 
 
 def validate_update(update):
@@ -25,7 +25,7 @@ def validate_update(update):
     if "roles" in update:
         roles = update["roles"]
         if not isinstance(roles, dict) or set(roles) != set(ROLES):
-            raise ValueError("expected exactly impl, hard, explore, and panel roles")
+            raise ValueError("expected exactly " + ", ".join(ROLES) + " roles")
         panel = roles["panel"]
         if not isinstance(panel, list) or not panel:
             raise ValueError("panel must be a nonempty model list")

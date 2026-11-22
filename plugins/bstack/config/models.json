@@ -4,6 +4,7 @@
     "impl": "openai/gpt-6.2-sol",
     "hard": "openai/gpt-6.2-astra",
     "explore": "openai/gpt-6-luna-fast",
+    "review": "openai/gpt-6.2-sol",
     "panel": [
       "openai/gpt-6.2-sol",
       "zai-coding-plan/glm-5.3",
@@ -14,6 +15,7 @@
     "impl": "templates/preamble/impl.md",
     "hard": "templates/preamble/impl.md",
     "explore": "templates/preamble/explore.md",
+    "review": "templates/preamble/reviewer.md",
     "panel": null
   },
   "fast": {

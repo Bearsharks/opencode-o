@@ -18,7 +18,7 @@ with log.open("a", encoding="utf-8") as stream:
     stream.write(json.dumps([cmd, *args, *([token] if token else [])]) + "\n")
 runs = state / "runs"
 if cmd == "run":
-    assert args == ["--role", "panel", "--brief", "-"], args
+    assert args == ["--role", "review", "--brief", "-"], args
     config = json.loads(os.environ.get("FAKE_CONFIG", "{}"))
     run = runs / token
     run.mkdir(parents=True)

@@ -58,6 +58,7 @@ class PRDTest(unittest.TestCase):
         shutil.copy2(PLUGIN / "bin/bstack-prd", self.cli)
         shutil.copyfile(HERE / "fake-bstack-run.py", bin_dir / "bstack-run")
         (bin_dir / "bstack-run").chmod(0o755)
+        shutil.copytree(PLUGIN / "config", self.plugin / "config")
         self.feature = self.plugin / "skills/bstack-feature"
         shutil.copytree(PLUGIN / self.feature.relative_to(self.plugin), self.feature)
         self.preamble = self.plugin / "templates/preamble/reviewer.md"
@@ -75,6 +76,7 @@ class PRDTest(unittest.TestCase):
     def proc(self, args, config=None, token="", **kwargs):
         env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(self.plugin), FAKE_CONFIG=json.dumps(config or {}),
                    FAKE_ID=token)
+        env.pop("BSTACK_CONFIG", None)
         return subprocess.Popen([self.cli, *args], env=env, cwd=kwargs.get("cwd", self.cwd),
                                 stdin=kwargs.get("stdin"), stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True, encoding="utf-8")
@@ -610,7 +612,8 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(new["reviewer_hash"], independent_reviewer_hash(self.plugin))
         self.assertNotEqual(old["reviewer_hash"], new["reviewer_hash"])
         brief = self.latest_brief().read_bytes()
-        self.assertTrue(brief.startswith(self.preamble.read_bytes() + b"\n\n" + reviewer.read_bytes()))
+        self.assertTrue(brief.startswith(reviewer.read_bytes()))
+        self.assertNotIn(self.preamble.read_bytes(), brief)
         self.assertNotIn("## 직전 지적과 제출본 간 diff".encode(), brief)
 
     def test_preamble_only_change_invalidates_approval_and_forces_full_review(self):
@@ -625,11 +628,27 @@ class PRDTest(unittest.TestCase):
         self.assertNotEqual(new["run_id"], old["run_id"])
         self.assertNotEqual(new["reviewer_hash"], old["reviewer_hash"])
         brief = self.latest_brief().read_bytes()
-        self.assertIn(b"updated shared rules", brief)
+        self.assertEqual(new["reviewer_hash"], independent_reviewer_hash(self.plugin))
+        self.assertNotIn(b"updated shared rules", brief)
         self.assertNotIn("## 직전 지적과 제출본 간 diff".encode(), brief)
         self.status("approved", run_id=new["run_id"])
         self.preamble.write_bytes(original)
         self.status(hash=old["hash"])
+
+    def test_configured_review_preamble_invalidates_approval_without_entering_brief(self):
+        self.example_candidate()
+        old = self.review(verdict="READY")
+        alternate = self.preamble.with_name("alternate.md")
+        alternate.write_bytes(b"Alternate independent review rules\n")
+        config_path = self.plugin / "config/models.json"
+        config = json.loads(config_path.read_bytes())
+        config["preamble"]["review"] = alternate.relative_to(self.plugin).as_posix()
+        config_path.write_text(json.dumps(config))
+        self.status(hash=old["hash"])
+        new = self.review(verdict="READY", hash=old["hash"])
+        self.assertNotEqual(new["reviewer_hash"], old["reviewer_hash"])
+        self.assertNotIn(alternate.read_bytes(), self.latest_brief().read_bytes())
+        self.status("approved", run_id=new["run_id"])
 
     def test_legacy_records_are_readable_but_do_not_approve(self):
         self.example_candidate()

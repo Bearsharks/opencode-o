@@ -36,6 +36,12 @@ if args[0] == "api":
     if args[1] == "session.interrupt":
         if mode != "not-interrupted":
             Path(os.environ["FAKE_GATE"]).touch()
+        if mode == "lost-interrupt-ack":
+            ack_gate = Path(os.environ["FAKE_INTERRUPT_ACK_GATE"])
+            deadline = time.monotonic() + 10
+            while not ack_gate.exists() and time.monotonic() < deadline:
+                time.sleep(.01)
+            sys.exit("fake API disconnected after sending the interrupt")
         print(json.dumps({"interrupted": mode != "not-interrupted"}))
     else:
         payload = json.loads(args[args.index("-d") + 1])
@@ -56,12 +62,16 @@ if fixture := os.environ.get("FAKE_INPUT_RECORD"):
     Path(fixture).write_text(json.dumps(dict(argv=args, brief=brief)))
 event("tool_use", "tool", state={"output": "X" * 110000})
 event("step_finish", "step-finish", reason="tool-calls")
-if mode == "gate":
+if mode in ("gate", "abort"):
     deadline = time.monotonic() + 10
     while not Path(os.environ["FAKE_GATE"]).exists():
         if time.monotonic() >= deadline:
             sys.exit(99)
         time.sleep(.01)
+if mode == "abort":
+    print(json.dumps({"type": "error",
+                      "error": {"type": "aborted", "message": "Session interrupted: user"}}))
+    sys.exit(1)
 if mode == "fail":
     for i in range(250):
         print(f"stdout marker {i}")
@@ -191,10 +201,12 @@ class BstackRunTest(unittest.TestCase):
         self.config.update(
             roles={
                 "impl": "test/build#high", "hard": "test/hard",
-                "explore": "test/already-fast", "panel": ["claude:opus", "test/build", "test/other"],
+                "explore": "test/already-fast", "review": "test/build",
+                "panel": ["claude:opus", "test/build", "test/other"],
             },
             fast={"test/build": "test/build-fast", "test/original": "test/already-fast"},
-            preamble={"impl": "templates/preamble/impl.md", "hard": str(preamble), "panel": None},
+            preamble={"impl": "templates/preamble/impl.md", "hard": str(preamble),
+                      "review": "templates/preamble/reviewer.md", "panel": None},
         )
         self.write_config()
         self.env["BSTACK_FAST"] = "1"
@@ -209,6 +221,8 @@ class BstackRunTest(unittest.TestCase):
              str(self.plugin / "templates" / "preamble" / "impl.md")),
             ("hard", "test/hard", "test/hard", str(preamble)),
             ("explore", "test/already-fast", "test/already-fast", "-"),
+            ("review", "test/build", "test/build-fast",
+             str(self.plugin / "templates" / "preamble" / "reviewer.md")),
             ("panel", "claude:opus", "claude:opus", "-"),
             ("panel", "test/build", "test/build-fast", "-"),
             ("panel", "test/other", "test/other", "-"),
@@ -233,7 +247,7 @@ class BstackRunTest(unittest.TestCase):
         self.config.pop("roles")
         self.write_config()
         proc = self.assert_config_failure("cli:")
-        for role in ("impl", "hard", "explore", "panel"):
+        for role in ("impl", "hard", "explore", "review", "panel"):
             with self.subTest(role=role):
                 self.assertIn(f"roles.{role}:", proc.stdout)
 
@@ -241,7 +255,8 @@ class BstackRunTest(unittest.TestCase):
         self.config.update(
             roles={
                 "impl": "test/build#high", "hard": "test/hard#TeRrA",
-                "explore": "test/explore", "panel": ["test/allowed", "test/TeRrA"],
+                "explore": "test/explore", "review": "test/review",
+                "panel": ["test/allowed", "test/TeRrA"],
             },
             fast={"test/build": "test/build-fast", "test/terra": "test/terra-fast"},
             deny=["terra", "-FAST#HIGH"],
@@ -290,7 +305,8 @@ class BstackRunTest(unittest.TestCase):
         updates = [
             {"roles": {
                 "impl": "test/build#high", "hard": "claude:opus",
-                "explore": "test/explore", "panel": ["claude:haiku", "claude:sonnet"],
+                "explore": "test/explore", "review": "test/build",
+                "panel": ["claude:haiku", "claude:sonnet"],
             }},
             {"fast": {"test/build": "test/build-fast"}, "deny": ["terra", "fable", "custom"]},
         ]
@@ -315,6 +331,8 @@ class BstackRunTest(unittest.TestCase):
         for update, message in [
             ({"cli": "different"}, "only roles, fast, or deny"),
             ({"roles": {**self.config["roles"], "hard": "claude:fable"}}, "invalid Claude model"),
+            ({"roles": {k: v for k, v in self.config["roles"].items() if k != "review"}}, "review"),
+            ({"roles": {**self.config["roles"], "review": ["test/review"]}}, "expected provider/model"),
             ({"fast": {"test/default": "test/TeRrA"}}, "denied model"),
         ]:
             with self.subTest(update=update):
@@ -678,6 +696,7 @@ class BstackRunTest(unittest.TestCase):
             ("impl", "openai/gpt-6.2-sol", "impl"),
             ("hard", "openai/gpt-6.2-astra", "impl"),
             ("explore", "openai/gpt-6-luna-fast", "explore"),
+            ("review", "openai/gpt-6.2-sol", "reviewer"),
             ("panel", "openai/gpt-6.2-sol", None),
         ]:
             with self.subTest(role=role):
@@ -706,6 +725,16 @@ class BstackRunTest(unittest.TestCase):
         run_id = self.run_id(proc)
         self.assertEqual(self.status(run_id)["model"], "zai-coding-plan/glm-5.3")
         self.assertEqual(self.worker_argv(run_id)[-1], "--worktree=my-panel")
+
+    def test_review_uses_configured_model_and_fast_mapping(self):
+        self.config["roles"]["review"] = "test/review#high"
+        self.config["fast"]["test/review"] = "test/review-fast"
+        self.write_config()
+        run_id = self.run_id(self.call("run", "--role", "review", "--fast", "--message", "review this"))
+        self.assertIn("-review-", run_id)
+        self.assert_speed(run_id, "test/review#high", "test/review-fast#high", True)
+        self.assertEqual(self.worker_argv(run_id)[2], "test/review-fast#high")
+        self.assertEqual(self.call("result", run_id).stdout, "fake answer\n")
 
     def test_no_preamble_marker_is_exact_and_not_sent_to_either_backend(self):
         text = "Custom review 🌱\r\n"
@@ -997,6 +1026,31 @@ class BstackRunTest(unittest.TestCase):
                 self.assertIsNotNone(meta["ended_at"])
             finally:
                 self.gate.touch()
+
+    def test_background_interrupt_records_worker_abort_even_without_api_ack(self):
+        run_id = self.run_id(self.call("run", "--role", "panel", "--message", "start",
+                                       "--bg", mode="abort"))
+        self.addCleanup(self.release_worker, run_id)
+        self.await_session(run_id)
+        path = self.root / run_id / "meta.json"
+        self.assertEqual(json.loads(path.read_bytes())["status"], "running")
+        ack_gate = self.cwd / "interrupt-ack"
+        with subprocess.Popen(
+            [str(self.bstack), "interrupt", run_id], cwd=self.cwd,
+            env=dict(self.env, FAKE_MODE="lost-interrupt-ack", FAKE_INTERRUPT_ACK_GATE=str(ack_gate)),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        ) as control:
+            try:
+                self.assertEqual(self.call("wait", run_id, "--timeout", "4").returncode, 0)
+                self.assertIsNone(control.poll(), "control API must still be waiting for its reply")
+                meta = json.loads(path.read_bytes())
+                self.assertEqual((meta["status"], meta["exit_code"]), ("interrupted", 130))
+                self.assertIsNotNone(meta["ended_at"])
+            finally:
+                ack_gate.touch()
+            _, stderr = control.communicate(timeout=5)
+            self.assertEqual(control.returncode, 2)
+            self.assertIn("disconnected after sending the interrupt", stderr)
 
     def test_brief_bundle_keeps_numeric_delivery_order_and_last_answer(self):
         run_id = self.gated_run()

@@ -21,7 +21,7 @@ import sys
 PLUGIN = Path(os.environ.get("CLAUDE_PLUGIN_ROOT") or Path(__file__).resolve().parents[1])
 FEATURE = PLUGIN / "skills/bstack-feature"
 REFS = FEATURE / "references"
-REVIEW_FILES = ("templates/preamble/reviewer.md", "skills/bstack-feature/references/reviewer.md")
+REVIEW_REFERENCE = "skills/bstack-feature/references/reviewer.md"
 NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 SHA = re.compile(r"[0-9a-f]{64}")
 RUN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
@@ -158,9 +158,22 @@ def content_hash(files):
     return digest.hexdigest()
 
 
-def reviewer_instructions():
-    files = {path: external_file(PLUGIN / path) for path in REVIEW_FILES}
-    return b"\n\n".join(files.values()), content_hash(files)
+def reviewer_instructions(cwd):
+    # Hash both sets of instructions, but let bstack-run attach the configured
+    # role preamble. Resolve relative config and preamble paths as it does.
+    root = (PLUGIN / "bin/bstack-run").resolve().parents[1]
+    config_path = cwd / (os.environ.get("BSTACK_CONFIG") or root / "config/models.json")
+    config = strict_json(config_path.read_bytes())
+    if not isinstance(config, dict) or not isinstance(config.get("preamble", {}), dict):
+        raise ValueError("expected model config and preamble objects")
+    preamble = config.get("preamble", {}).get("review")
+    reference = external_file(PLUGIN / REVIEW_REFERENCE)
+    files = {REVIEW_REFERENCE: reference}
+    if preamble is not None:
+        if not isinstance(preamble, str) or not preamble.strip():
+            raise ValueError("preamble.review: expected a path or null")
+        files[preamble] = external_file((root / preamble).resolve())
+    return reference, content_hash(files)
 
 
 def capture(fd, *, snapshot=False):
@@ -427,7 +440,7 @@ class PRD:
             records = self.revise_records(history, reviews, sha(request) if request is not None else None,
                                           reviews_path)
             value.update(revise_count=len(records), revise_records=records)
-            _, criteria = reviewer_instructions()
+            _, criteria = reviewer_instructions(self.cwd)
             if approved := self.approval(history, digest, criteria):
                 name, data = approved
                 return 0, {**value, "state": "approved", "run_id": self.record_run_id(name, data),
@@ -458,11 +471,11 @@ class PRD:
             if name not in ("format", approved_name):
                 remove_review_entry(reviews, name)
 
-    def prepare(self, candidate, original, previous, reviews, token):
+    def prepare(self, candidate, reference, previous, reviews, token):
         path = self.snapshot_path(token)
-        brief = original + (f"\n\n## 실제 입력 경로\n\n"
-                            f"- [제출 사본 절대경로]: `{path}`\n"
-                            f"- [작성 기준]: `{FEATURE / 'SKILL.md'}`\n").encode()
+        brief = reference + (f"\n\n## 실제 입력 경로\n\n"
+                             f"- [제출 사본 절대경로]: `{path}`\n"
+                             f"- [작성 기준]: `{FEATURE / 'SKILL.md'}`\n").encode()
         if previous:
             name, previous = previous
             old_token = self.snapshot_token(name, previous)
@@ -491,7 +504,7 @@ class PRD:
 
     def assess(self, brief, result, slot):
         # A foreground launcher may outlive an interrupted bstack-prd process.
-        run = self.run("run", "--role", "panel", "--brief", "-", brief=brief, pass_fds=(slot,))
+        run = self.run("run", "--role", "review", "--brief", "-", brief=brief, pass_fds=(slot,))
         first = run.stdout.partition(b"\n")[0]
         id_match = re.match(rb"id=([A-Za-z0-9][A-Za-z0-9_-]*)(?:[ \t]|\r?$)", first)
         if not id_match:
@@ -523,7 +536,7 @@ class PRD:
             raise Failure("submission_changed", "Submission was invalidated")
         try:
             snapshot = self.snapshot(reviews, token)
-            _, current_criteria = reviewer_instructions()
+            _, current_criteria = reviewer_instructions(self.cwd)
             current = capture(prd)
         except (OSError, ValueError, Failure) as exc:
             raise Failure("submission_changed", f"Candidate, snapshot, or criteria unreadable: {exc}") from exc
@@ -544,7 +557,7 @@ class PRD:
                     raise Failure("review_in_progress", "A review for this PRD is already running")
                 candidate = capture(prd)
                 digest = content_hash(candidate)
-                original, criteria = reviewer_instructions()
+                reference, criteria = reviewer_instructions(self.cwd)
                 history = self.history(reviews)
                 if approved := self.approval(history, digest, criteria):
                     name, data = approved
@@ -567,7 +580,7 @@ class PRD:
                                            and history[-1][1].get("reviewer_hash") == criteria) else None
                 number = int(history[-1][0].split("-")[0]) + 1 if history else 1
                 token = secrets.token_hex(16)
-                brief = self.prepare(candidate, original, previous, reviews, token)
+                brief = self.prepare(candidate, reference, previous, reviews, token)
                 atomic_write(reviews, "active", token.encode("ascii"))
             result = {"hash": digest, "reviewer_hash": criteria, "snapshot": str(self.snapshot_path(token))}
             return self.finish_review(brief, slot, token, number, candidate, request_hash, result)

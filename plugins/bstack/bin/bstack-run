@@ -26,7 +26,7 @@ import uuid
 SCRIPT = Path(__file__).resolve()
 PLUGIN_ROOT = SCRIPT.parent.parent
 CONFIG = PLUGIN_ROOT / "config" / "models.json"
-ROLES = ("impl", "hard", "explore", "panel")
+ROLES = ("impl", "hard", "explore", "review", "panel")
 CLAUDE_ALIASES = {"haiku", "sonnet", "opus"}
 RUN_ID = re.compile(r"\d{8}-\d{6}-(?:" + "|".join(ROLES) + r")-[0-9a-f]{4}")
 RESULT_LIMIT = 6000
@@ -421,6 +421,7 @@ class EventReader:
         self.parts = []
         self.answer = ""
         self.used_tool = False
+        self.interrupted = False
 
     def feed(self, line):
         try:
@@ -432,10 +433,14 @@ class EventReader:
         sid = event.get("sessionID")
         if isinstance(sid, str) and sid:
             self.session_id = sid
+        kind = event.get("type")
+        error = event.get("error")
+        if (kind == "error" and isinstance(error, dict) and error.get("type") == "aborted"
+                and error.get("message") == "Session interrupted: user"):
+            self.interrupted = True
         part = event.get("part")
         if not isinstance(part, dict):
             return
-        kind = event.get("type")
         if kind == "step_start" and part.get("type") == "step-start":
             self.parts.clear()
             self.answer = ""
@@ -540,7 +545,7 @@ def claude_transcript(session_id, cwd):
 
 
 def finish(directory, meta, exit_code, diagnostics, *, answer="", claude_result=None,
-           transcript_path=None, session_id=None):
+           transcript_path=None, session_id=None, interrupted=False):
     with run_lock(directory):
         latest = read_meta(directory)
         if is_claude(latest["model"]):
@@ -557,11 +562,11 @@ def finish(directory, meta, exit_code, diagnostics, *, answer="", claude_result=
                     for key in ("session_id", "is_error", "total_cost_usd")
                 )
                 answer = (latest["result"] or "") + "\n\n## Claude Code\n\n" + details + "\n"
-            latest.update(
-                status="done" if exit_code == 0 else "failed",
-                exit_code=exit_code,
-                ended_at=now().isoformat(),
-            )
+            if interrupted:
+                latest.update(status="interrupted", exit_code=130, ended_at=now().isoformat())
+            else:
+                latest.update(status="done" if exit_code == 0 else "failed",
+                              exit_code=exit_code, ended_at=now().isoformat())
         (directory / "result.md").write_bytes(answer.encode("utf-8"))
         if latest["status"] != "done":
             diagnostics.save(directory, latest["status"], latest["exit_code"])
@@ -606,7 +611,9 @@ def perform_opencode(directory, meta, worktree, brief, preamble, env, diagnostic
             exit_code = 127
         elif isinstance(exc, PermissionError):
             exit_code = 126
-    return finish(directory, meta, exit_code, diagnostics, answer=reader.answer)
+    # The worker can confirm a user abort even if the control API reply was lost.
+    return finish(directory, meta, exit_code, diagnostics, answer=reader.answer,
+                  interrupted=reader.interrupted)
 
 
 def perform_claude(directory, meta, worktree, brief, preamble, env, diagnostics):
@@ -777,6 +784,11 @@ def session_api(meta, operation, payload=None):
 def control(directory, args):
     kind = args.command
 
+    def mark_interrupted(meta):
+        if meta["status"] != "interrupted":
+            meta.update(status="interrupted", exit_code=130, ended_at=now().isoformat())
+            write_meta(directory, meta)
+
     def reject(meta):
         hint = f"; use ask {args.id} to continue" if kind != "interrupt" else ""
         print(f"bstack-run: run is {meta['status']}: {args.id}{hint}", file=sys.stderr)
@@ -798,28 +810,32 @@ def control(directory, args):
         claude = is_claude(meta["model"])
         if not claude and not meta["session_id"]:
             raise UsageError(f"run has no session id yet: {args.id}; retry once it is available")
-        if kind == "interrupt":
-            if claude:
-                pid = meta.pop("child_pid", None)
-                if pid is not None:
-                    try:
-                        os.killpg(pid, signal.SIGTERM)
-                    except ProcessLookupError:
-                        pass
-            else:
-                response = session_api(meta, "interrupt")
-                if response.get("interrupted") is not True:
-                    raise UsageError(f"session was not interrupted: {args.id}")
-            meta.update(status="interrupted", exit_code=130, ended_at=now().isoformat())
-            write_meta(directory, meta)
-            print(f"id={args.id} status=interrupted")
-        else:
+        if kind == "interrupt" and claude:
+            pid = meta.pop("child_pid", None)
+            if pid is not None:
+                try:
+                    os.killpg(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            mark_interrupted(meta)
+        elif kind != "interrupt":
             response = session_api(meta, "prompt", {"text": text, "delivery": kind})
             data = response.get("data")
             if not isinstance(data, dict) or not data.get("id") or data.get("delivery") != kind:
                 raise UsageError(f"unexpected session.prompt response for {kind}")
             record_directive(directory, meta, kind, text=text)
             print(f"id={args.id} delivery={kind} message_id={data['id']}")
+            return 0
+
+    if not claude:
+        # The worker may observe the abort and finish before the API replies.
+        # Do not hold the metadata lock across that round trip.
+        response = session_api(meta, "interrupt")
+        if response.get("interrupted") is not True:
+            raise UsageError(f"session was not interrupted: {args.id}")
+        with run_lock(directory):
+            mark_interrupted(read_meta(directory))
+    print(f"id={args.id} status=interrupted")
     return 0
 
 
