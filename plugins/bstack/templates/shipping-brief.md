@@ -7,12 +7,12 @@ Fill in every field. Use `none` for absent inputs or permissions.
 - **Stack:** <PR URLs and branch/base pairs from bottom to top; requested ceiling>
 - **Criteria:** <approved PRD path (work document path if there is no PRD), with the approved revision or source when supplied; criteria owner>. Read the PR's `Task-Doc:` selector and the selected document at the pinned head if tracked there. For an approved PRD, give reviewers the applicable row IDs and their Verification expectations.
 - **Tools:** <absolute path to the plugin's `bin/bstack-run`>; <absolute path to `skills/bstack-mode/playbooks/shipping.md`>; <absolute paths to `templates/review-structure.md`, `templates/review-behavior.md`, and any project verification skill or named driver>.
-- **Prior evidence:** <PR/CI runs, artifact links, reviewed base/head and document identity, and prior findings if any>.
+- **Prior evidence:** <review checkout path, latest reviewer run ID per perspective, reviewed pins, original per-row evidence and open findings, or `none`>.
 - **Authority:** <operator-authorized PRs and actions: merge, post review comments, retarget, rebase and push with lease; identify permitted branches>. Only you, the OpenCode/OpenAI Shipping worker, may merge the authorized remote PRs. Neither Claude nor the reviewers may merge them. This brief does not grant permissions the operator did not give; stop if a needed action is not authorized. Do not repair implementation yourself.
 
 Follow the Shipping playbook. You may start independent reviewers using the supplied absolute `bstack-run` path. Each perspective needs its own `bstack-run` session, with a reviewer who did not author the change. In-session helpers such as oc-lite runner do not count.
 
-Launch each reviewer with `--role review`, which attaches the [reviewer preamble](preamble/reviewer.md) and uses the configured review model.
+Follow the Shipping playbook for first review versus `ask` continuation; changing the worker leading Shipping does not reset the reviewers or their checkout.
 
 ## Report to Claude
 

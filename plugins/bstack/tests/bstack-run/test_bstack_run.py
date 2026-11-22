@@ -24,7 +24,7 @@ import sys
 import time
 
 args = sys.argv[1:]
-sid = args[args.index("-s") + 1] if "-s" in args[:-1] else "ses_fake"
+sid = args[args.index("-s") + 1] if "-s" in args[:-1] else os.environ.get("FAKE_NEW_SESSION", "ses_fake")
 mode = os.environ.get("FAKE_MODE")
 
 if args[0] == "api":
@@ -59,7 +59,7 @@ event("step_start", "step-start", messageID="msg_tools")
 event("text", "text", text="NOT THE FINAL ANSWER")
 brief = sys.stdin.buffer.read().decode("utf-8")
 if fixture := os.environ.get("FAKE_INPUT_RECORD"):
-    Path(fixture).write_text(json.dumps(dict(argv=args, brief=brief)))
+    Path(fixture).write_text(json.dumps(dict(argv=args, brief=brief, cwd=str(Path.cwd()))))
 event("tool_use", "tool", state={"output": "X" * 110000})
 event("step_finish", "step-finish", reason="tool-calls")
 if mode in ("gate", "abort"):
@@ -841,6 +841,39 @@ class BstackRunTest(unittest.TestCase):
         directives = json.loads((self.root / parent / "meta.json").read_bytes())["directives"]
         self.assertEqual(directives[0]["run_id"], child)
         self.assertNotIn("text", directives[0])
+
+    @unittest.skipUnless(shutil.which("git"), "git not installed")
+    def test_two_reviewers_resume_in_single_repinned_checkout(self):
+        writer, review = self.cwd, self.base / "review"
+
+        def git(*args, cwd=writer):
+            return subprocess.check_output(["git", *args], cwd=cwd, text=True).strip()
+
+        def commit():
+            git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.org",
+                "commit", "-qm", "candidate", "--allow-empty")
+            return git("rev-parse", "HEAD")
+
+        git("init", "-q")
+        git("worktree", "add", "--quiet", "--detach", str(review), commit())
+        self.cwd = review
+        parents = {}
+        for lane in ("structure", "behavior"):
+            self.env["FAKE_NEW_SESSION"] = "ses_" + lane
+            parents[lane] = self.run_id(self.call("run", "--role", "review", "--message", lane))
+
+        new_head = commit()
+        git("switch", "--quiet", "--detach", new_head, cwd=review)
+        for lane, parent in parents.items():
+            child = self.run_id(self.call("ask", parent, "--message", new_head))
+            self.assertEqual(self.status(child)["parent_id"], parent)
+            self.assertEqual(self.worker_argv(child)[:3], ["run", "-s", "ses_" + lane])
+            for run in (parent, child):
+                self.assertNotIn("--worktree", self.worker_argv(run))
+                self.assertEqual(self.worker_input(run)["cwd"], str(review))
+        self.assertEqual(git("rev-parse", "HEAD", cwd=review), new_head)
+        self.assertEqual(sum(line.startswith("worktree ") for line in
+                             git("worktree", "list", "--porcelain").splitlines()), 2)
 
     def test_killed_foreground_ask_is_orphaned_even_during_new_ask(self):
         parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))

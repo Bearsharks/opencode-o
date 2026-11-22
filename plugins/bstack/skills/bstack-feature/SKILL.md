@@ -39,7 +39,7 @@ disable-model-invocation: true
   - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`이다. Shipping이 이 PRD의 마지막 PR을 병합하기 직전에 보관하고 그 이동을 PR에 커밋한다. 사용자가 버리기로 한 PRD도 보관한다.
 - **영향 범위:** 정책 절을 채우기 전에, 이번 변경이 닿는 기존 동작·계약·정책을 레포에서 찾는다. 조사는 `explore` 작업자에게 맡기고, 결과는 `.bstack/<name>/evidence/`에 둔다. 검수자가 [막는 사유](references/reviewer.md) 4번으로 처음 발견해 재작업이 되는 일이 없게, 검수 전에 범위를 다 찾아 정책 절에 적는다. 찾은 범위는 확인 때 기준과 함께 보인다.
 - **확인:** 문서를 쓴 뒤 검수 전에 사용자 기준(원문 첨부)과 에이전트 제안을 나눠 보이고 "이렇게 할까요? 제안 중 채택하거나 뺄 것이 있나요?"라고 묻는다. 확인을 받기 전에는 검수하지 않는다. 일반적인 진행 동의는 제안의 채택이 아니다. 사용자가 이번 요청에서 자율 진행을 명시적으로 허락했으면 확인을 건너뛰고, 그 문장을 `request.md`에 인용해 둔다.
-- **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA로 `bstack-run run --role review --brief -`를 실행한다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 PRD 경로와 SHA를 붙인다. 이 PRD에 앞선 검수가 있으면(승인 포함) 가장 최근 검수의 run ID, 판정, 지적과 `git diff <그 SHA> <SHA> -- .bstack/<name>`도 붙인다. 작성자의 결론이나 원하는 판정은 넣지 않는다. 결과가 검수 brief 형식의 JSON 하나가 아니면 판정이 아니다.
+- **검수:** PRD 폴더를 커밋하고, 첫 검수는 그 커밋 SHA로 `bstack-run run --role review --brief -`를 실행한다. 같은 PRD 재검수는 `bstack-run ask <직전 검수 run ID> --brief -`로 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 PRD 경로와 SHA를 붙인다. 이 PRD에 앞선 검수가 있으면(승인 포함) 가장 최근 검수의 run ID, 판정, 지적과 `git diff <그 SHA> <SHA> -- .bstack/<name>`도 붙인다. 작성자의 결론이나 원하는 판정은 넣지 않는다. 결과가 검수 brief 형식의 JSON 하나가 아니면 판정이 아니다.
 
 | 결과 | 다음 행동 |
 |---|---|
