@@ -31,15 +31,18 @@ bash "$suite/run-case.sh" question opus --max-cost-usd "${CAP_CONFIRM:?}" --ask 
 | `clear` | `opus` | 작성된 draft, 검수 없이 확인 대기. 사용자 기준(원문)과 에이전트 제안을 나누고, 요구사항의 성공 정의·성공 정의 근거·검증·검증 근거를 확인한다. 기본 목록 숨김, `--all`의 `[x]`, 없는 ID의 stderr `no such item`과 종료 1을 확인한다. 확인을 주는 다음 턴은 승인. |
 | `clear-auto` | `opus` | 자율 진행 명시가 `> ` 원문에 포함된다. 별도 확인 턴 없이 독립 승인. |
 | `question` | `opus` | 초기 draft: `F-01/성공 정의`에서 복원 위치를 글로 묻고 PRD 본문은 초기 템플릿이다. 다음 턴은 답 원문을 붙이고 ‘내 메모’로 복원하되 폴더는 복원하지 않는 후보를 **확인 대기**한다. 확인을 주는 세 번째 턴은 승인. |
-| `mode-positive` | `opus` | mode 진입 → 실제 `bstack-feature` `Read` 완료 → `start`. 초기에는 메모/폴더 범위 질문, 다음 턴은 원문 답을 보존한 후보와 별도 확인, 마지막 턴은 독립 승인. 승인 전 플레이북을 열지 않는다. |
+| `mode-positive` | `opus` | mode 진입 → 실제 `bstack-feature` `Read` 완료 → PRD 폴더와 Markdown 작성. 초기에는 메모/폴더 범위 질문, 다음 턴은 원문 답을 보존한 후보와 별도 확인, 마지막 턴은 독립 승인. 승인 전 플레이북을 열지 않는다. |
 | `mode-negative` | `sonnet` | 승인받은 오타 수정으로 `labels.txt`가 정확히 `Welcome` 한 줄이 된다. PRD·`bstack-feature` 관문 및 다른 제품 변경 없음. 계획만 보고하면 통과가 아니다. |
 | `availability` | `sonnet` | 독립 승인, 제품 불변. 사람이 실제 조사/예행 로그에서 CSV와 `tests/pilot.py` 관찰이 작성 전에 있었는지, 목표와 검증 근거가 각각 문제의 증거와 관찰 수단의 가용성·한계를 정확히 인용하는지 확인한다. |
-| `resume` | `sonnet` | 30일 기준의 초기 독립 승인, 다음 턴에 45일 답을 그대로 append하고 새로운 독립 승인. 사람이 다른 기준과 변경 범위를 확인한다. 늦게 도착한 판정의 무효화는 비용 없는 `test_start_invalidates_late_ready_without_freeing_review_slot`에서 확인한다. |
-| `recover` | `sonnet` | 픽스처 전용 래퍼가 첫 실제 검수 결과를 한 번 자른다. 잘린 검수와 별도인 새 정상 검수로 승인되어야 한다. 복구 불가 보고는 통과가 아니다. 나머지 CLI 장애·경주는 결정론적 PRD 시험에 맡긴다. |
+| `resume` | `sonnet` | 30일 기준의 초기 독립 승인, 다음 턴에 45일 답을 그대로 덧붙이고 새 커밋을 독립 검수한 뒤 승인 기록을 갱신한다. 사람이 다른 기준과 변경 범위를 확인한다. |
+
+승인 기대가 있는 턴은 커밋된 `.bstack/<case>/approval`의 `<SHA> <run ID>` 한 줄을 확인한다.
+SHA는 검수한 PRD 커밋이어야 하고, run ID는 `bstack-run run --role review`의 `READY` 결과를 가리켜야 한다.
+픽스처에서 커밋이 허용되는 경로는 해당 PRD 폴더뿐이다.
 
 ## 기록
 
-턴별 명령, 종료 코드, 전후 경로/바이트 목록, 요청 원문, `status`와 `result`는
+턴별 명령, 종료 코드, 전후 경로/바이트 목록, 요청 원문, `bstack-run result`는
 `.<case>-state/turns/{first,answered,confirmed}/`에 남는다. Run 기록은
 `<fixture>/plugins/bstack/state/runs/<repo-name>-<sha256(repo path)[:12]>/<run id>/`에 무기한 보관된다.
 해당 픽스처에서 플러그인 복사본의 `bstack-run status ID`와 `bstack-run result ID`로 확인할 수 있다.
@@ -48,4 +51,5 @@ bash "$suite/run-case.sh" question opus --max-cost-usd "${CAP_CONFIRM:?}" --ask 
 
 ```bash
 for script in "$suite/run-case.sh" "$suite"/fixtures/*.sh; do bash -n "$script" || break; done
+python3 -m py_compile "$suite/fixture.py" "$suite/turn.py"
 ```

@@ -1,4 +1,4 @@
-"""Record turn boundaries and run only read-only status probes after the turn."""
+"""Record turn boundaries and capture the run result."""
 
 import hashlib
 import json
@@ -12,7 +12,6 @@ import sys
 from fixture import ANSWERS, state_dir
 
 PLUGIN = Path("plugins/bstack")
-REFS = PLUGIN / "skills/bstack-feature/references"
 ID = r"\d{8}-\d{6}-(?:impl|hard|explore|panel)-[0-9a-f]{4}"
 
 
@@ -117,7 +116,6 @@ def capture(case, label, cap, args):
     if args[-2:] != ["--brief", "-"]:
         raise ValueError("fixture brief must be sent on stdin")
     proc = record(folder, "run", args, brief)
-    record(folder, "status", [str(PLUGIN.resolve() / "bin/bstack-prd"), "status", case])
     put_json(folder / "after.json", boundary())
     request = Path(".bstack") / case / "request.md"
     if request.is_file():

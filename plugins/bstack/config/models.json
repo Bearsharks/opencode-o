@@ -26,8 +26,7 @@
   "claude": {
     "permission_mode": "acceptEdits",
     "allowed_tools": [
-      "Bash(<plugin-dir>/bin/bstack-run:*)",
-      "Bash(<plugin-dir>/bin/bstack-prd:*)"
+      "Bash(<plugin-dir>/bin/bstack-run:*)"
     ]
   },
   "deny": [

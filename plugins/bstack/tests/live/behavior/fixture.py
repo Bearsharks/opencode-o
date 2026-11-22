@@ -11,7 +11,7 @@ PLUGIN = HERE.parents[2]
 SCRATCH = PLUGIN / "state" / "behavior"
 MODELS = {"clear": "opus", "clear-auto": "opus", "question": "opus",
           "mode-positive": "opus", "mode-negative": "sonnet",
-          "availability": "sonnet", "resume": "sonnet", "recover": "sonnet"}
+          "availability": "sonnet", "resume": "sonnet"}
 AUTO = "이 요청은 확인 없이 알아서 독립 검수까지 진행해 줘. 구현은 시작하지 마.\n"
 CONFIRM = "보여 준 후보를 독립 검수에 제출해 줘.\n"
 ANSWERS = {
@@ -186,6 +186,9 @@ def prepare(case):
                               "GIT_OBJECT_DIRECTORY", "GIT_INDEX_FILE")}
         subprocess.run(["git", "init", "--quiet", "--template=", str(root)],
                        check=True, env=env)
+        for key, value in (("user.name", "Bstack Fixture"), ("user.email", "fixture@example.invalid")):
+            subprocess.run(["git", "-C", str(root), "config", "--local", key, value],
+                           check=True, env=env)
         put(root, ".git/info/exclude", "/plugins/bstack/state/\n")
         plugin = root / "plugins/bstack"
         ignore = shutil.ignore_patterns("__pycache__", ".git", ".bstack", ".env", ".env.*",
@@ -203,15 +206,11 @@ def prepare(case):
         text = (f"/bstack:{skill}\n\n{text}\n필요 시 PRD 이름은 `{case}`, 플러그인 복사본은 `{plugin}`이야. "
                 "그 복사본의 도구를 이 레포에서 사용해.\n")
         if case != "mode-negative":
-            text += ("기획만 해. 제품 파일 수정·커밋·구현 착수는 승인하지 않아. "
+            text += (f"기획만 해. 검수에 필요한 `.bstack/{case}/` 파일만 커밋해도 돼. "
+                     "다른 파일의 수정·커밋이나 구현 착수는 승인하지 않아. "
                      "새로 작성해 PRD에 링크하는 예행 기록은 PRD 폴더의 evidence/에 남겨 줘.\n")
-        if case in {"clear-auto", "recover"}:
+        if case == "clear-auto":
             text += AUTO
-        if case == "recover":
-            tool = plugin / "bin/bstack-run"
-            tool.rename(tool.with_name("bstack-run.real"))
-            shutil.copyfile(HERE / "recover.py", tool)
-            tool.chmod(0o755)
         put(state, "input.md", text)
     except BaseException:
         shutil.rmtree(root)

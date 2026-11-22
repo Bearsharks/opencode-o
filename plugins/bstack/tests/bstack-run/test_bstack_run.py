@@ -423,8 +423,7 @@ class BstackRunTest(unittest.TestCase):
         sid = meta["session_id"]
         self.assertEqual(proc.stdout, f"id={run_id} status=done model=claude:sonnet "
                                       f"session={sid} fast=false\nfake Claude answer")
-        allowed_tools = [f"Bash({shlex.quote(str(self.plugin / 'bin' / name))}:*)"
-                         for name in ("bstack-run", "bstack-prd")]
+        allowed_tools = [f"Bash({shlex.quote(str(self.plugin / 'bin/bstack-run'))}:*)"]
         self.assertEqual(self.claude_input(run_id)["argv"], [
             "-p", "--model", "sonnet", "--output-format", "json", "--permission-mode", "acceptEdits",
             "--allowedTools", *allowed_tools,
@@ -489,8 +488,7 @@ class BstackRunTest(unittest.TestCase):
                                        "--worktree", "my-tree", "--plugin-dir", plugin.name,
                                        "--message", "start"))
         parent_meta = self.status(parent)
-        allowed_tools = [f"Bash('{plugin}/bin/bstack-run':*)",
-                         f"Bash('{plugin}/bin/bstack-prd':*)"]
+        allowed_tools = [f"Bash('{plugin}/bin/bstack-run':*)"]
         self.assertEqual(parent_meta["allowed_tools"], allowed_tools)
         self.assertEqual(self.assert_claude_preamble(parent, "impl", self.claude_input(parent)), [
             "-p", "--model", "opus", "--output-format", "json", "--permission-mode", "plan",

@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 `.bstack/<name>/index.md`를 아래 형태로 완성해 독립 승인을 받는다. **형태는 지킨다.** 무엇을 조사하고 묻고 실험할지는 상황에 맞게 정한다. 기획만 하고, 어떻게 만들지는 구현 단계에 둔다.
 
-명령은 `${CLAUDE_PLUGIN_ROOT}/bin/` 아래 절대경로로, 작업 레포 루트에서 실행한다. `request.md`와 `index.md`는 사용자와 대화하는 Claude가 직접 쓴다. 레포·엔진 조사와 실험처럼 근거를 모으는 일만 `bstack-run`으로 작업자에게 맡기고, 결과는 근거로 옮겨 적는다.
+`request.md`와 `index.md`는 사용자와 대화하는 Claude가 직접 쓴다. 레포·엔진 조사와 실험처럼 근거를 모으는 일만 `bstack-run`으로 작업자에게 맡기고, 결과는 근거로 옮겨 적는다.
 
 ## PRD 형태
 
@@ -31,21 +31,20 @@ disable-model-invocation: true
 ## 진행
 
 - **PRD 폴더:** 가설과 기능은 `.bstack/<name>/` 하나를 같이 쓴다. `.bstack/` 바로 아래 폴더 중 `archive/`가 아닌 것은 모두 진행 중인 PRD다. 시작하기 전에 이 목록을 본다.
-  - 진행 중인 PRD가 없으면 새 이름으로 `bstack-prd start <name> --brief -`를 실행한다. stdin에는 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식으로 넘긴다.
-  - 진행 중인 PRD가 있고 이 요청이 그중 하나를 잇는지 확실하지 않으면 사용자에게 "진행 중인 PRD <이름 목록>이 있습니다. 이 중 하나를 이어 가나요, 새 기능인가요?"라고 묻는다. 새 기능이면 새 이름으로 `start`한다.
-  - 이어 가면, 또 이 PRD에 사용자 답이 오면 기존 바이트를 보존하고 덧붙인 전체를 `bstack-prd append <name> --brief -`로 넘긴다. 가설 단계가 연 폴더라면 그 폴더에 `index.md`를 쓴다.
-  - Shipping이 이 PRD의 마지막 PR을 병합하기 직전에 `bstack-prd archive <name>`으로 보관하고, 그 이동을 PR에 커밋한다. 사용자가 버리기로 한 PRD도 보관한다.
+  - 진행 중인 PRD가 있고 이 요청이 그중 하나를 잇는지 확실하지 않으면 사용자에게 "진행 중인 PRD <이름 목록>이 있습니다. 이 중 하나를 이어 가나요, 새 기능인가요?"라고 묻는다.
+  - 새 기능이면 `.bstack/<name>/`과 `.bstack/archive/<name>/`이 모두 없는 새 이름(소문자 kebab-case, `archive` 제외)으로 폴더를 만든다. 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식의 `request.md`로 쓰고, [템플릿](references/template/index.md)을 `index.md`로 복사한다.
+  - 이어 가면, 또 이 PRD에 사용자 답이 오면 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다. 가설 단계가 연 폴더라면 그 폴더에 `index.md`를 쓴다.
+  - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`이다. Shipping이 이 PRD의 마지막 PR을 병합하기 직전에 보관하고 그 이동을 PR에 커밋한다. 사용자가 버리기로 한 PRD도 보관한다.
 - **영향 범위:** 정책 절을 채우기 전에, 이번 변경이 닿는 기존 동작·계약·정책을 레포에서 찾는다. 조사는 `explore` 작업자에게 맡기고, 결과는 `.bstack/<name>/evidence/`에 둔다. 검수자가 [막는 사유](references/reviewer.md) 4번으로 처음 발견해 재작업이 되는 일이 없게, 검수 전에 범위를 다 찾아 정책 절에 적는다. 찾은 범위는 확인 때 기준과 함께 보인다.
 - **확인:** 문서를 쓴 뒤 검수 전에 사용자 기준(원문 첨부)과 에이전트 제안을 나눠 보이고 "이렇게 할까요? 제안 중 채택하거나 뺄 것이 있나요?"라고 묻는다. 확인을 받기 전에는 검수하지 않는다. 일반적인 진행 동의는 제안의 채택이 아니다. 사용자가 이번 요청에서 자율 진행을 명시적으로 허락했으면 확인을 건너뛰고, 그 문장을 `request.md`에 인용해 둔다.
-- **검수:** `bstack-prd review <name>`을 실행한다. 검수자는 [검수 brief](references/reviewer.md)를 따른다.
+- **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA로 `bstack-run run --role review --brief -`를 실행한다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 PRD 경로와 SHA를 붙인다. 이 PRD에 앞선 검수가 있으면(승인 포함) 가장 최근 검수의 run ID, 판정, 지적과 `git diff <그 SHA> <SHA> -- .bstack/<name>`도 붙인다. 작성자의 결론이나 원하는 판정은 넣지 않는다. 결과가 검수 brief 형식의 JSON 하나가 아니면 판정이 아니다.
 
 | 결과 | 다음 행동 |
 |---|---|
-| `READY` | `bstack-prd status <name>`이 `approved`인지 확인한다. |
+| `READY` | `.bstack/<name>/approval`에 `<SHA> <run ID>` 한 줄을 쓰고 커밋한다. |
 | `REVISE` | 지적된 셀을 고쳐 쓴다. 근거를 덧붙이지 말고, 더는 쓰지 않는 근거는 지운다. 확인받은 기준이 바뀌었으면 다시 확인받고 재검수한다. |
-| `REVISE` 두 번 또는 `rework_limit_reached` | 더 고치지 않는다. 두 지적과 선택지를 사용자에게 보이고 답을 받아 원문에 추가한다. 원문이 바뀌면 횟수는 0부터 센다. |
+| 같은 원문에서 `REVISE` 두 번 | 더 고치지 않는다. 두 지적과 선택지를 사용자에게 보이고 답을 받아 원문에 추가한다. 원문이 바뀌면 횟수는 0부터 센다. |
 | `BLOCKED` | 필요한 결정을 사용자에게 묻는다. |
 | 실행 오류 | 유효한 판정이 아니다. 원인을 고치고 현재본으로 다시 검수한다. |
 
-승인되면 도구가 검수 이력을 승인 기록만 남기고 정리한다.
-승인되면 `index.md` 경로와 검수 run ID를 원래 플레이북에 넘긴다. 승인이 구현이나 병합 권한을 새로 주지는 않는다.
+승인은 `approval`의 SHA 이후 PRD 파일이 바뀌지 않은 동안만 유효하다. `git diff -M --name-status <SHA> HEAD -- .bstack`에서 이 PRD에 `approval` 추가와 보관 이동(`R100`) 말고 변화가 있으면 다시 검수한다. 승인되면 `index.md` 경로와 검수 run ID를 원래 플레이북에 넘긴다. 승인이 구현이나 병합 권한을 새로 주지는 않는다.
