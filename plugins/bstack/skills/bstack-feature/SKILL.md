@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 `.bstack/<name>/index.md`를 아래 형태로 완성해 독립 승인을 받는다. **형태는 지킨다.** 무엇을 조사하고 묻고 실험할지는 상황에 맞게 정한다. 기획만 하고, 어떻게 만들지는 구현 단계에 둔다.
 
-명령은 `${CLAUDE_PLUGIN_ROOT}/bin/` 아래 절대경로로, 작업 레포 루트에서 실행한다. Claude는 대화와 결정을 맡고, 조사·실험·문서 작성은 `bstack-run`으로 작업자에게 맡긴다.
+명령은 `${CLAUDE_PLUGIN_ROOT}/bin/` 아래 절대경로로, 작업 레포 루트에서 실행한다. `request.md`와 `index.md`는 사용자와 대화하는 Claude가 직접 쓴다. 레포·엔진 조사와 실험처럼 근거를 모으는 일만 `bstack-run`으로 작업자에게 맡기고, 결과는 근거로 옮겨 적는다.
 
 ## PRD 형태
 
