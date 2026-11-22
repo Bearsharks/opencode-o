@@ -243,18 +243,25 @@ class PRDTest(unittest.TestCase):
                 self.assertIn("index.md: at least one F row required", result["detail"])
                 self.assertEqual(self.calls(), [])
         self.index.write_bytes(candidate)
-        result = self.review(verdict="READY")
+        result = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
         self.assertFalse((Path(result["snapshot"]) / "hypothesis.md").exists())
+        self.review(verdict="READY")
         self.status("approved")
 
     def test_preflight_leaves_markup_and_request_format_to_reviewer(self):
         self.brief.write_text("# Natural title\n> A request about <id>.\n")
         self.start()
         self.index.write_text("# Example\n```\n| F-05 | [ref](missing.md#absent) |\n```\n")
+        hypothesis = b"# Product hypothesis\n\nSelf-service recovery reduces support requests.\n"
+        (self.prd / "hypothesis.md").write_bytes(hypothesis)
         result = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
         snapshot = Path(result["snapshot"])
         self.assertEqual((snapshot / "request.md").read_bytes(), self.brief.read_bytes())
         self.assertEqual((snapshot / "index.md").read_bytes(), self.index.read_bytes())
+        self.assertEqual((snapshot / "hypothesis.md").read_bytes(), hypothesis)
+        self.assertEqual(independent_hash(snapshot), result["hash"])
+        self.assertTrue(all(not p.stat().st_mode & 0o222 for p in [snapshot, *snapshot.rglob("*")]))
+        self.assertTrue(all(stat.S_ISREG(p.lstat().st_mode) for p in snapshot.rglob("*.md")))
         self.assertEqual(len(self.runs()), 1)
         receipt = json.loads(Path(result["record"]).read_bytes())
         self.assertEqual(receipt["run_record"], str(self.latest_brief().with_name("meta.json")))
@@ -263,10 +270,8 @@ class PRDTest(unittest.TestCase):
         self.assertFalse((snapshot.parent / "brief.md").exists())
         self.assertEqual(list((self.cwd / ".bstack").iterdir()), [self.prd])
 
-    def test_ready_framing_snapshot_and_read_only_reuse(self):
+    def test_ready_framing_and_read_only_reuse(self):
         self.example_candidate()
-        hypothesis = self.prd / "hypothesis.md"
-        hypothesis.write_text("# Product hypothesis\n\nSelf-service recovery reduces support requests.\n")
         self.review(verdict="READY", config={"answer": "\n```json\r\n" + READY + "\r\n```\n"})
         first = self.status("approved")
         record = json.loads(Path(first["record"]).read_bytes())
@@ -275,11 +280,7 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(first["run_id"], record["run_id"])
         self.assertEqual(set(first), {"state", "index", "hash", "revise_count", "revise_records",
                                       "run_id", "record"})
-        snapshot = Path(record["snapshot"])
-        self.assertEqual((snapshot / "hypothesis.md").read_bytes(), hypothesis.read_bytes())
-        self.assertEqual(independent_hash(snapshot), record["hash"])
-        self.assertTrue(all(not p.stat().st_mode & 0o222 for p in [snapshot, *snapshot.rglob("*")]))
-        self.assertTrue(all(stat.S_ISREG(p.lstat().st_mode) for p in snapshot.rglob("*.md")))
+        self.assertFalse(Path(record["snapshot"]).exists())
         self.assertIn("```json", record["response"])
         # Approval does not rerun the current parser on historical raw evidence.
         record["response"] = "archived response in a different format"
@@ -290,6 +291,62 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(self.status("approved"), first)
         self.assertEqual(fingerprint(self.prd), before)
         self.assertEqual([row[0] for row in self.calls()], ["run", "status", "result"])
+
+    def test_approval_prunes_all_earlier_attempts_and_snapshots(self):
+        self.example_candidate()
+        revised = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
+        blocked = self.review(2, config={"answer": answer("BLOCKED", FINDING)}, verdict="BLOCKED")
+        failed = self.review(3, config={"answer": "invalid"}, error="invalid_verdict")
+        for result in (revised, blocked, failed):
+            self.assertTrue(Path(result["snapshot"]).is_dir())
+        self.status(revise_count=1, revise_records=[revised["record"]])
+
+        # A symlink in a discarded snapshot must not cause cleanup outside reviews/.
+        snapshot = Path(failed["snapshot"])
+        snapshot.chmod(0o700)
+        (snapshot / "outside").symlink_to(self.prd / "evidence", target_is_directory=True)
+        snapshot.chmod(0o555)
+        evidence = self.prd / "evidence/local-list.md"
+        before = fingerprint(self.prd / "evidence")
+        mode = evidence.parent.stat().st_mode
+
+        ready = self.review(verdict="READY")
+        kept = {"format", Path(ready["record"]).name}
+        self.assertEqual({p.name for p in self.reviews.iterdir()}, kept)
+        self.status("approved", run_id=ready["run_id"], record=ready["record"],
+                    revise_count=0, revise_records=[])
+        self.assertEqual(fingerprint(evidence.parent), before)
+        self.assertEqual(evidence.parent.stat().st_mode, mode)
+
+        # Retry cleanup if the READY receipt was written but some debris remained.
+        Path(failed["snapshot"]).parent.mkdir()
+        calls = self.calls()
+        self.review(verdict="READY", run_id=ready["run_id"], record=ready["record"])
+        self.assertEqual({p.name for p in self.reviews.iterdir()}, kept)
+        self.assertEqual(self.calls(), calls)
+
+    def test_appended_answer_after_approval_restarts_review_history(self):
+        self.example_candidate()
+        ready = self.review(verdict="READY")
+        self.append(self.brief, "\n사용자 답: 로컬 환경에서 확인.\n")
+        self.start()
+        draft = self.status(revise_count=0, revise_records=[])
+        self.assertNotIn("run_id", draft)
+        self.assertNotEqual(draft["hash"], ready["hash"])
+
+        revised = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
+        self.assertIn("이번 제출은 전체 검수한다.", self.latest_brief().read_text())
+        self.assertEqual(Path(revised["snapshot"], "request.md").read_bytes(), self.brief.read_bytes())
+        self.assertEqual({p.name for p in self.reviews.iterdir()},
+                         {"format", Path(ready["record"]).name, Path(revised["record"]).name,
+                          Path(revised["snapshot"]).parent.name})
+        self.status(revise_count=1, revise_records=[revised["record"]])
+        self.append(self.index, "\ncandidate reworked\n")
+        again = self.review(verdict="READY")
+        self.assertIn("## 직전 지적과 제출본 간 diff", self.latest_brief().read_text())
+        self.assertNotEqual(again["run_id"], ready["run_id"])
+        self.assertEqual({p.name for p in self.reviews.iterdir()}, {"format", Path(again["record"]).name})
+        self.status("approved", run_id=again["run_id"], revise_count=0, revise_records=[])
 
     def test_json_schema_and_exit_values(self):
         self.example_candidate()
@@ -361,7 +418,7 @@ class PRDTest(unittest.TestCase):
         revised = self.review(1, config=config, verdict="REVISE")
         self.status(revise_count=1, revise_records=[revised["record"]])
         self.review(verdict="READY")
-        self.status("approved", revise_count=1, revise_records=[revised["record"]])
+        self.status("approved", revise_count=0, revise_records=[])
         self.assertEqual(len(self.runs()), 4)
 
     def test_rework_count_uses_legacy_snapshot_and_only_counts_valid_revise(self):
@@ -423,7 +480,7 @@ class PRDTest(unittest.TestCase):
         self.assertNotIn("## 직전 지적과 제출본 간 diff".encode(), brief)
         self.status("approved", run_id=new["run_id"])
         self.preamble.write_bytes(original)
-        self.status("approved", run_id=old["run_id"])
+        self.status(hash=old["hash"])
 
     def test_legacy_records_are_readable_but_do_not_approve(self):
         self.example_candidate()

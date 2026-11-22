@@ -14,6 +14,7 @@ The Principles section below grounds every trigger. In your reply, name each pri
 
 The remaining triggers live only here:
 
+- Language → reply to the user in Korean. Write worker briefs, reviewer briefs, `steer`/`ask` messages, and other agent-to-agent text in English.
 - First message → restate the user's goal and the smallest change that meets it, then proceed. Open each worker brief, PR `## Why`, and final report with the goal.
 - Starting a worker → fill in [the worker brief template](../../templates/worker-brief.md), keep its discipline section, and include this file's absolute path. Bundled skills live at `../<name>/SKILL.md` from this file.
 - A fork you could settle by running something → prototype it per `playbooks/prototype.md` instead of asking.

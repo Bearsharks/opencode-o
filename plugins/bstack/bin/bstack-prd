@@ -116,6 +116,20 @@ def unlink(parent, name):
         pass
 
 
+def remove_review_entry(parent, name):
+    info = os.stat(name, dir_fd=parent, follow_symlinks=False)
+    if not stat.S_ISDIR(info.st_mode):
+        unlink(parent, name)
+        return
+    with directory(name, parent) as child:
+        # Frozen snapshots have read-only directories. Unlinking files only
+        # requires write access to their parent, not to the files themselves.
+        os.fchmod(child, stat.S_IMODE(os.fstat(child).st_mode) | stat.S_IWUSR)
+        for entry in os.listdir(child):
+            remove_review_entry(child, entry)
+    os.rmdir(name, dir_fd=parent)
+
+
 def optional_file(parent, name):
     try:
         return read_file(name, parent)
@@ -374,6 +388,14 @@ class PRD:
         with directory(token, reviews) as submission, directory("snapshot", submission) as snapshot:
             return capture(snapshot, snapshot=True)
 
+    @staticmethod
+    def prune_reviews(reviews, approved_name):
+        # Both locks are held. Remove old receipts before their snapshots so
+        # interrupted cleanup cannot leave a legacy REVISE without its snapshot.
+        for name in sorted(os.listdir(reviews), key=lambda entry: not entry.endswith(".json")):
+            if name not in ("format", approved_name):
+                remove_review_entry(reviews, name)
+
     def prepare(self, candidate, original, previous, reviews, token):
         path = self.snapshot_path(token)
         brief = original + (f"\n\n## 실제 입력 경로\n\n"
@@ -466,6 +488,10 @@ class PRD:
                     name, data = approved
                     self.record_run_id(name, data)
                     self.snapshot_token(name, data)
+                    # Retry interrupted cleanup without discarding reviews
+                    # accumulated after an older approval.
+                    if name == history[-1][0]:
+                        self.prune_reviews(reviews, name)
                     return review_output(data, self.reviews / name)
                 preflight(candidate, digest)
                 request_hash = sha(candidate["request.md"])
@@ -474,7 +500,9 @@ class PRD:
                     return 4, {"error": "rework_limit_reached",
                                "detail": "재작업 한도 도달: 사용자와 쟁점을 다듬고 답을 request.md에 추가하세요.",
                                "revise_count": len(records), "revise_records": records}
-                previous = history[-1] if history and history[-1][1].get("reviewer_hash") == criteria else None
+                # READY retains a receipt but no snapshot for an incremental review.
+                previous = history[-1] if (history and history[-1][1]["verdict"] != "READY"
+                                           and history[-1][1].get("reviewer_hash") == criteria) else None
                 number = int(history[-1][0].split("-")[0]) + 1 if history else 1
                 token = secrets.token_hex(16)
                 brief = self.prepare(candidate, original, previous, reviews, token)
@@ -499,6 +527,8 @@ class PRD:
                     name = f"{number:020d}-{token}.json"
                     record = {**result, **value, "response": raw, "request_hash": request_hash}
                     atomic_write(reviews, name, json_bytes(record))
+                    if record["verdict"] == "READY":
+                        self.prune_reviews(reviews, name)
                     return review_output(record, self.reviews / name)
                 finally:
                     if optional_file(reviews, "active") == token.encode("ascii"):
