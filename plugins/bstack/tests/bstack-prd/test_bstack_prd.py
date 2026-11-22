@@ -67,6 +67,7 @@ class PRDTest(unittest.TestCase):
         self.brief = self.cwd / "brief.md"
         self.brief.write_bytes((FIXTURES / "request.md").read_bytes())
         self.prd = self.cwd / ".bstack/jot"
+        self.archived = self.prd.parent / "archive" / self.prd.name
         self.index = self.prd / "index.md"
         self.request = self.prd / "request.md"
         self.reviews = self.prd / "reviews"
@@ -99,12 +100,18 @@ class PRDTest(unittest.TestCase):
     def start(self, code=0, **fields):
         return self.cli_call(["start", "jot", "--brief", self.brief], code, **fields)
 
+    def append_brief(self, code=0, **fields):
+        return self.cli_call(["append", "jot", "--brief", self.brief], code, **fields)
+
     def status(self, state="draft", **fields):
         return self.cli_call(["status", "jot"], 1 if state == "draft" else 0,
                              state=state, index=str(self.index), **fields)
 
     def review(self, code=0, **kwargs):
         return self.cli_call(["review", "jot"], code, **kwargs)
+
+    def archive(self, code=0, **fields):
+        return self.cli_call(["archive", "jot"], code, **fields)
 
     def example_candidate(self):
         self.start(path=str(self.prd))
@@ -149,41 +156,166 @@ class PRDTest(unittest.TestCase):
         if proc.poll() is None:
             proc.communicate(timeout=20)
 
-    def test_start_resume_and_status_do_not_rewrite(self):
+    def test_start_does_not_resume_an_existing_prd(self):
         self.example_candidate()
         before = fingerprint(self.prd)
-        self.start(path=str(self.prd))
+        self.append(self.brief, "\nA separate request that would pass the append-only check.\n")
+        self.start(3, error="prd_exists",
+                   detail=f"PRD already exists: {self.prd}. "
+                          "Use append to continue the same PRD, or pick a new name for a new request.")
+        self.assertEqual(fingerprint(self.prd), before)
+        self.assertEqual(self.calls(), [])
+
+    def test_append_requires_an_initialized_prd(self):
+        fields = dict(error="invalid_path", detail=f"Not initialized by bstack-prd: {self.prd}")
+        self.append_brief(3, **fields)
+        self.assertFalse(self.prd.parent.exists())
+        self.prd.parent.mkdir()
+        self.append_brief(3, **fields)
+        self.assertFalse(self.prd.exists())
+        self.prd.mkdir()
+        self.append_brief(3, **fields)
+        self.assertEqual(list(self.prd.iterdir()), [])
+
+    def test_archive_moves_unapproved_prd_with_frozen_snapshot_unchanged(self):
+        self.example_candidate()
+        result = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
+        receipt = Path(result["record"])
+        record = json.loads(receipt.read_bytes())
+        del record["request_hash"]  # Legacy receipts resolve the request hash from the snapshot.
+        receipt.write_text(json.dumps(record), encoding="utf-8")
+        draft = self.status(revise_count=1, revise_records=[str(receipt)])
+        snapshot = Path(result["snapshot"])
+        snapshot_paths = [snapshot, *snapshot.rglob("*")]
+        self.assertTrue(all(not path.stat().st_mode & 0o222 for path in snapshot_paths))
+        (self.prd / "evidence/opaque.bin").write_bytes(b"\x00\xff\r\n")
+        (self.prd / "evidence/empty").mkdir()
+
+        def layout(root):
+            entries = {}
+            for path in (root, *root.rglob("*")):
+                info = path.stat()
+                entries[path.relative_to(root)] = (info.st_ino, info.st_mode)
+            return entries
+
+        before, layout_before = fingerprint(self.prd), layout(self.prd)
+        self.assertFalse(self.archived.parent.exists())
+        self.assertEqual(self.archive(), {"path": str(self.archived)})
+        self.assertEqual(list(self.prd.parent.iterdir()), [self.archived.parent])
+        self.assertEqual(fingerprint(self.archived), before)
+        self.assertEqual(layout(self.archived), layout_before)
+
+        calls = self.calls()
+        missing = dict(error="invalid_path", detail=f"Not initialized by bstack-prd: {self.prd}")
+        archived_status = self.cli_call(["status", "jot"], 1)
+        self.assertEqual(archived_status, {**draft, "archived": True,
+                                           "index": str(self.archived / "index.md"),
+                                           "revise_records": [str(self.archived / "reviews" / receipt.name)]})
+        self.prd.mkdir()  # An existing live entry must not be bypassed.
+        self.cli_call(["status", "jot"], 3, **missing)
+        self.prd.rmdir()
+        self.append_brief(3, **missing)
+        self.review(3, **missing)
+        self.start(3, error="prd_exists",
+                   detail=f"Name was used by an archived PRD: {self.archived}. "
+                          "Pick a new name for a new request.")
+        self.assertFalse(self.prd.exists())
+        self.assertEqual(fingerprint(self.archived), before)
+        self.assertEqual(self.calls(), calls)
+
+    def test_archive_requires_an_initialized_prd(self):
+        fields = dict(error="invalid_path", detail=f"Not initialized by bstack-prd: {self.prd}")
+        self.archive(3, **fields)
+        self.assertFalse(self.prd.parent.exists())
+        self.prd.parent.mkdir()
+        self.archive(3, **fields)
+        self.assertFalse(self.archived.parent.exists())
+        self.prd.mkdir()
+        self.archive(3, **fields)
+        self.reviews.mkdir()
+        (self.reviews / "format").write_bytes(b"unexpected marker\n")
+        self.archive(3, **fields)
+        self.assertTrue(self.prd.is_dir())
+        self.assertFalse(self.archived.parent.exists())
+
+    def test_archive_refuses_to_replace_existing_destination(self):
+        self.start()
+        self.archived.mkdir(parents=True)
+        before, destination = fingerprint(self.prd), self.archived.stat().st_ino
+        self.archive(3, error="archived_exists", detail=f"Archived PRD already exists: {self.archived}")
+        self.assertEqual(self.archived.stat().st_ino, destination)
+        self.assertEqual(list(self.archived.iterdir()), [])
+        self.assertEqual(fingerprint(self.prd), before)
+
+    def test_archive_refuses_running_review_without_breaking_its_lock(self):
+        self.example_candidate()
+        proc, run = self.held("archive-held")
+        before = fingerprint(self.prd)
+        self.archive(3, error="review_in_progress", detail="A review for this PRD is already running")
+        self.assertFalse(self.archived.parent.exists())
+        self.assertEqual(fingerprint(self.prd), before)
+        self.review(3, error="review_in_progress")
+        (run / "release").touch()
+        self.finish(proc, 0, verdict="READY", run_id="archive-held")
+        approved = self.status("approved")
+        self.archive(path=str(self.archived))
+        before = fingerprint(self.archived)
+        archived_status = self.cli_call(["status", "jot"])
+        self.assertEqual(archived_status, {**approved, "archived": True,
+                                           "index": str(self.archived / "index.md"),
+                                           "record": str(self.archived / "reviews" / Path(approved["record"]).name)})
+        self.assertEqual(fingerprint(self.archived), before)
+
+    def test_archive_name_is_reserved_for_every_command(self):
+        for command in ("start", "append", "review", "status", "archive"):
+            with self.subTest(command=command):
+                args = [command, "archive"]
+                if command in ("start", "append"):
+                    args.extend(["--brief", self.brief])
+                self.cli_call(args, 3, error="invalid_name", detail="Reserved PRD name: 'archive'")
+        self.assertFalse(self.prd.parent.exists())
+
+    def test_append_unchanged_and_status_do_not_rewrite(self):
+        self.example_candidate()
+        before = fingerprint(self.prd)
+        self.append_brief(path=str(self.prd))
         self.status()
         self.assertEqual(fingerprint(self.prd), before)
         self.append(self.brief, "\n새로운 사용자 답변\r\n")
-        self.start()
+        self.append_brief()
         self.assertEqual(self.request.read_bytes(), self.brief.read_bytes())
         self.assertEqual({k: v for k, v in fingerprint(self.prd).items() if k != "request.md"},
                          {k: v for k, v in before.items() if k != "request.md"})
-        self.edit(self.brief, "실수로", "바꾼 원문")
-        self.start(3, error="brief_not_append_only")
-        self.assertNotEqual(self.request.read_bytes(), self.brief.read_bytes())
         self.assertEqual(self.calls(), [])
 
-    def test_start_stdin_preserves_original_and_appends_only(self):
-        args = ["start", "jot", "--brief", "-"]
+    def test_append_rejects_non_prefix_brief(self):
+        self.example_candidate()
+        before = fingerprint(self.prd)
+        self.edit(self.brief, "실수로", "바꾼 원문")
+        self.append_brief(3, error="brief_not_append_only")
+        self.assertEqual(fingerprint(self.prd), before)
+        self.assertEqual(self.calls(), [])
+
+    def test_stdin_preserves_original_and_appends_only(self):
         original = "# 요청 원문\r\n\r\n사용자 \"$HOME\"과 '작은따옴표' 🌱\r\n\r\n## 이후 답변\r\n"
         # There is no staging file, and "-" is stdin even if such a file exists.
         self.brief.unlink()
         (self.cwd / "-").write_bytes(b"not the submitted request")
 
-        def start(text, code=0, **fields):
+        def send(command, text, code=0, **fields):
+            args = [command, "jot", "--brief", "-"]
             return self.finish(self.proc(args, stdin=subprocess.PIPE), code,
                                input_text=text, **fields)
 
-        start("", 3, error="invalid_brief")
+        send("start", "", 3, error="invalid_brief")
         self.assertFalse(self.prd.exists())
-        start(original, path=str(self.prd))
+        send("start", original, path=str(self.prd))
+        send("append", "", 3, error="invalid_brief")
         self.assertEqual(self.request.read_bytes(), original.encode())
         appended = original + "\r\n사용자 답: 끝 줄에 줄바꿈 없음"
-        start(appended, path=str(self.prd))
+        send("append", appended, path=str(self.prd))
         self.assertEqual(self.request.read_bytes(), appended.encode())
-        start(original, 3, error="brief_not_append_only")
+        send("append", original, 3, error="brief_not_append_only")
         self.assertEqual(self.request.read_bytes(), appended.encode())
         self.assertEqual(self.calls(), [])
 
@@ -206,20 +338,29 @@ class PRDTest(unittest.TestCase):
         sub.mkdir()
         self.finish(self.proc(["status", "jot"], cwd=sub), 3, error="invalid_path")
         self.prd.mkdir(parents=True)
-        self.start(3, error="invalid_path")
+        self.start(3, error="prd_exists")
+        self.assertEqual(list(self.prd.iterdir()), [])
         self.prd.rmdir()
-        self.prd.symlink_to(FIXTURES, target_is_directory=True)
-        self.start(3)
+        self.prd.write_bytes(b"not a directory")
+        self.start(3, error="prd_exists")
+        self.assertEqual(self.prd.read_bytes(), b"not a directory")
+        self.prd.unlink()
+        self.prd.symlink_to("missing", target_is_directory=True)
+        self.start(3, error="prd_exists")
+        self.append_brief(3, error="invalid_path")
+        self.assertEqual(os.readlink(self.prd), "missing")
         self.prd.unlink()
         original = self.brief.with_name("original.md")
         self.brief.rename(original)
         self.brief.symlink_to(original)
-        self.start(3)
+        self.start(3, error="io_error")
+        self.append_brief(3, error="io_error")
         self.brief.unlink()
         self.brief = original
         self.example_candidate()
         symlink = self.prd / "escaped.md"
         symlink.symlink_to("../../../brief.md")
+        self.append_brief(3, error="invalid_path")
         self.review(3, error="invalid_path")
         symlink.unlink()
         os.mkfifo(symlink)
@@ -294,7 +435,7 @@ class PRDTest(unittest.TestCase):
         record["response"] = "archived response in a different format"
         Path(first["record"]).write_text(json.dumps(record), encoding="utf-8")
         before = fingerprint(self.prd)
-        self.start()
+        self.append_brief()
         self.review(verdict="READY", run_id=first["run_id"], record=first["record"])
         self.assertEqual(self.status("approved"), first)
         self.assertEqual(fingerprint(self.prd), before)
@@ -337,7 +478,7 @@ class PRDTest(unittest.TestCase):
         self.example_candidate()
         ready = self.review(verdict="READY")
         self.append(self.brief, "\n사용자 답: 로컬 환경에서 확인.\n")
-        self.start()
+        self.append_brief()
         draft = self.status(revise_count=0, revise_records=[])
         self.assertNotIn("run_id", draft)
         self.assertNotEqual(draft["hash"], ready["hash"])
@@ -403,7 +544,7 @@ class PRDTest(unittest.TestCase):
         records = [first["record"], second["record"]]
         self.status(revise_count=2, revise_records=records)
         self.assertNotEqual(first["hash"], second["hash"])
-        self.start()  # Resuming unchanged bytes does not reset the count.
+        self.append_brief()  # Resuming unchanged bytes does not reset the count.
         self.append(self.refs / "reviewer.md", "\nupdated criteria\n")
         before, calls = fingerprint(self.prd), self.calls()
         result = self.review(4, error="rework_limit_reached", revise_count=2, revise_records=records)
@@ -421,7 +562,7 @@ class PRDTest(unittest.TestCase):
             self.status(revise_count=count)
         self.review(4, error="rework_limit_reached")
         self.append(self.brief, "\n사용자 답: 로컬 환경에서 확인.\n")
-        self.start()
+        self.append_brief()
         self.status(revise_count=0, revise_records=[])
         revised = self.review(1, config=config, verdict="REVISE")
         self.status(revise_count=1, revise_records=[revised["record"]])
@@ -509,7 +650,7 @@ class PRDTest(unittest.TestCase):
         self.example_candidate()
         self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
         self.append(self.brief, "\nnew-answer-from-user\n")
-        self.start()
+        self.append_brief()
         self.append(self.prd / "evidence/local-list.md", "\nfixture changed\n")
         (self.prd / "detail.md").write_text("# Added detail\n")
         self.review(verdict="READY")
@@ -547,14 +688,14 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(list(self.reviews.glob("*.json")), [])
         self.review(verdict="READY")
 
-    def test_start_invalidates_late_ready_without_freeing_review_slot(self):
+    def test_append_invalidates_late_ready_without_freeing_review_slot(self):
         self.example_candidate()
         for token, new_answer in (("answer", True), ("same", False)):
             with self.subTest(token=token):
                 proc, run = self.held(token)
                 if new_answer:
                     self.append(self.brief, "\nuser replied\n")
-                self.start()
+                self.append_brief()
                 calls = self.calls()
                 self.review(3, error="review_in_progress")
                 self.assertEqual(self.calls(), calls)

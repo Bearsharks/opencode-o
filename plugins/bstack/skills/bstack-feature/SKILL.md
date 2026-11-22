@@ -30,7 +30,11 @@ disable-model-invocation: true
 
 ## 진행
 
-- **원문 기록:** 첫 요청과 이후 답변 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식으로 `bstack-prd start <name> --brief -`의 stdin에 넘긴다. 새 답이 오면 기존 바이트를 보존하고 덧붙인 전체를 다시 넘긴다. 기존 폴더는 같은 작업의 `request.md`가 있을 때만 이어 쓴다.
+- **PRD 폴더:** 가설과 기능은 `.bstack/<name>/` 하나를 같이 쓴다. `.bstack/` 바로 아래 폴더 중 `archive/`가 아닌 것은 모두 진행 중인 PRD다. 시작하기 전에 이 목록을 본다.
+  - 진행 중인 PRD가 없으면 새 이름으로 `bstack-prd start <name> --brief -`를 실행한다. stdin에는 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식으로 넘긴다.
+  - 진행 중인 PRD가 있고 이 요청이 그중 하나를 잇는지 확실하지 않으면 사용자에게 "진행 중인 PRD <이름 목록>이 있습니다. 이 중 하나를 이어 가나요, 새 기능인가요?"라고 묻는다. 새 기능이면 새 이름으로 `start`한다.
+  - 이어 가면, 또 이 PRD에 사용자 답이 오면 기존 바이트를 보존하고 덧붙인 전체를 `bstack-prd append <name> --brief -`로 넘긴다. 가설 단계가 연 폴더라면 그 폴더에 `index.md`를 쓴다.
+  - Shipping이 이 PRD의 마지막 PR을 병합하기 직전에 `bstack-prd archive <name>`으로 보관하고, 그 이동을 PR에 커밋한다. 사용자가 버리기로 한 PRD도 보관한다.
 - **확인:** 문서를 쓴 뒤 검수 전에 사용자 기준(원문 첨부)과 에이전트 제안을 나눠 보이고 "이렇게 할까요? 제안 중 채택하거나 뺄 것이 있나요?"라고 묻는다. 확인을 받기 전에는 검수하지 않는다. 일반적인 진행 동의는 제안의 채택이 아니다. 사용자가 이번 요청에서 자율 진행을 명시적으로 허락했으면 확인을 건너뛰고, 그 문장을 `request.md`에 인용해 둔다.
 - **검수:** `bstack-prd review <name>`을 실행한다. 검수자는 [검수 brief](references/reviewer.md)를 따른다.
 

@@ -1,0 +1,15 @@
+{
+  "name": "opencode-o",
+  "owner": { "name": "bynn" },
+  "metadata": { "description": "Local plugins from the opencode-o repository" },
+  "plugins": [
+    {
+      "name": "bstack",
+      "source": "./plugins/bstack",
+      "description": "Claude Code workflows that delegate implementation, exploration, and verification to OpenCode workers.",
+      "version": "0.1.0",
+      "author": { "name": "bynn" },
+      "license": "MIT"
+    }
+  ]
+}

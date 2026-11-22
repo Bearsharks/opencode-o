@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Initialize, independently review, and read the approval of a bstack PRD."""
+"""Initialize, independently review, check approval, and archive a bstack PRD."""
 
 import argparse
 from contextlib import ExitStack, contextmanager
@@ -60,6 +60,14 @@ def directory(path, parent=None):
         yield fd
     finally:
         os.close(fd)
+
+
+def entry_exists(parent, name):
+    try:
+        os.stat(name, dir_fd=parent, follow_symlinks=False)
+    except FileNotFoundError:
+        return False
+    return True
 
 
 def try_lock(fd, mode):
@@ -243,8 +251,20 @@ class PRD:
         self.store = cwd / ".bstack"
         self.name = name
         self.path = self.store / name
-        self.index = self.path / "index.md"
+        self.archived = self.store / "archive" / name
         self.reviews = self.path / "reviews"
+
+    def require_absent(self, bstack):
+        if entry_exists(bstack, self.name):
+            raise Failure("prd_exists", f"PRD already exists: {self.path}. "
+                          "Use append to continue the same PRD, or pick a new name for a new request.")
+        try:
+            with directory("archive", bstack) as archive:
+                if entry_exists(archive, self.name):
+                    raise Failure("prd_exists", f"Name was used by an archived PRD: {self.archived}. "
+                                  "Pick a new name for a new request.")
+        except FileNotFoundError:
+            pass
 
     def init(self, bstack, brief):
         template = external_file(REFS / "template/index.md")
@@ -257,8 +277,7 @@ class PRD:
                     create_file(reviews, "format", MARKER)
                 create_file(prd, "index.md", template)
                 create_file(prd, "request.md", brief)
-            if self.name in os.listdir(bstack):
-                raise Failure("invalid_path", f"Path appeared during initialization: {self.path}")
+            self.require_absent(bstack)
             os.rename(stage, self.name, src_dir_fd=bstack, dst_dir_fd=bstack)
         except BaseException:
             with directory(stage, bstack) as prd:
@@ -273,37 +292,74 @@ class PRD:
             os.rmdir(stage, dir_fd=bstack)
             raise
 
-    @contextmanager
-    def locked(self, *, read_only=False):
-        with directory(self.store) as bstack, directory(self.name, bstack) as prd:
-            fcntl.flock(prd, fcntl.LOCK_SH if read_only else fcntl.LOCK_EX)
-            # Reject case aliases on case-insensitive file systems as well.
-            uninitialized = Failure("invalid_path", f"Not initialized by bstack-prd: {self.path}")
-            if self.name not in os.listdir(bstack) or "reviews" not in os.listdir(prd):
-                raise uninitialized
-            with directory("reviews", prd) as reviews:
-                if optional_file(reviews, "format") != MARKER:
-                    raise uninitialized
-                yield prd, reviews
+    def uninitialized(self):
+        return Failure("invalid_path", f"Not initialized by bstack-prd: {self.path}")
 
-    def start(self, brief_path):
+    @contextmanager
+    def locked(self, *, read_only=False, lock_store=False, include_archived=False):
+        with ExitStack() as held:
+            try:
+                bstack = held.enter_context(directory(self.store))
+                if lock_store:
+                    fcntl.flock(bstack, fcntl.LOCK_EX)
+                elif include_archived:
+                    # Resolve the active or archived location without racing an archive.
+                    fcntl.flock(bstack, fcntl.LOCK_SH)
+                parent = bstack
+                try:
+                    prd = held.enter_context(directory(self.name, parent))
+                except FileNotFoundError:
+                    if not include_archived:
+                        raise
+                    parent = held.enter_context(directory("archive", bstack))
+                    prd = held.enter_context(directory(self.name, parent))
+                fcntl.flock(prd, fcntl.LOCK_SH if read_only else fcntl.LOCK_EX)
+                # Reject case aliases on case-insensitive file systems as well.
+                if self.name not in os.listdir(parent) or "reviews" not in os.listdir(prd):
+                    raise self.uninitialized()
+                reviews = held.enter_context(directory("reviews", prd))
+                if optional_file(reviews, "format") != MARKER:
+                    raise self.uninitialized()
+            except OSError as exc:
+                if exc.errno in (errno.ENOENT, errno.ENOTDIR, errno.ELOOP):
+                    raise self.uninitialized() from exc
+                raise
+            yield bstack, prd, reviews, parent != bstack
+
+    def archive(self):
+        # Serialize destination checks and rename with start and other archive calls.
+        with self.locked(lock_store=True) as (bstack, _, reviews, _):
+            if not try_lock(reviews, fcntl.LOCK_EX):
+                raise Failure("review_in_progress", "A review for this PRD is already running")
+            try:
+                os.mkdir("archive", 0o700, dir_fd=bstack)
+            except FileExistsError:
+                pass
+            with directory("archive", bstack) as archive:
+                if entry_exists(archive, self.name):
+                    raise Failure("archived_exists", f"Archived PRD already exists: {self.archived}")
+                os.rename(self.name, self.name, src_dir_fd=bstack, dst_dir_fd=archive)
+        return 0, {"path": str(self.archived)}
+
+    def save_brief(self, brief_path, *, create):
         brief = sys.stdin.buffer.read() if brief_path == "-" else external_file(brief_path)
         if not brief.strip():
             raise Failure("invalid_brief", "Request brief is empty")
-        self.store.mkdir(exist_ok=True)
-        with directory(self.store) as bstack:
-            fcntl.flock(bstack, fcntl.LOCK_EX)
-            try:
-                os.stat(self.name, dir_fd=bstack, follow_symlinks=False)
-            except FileNotFoundError:
+        if create:
+            self.store.mkdir(exist_ok=True)
+            with directory(self.store) as bstack:
+                fcntl.flock(bstack, fcntl.LOCK_EX)
+                self.require_absent(bstack)
                 self.init(bstack, brief)
-        with self.locked() as (prd, reviews):
+            return 0, {"path": str(self.path)}
+        with self.locked() as (_, prd, reviews, _):
             capture(prd)  # Refuse unsafe paths even when resuming unchanged content.
             previous = read_file("request.md", prd)
             if not brief.startswith(previous):
                 raise Failure("brief_not_append_only", f"Brief must preserve existing bytes: {self.path / 'request.md'}")
             if brief != previous:
                 atomic_write(prd, "request.md", brief)
+            # Explicit continuation invalidates an in-flight submission even with unchanged bytes.
             unlink(reviews, "active")
         return 0, {"path": str(self.path)}
 
@@ -327,11 +383,12 @@ class PRD:
 
     def snapshot_token(self, name, data):
         token = Path(name).stem.split("-", 1)[1]
+        # Receipts retain their original live snapshot paths when archived.
         if data.get("snapshot") != str(self.snapshot_path(token)):
             raise Failure("invalid_record", f"Invalid snapshot path: {self.reviews / name}")
         return token
 
-    def revise_records(self, history, reviews, request_hash):
+    def revise_records(self, history, reviews, request_hash, reviews_path):
         if request_hash is None:
             return []
         records = []
@@ -347,7 +404,7 @@ class PRD:
             elif not isinstance(prior_hash, str) or not SHA.fullmatch(prior_hash):
                 raise Failure("invalid_record", f"Invalid request hash: {self.reviews / name}")
             if prior_hash == request_hash:
-                records.append(str(self.reviews / name))
+                records.append(str(reviews_path / name))
         return records
 
     @staticmethod
@@ -357,19 +414,24 @@ class PRD:
         return matching if matching and matching[1]["verdict"] == "READY" else None
 
     def status(self):
-        with self.locked(read_only=True) as (prd, reviews):
+        with self.locked(read_only=True, include_archived=True) as (_, prd, reviews, archived):
+            path = self.archived if archived else self.path
+            reviews_path = path / "reviews"
             candidate = capture(prd)
             digest = content_hash(candidate)
-            value = {"state": "draft", "index": str(self.index), "hash": digest}
+            value = {"state": "draft", "index": str(path / "index.md"), "hash": digest}
+            if archived:
+                value["archived"] = True
             history = self.history(reviews)
             request = candidate.get("request.md")
-            records = self.revise_records(history, reviews, sha(request) if request is not None else None)
+            records = self.revise_records(history, reviews, sha(request) if request is not None else None,
+                                          reviews_path)
             value.update(revise_count=len(records), revise_records=records)
             _, criteria = reviewer_instructions()
             if approved := self.approval(history, digest, criteria):
                 name, data = approved
                 return 0, {**value, "state": "approved", "run_id": self.record_run_id(name, data),
-                           "record": str(self.reviews / name)}
+                            "record": str(reviews_path / name)}
             idle = try_lock(reviews, fcntl.LOCK_SH)
             if idle:
                 fcntl.flock(reviews, fcntl.LOCK_UN)
@@ -474,8 +536,8 @@ class PRD:
 
     def review(self):
         with ExitStack() as held:
-            with self.locked() as (prd, reviews):
-                # Keep the review lock while allowing status and start to access the PRD.
+            with self.locked() as (_, prd, reviews, _):
+                # Keep the review lock while allowing status and append to access the PRD.
                 slot = os.dup(reviews)
                 held.callback(os.close, slot)
                 if not try_lock(slot, fcntl.LOCK_EX):
@@ -495,7 +557,7 @@ class PRD:
                     return review_output(data, self.reviews / name)
                 preflight(candidate, digest)
                 request_hash = sha(candidate["request.md"])
-                records = self.revise_records(history, reviews, request_hash)
+                records = self.revise_records(history, reviews, request_hash, self.reviews)
                 if len(records) >= REVISE_LIMIT:
                     return 4, {"error": "rework_limit_reached",
                                "detail": "재작업 한도 도달: 사용자와 쟁점을 다듬고 답을 request.md에 추가하세요.",
@@ -519,7 +581,7 @@ class PRD:
                 failure = exc
             except (OSError, KeyboardInterrupt) as exc:
                 failure = Failure("review_run_failed", str(exc) or "Review run interrupted")
-            with self.locked() as (prd, reviews):
+            with self.locked() as (_, prd, reviews, _):
                 try:
                     self.confirm(prd, reviews, token, candidate, result["reviewer_hash"])
                     if failure:
@@ -591,18 +653,21 @@ def review_output(data, path):
 def main():
     parser = Parser(prog="bstack-prd", add_help=False, allow_abbrev=False)
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("start", "review", "status"):
+    brief_commands = ("start", "append")
+    for command in (*brief_commands, "review", "status", "archive"):
         sub = commands.add_parser(command, add_help=False, allow_abbrev=False)
         sub.add_argument("name")
-        if command == "start":
+        if command in brief_commands:
             sub.add_argument("--brief", required=True, metavar="FILE",
                              help="request brief file, or - to read stdin")
     args = parser.parse_args()
     if not NAME.fullmatch(args.name):
         raise Failure("invalid_name", f"Expected lowercase kebab-case NAME: {args.name!r}")
+    if args.name == "archive":
+        raise Failure("invalid_name", "Reserved PRD name: 'archive'")
     prd = PRD(git_root(), args.name)
-    if args.command == "start":
-        return prd.start(args.brief)
+    if args.command in brief_commands:
+        return prd.save_brief(args.brief, create=args.command == "start")
     return getattr(prd, args.command)()
 
 
