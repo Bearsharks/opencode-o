@@ -3,10 +3,12 @@
 Launched with `--role review`, which attaches the [reviewer preamble](preamble/reviewer.md).
 
 - **Candidate:** <forge, repository, PR URL, base ref, full base and head SHAs>.
-- **Criteria:** <approved PRD (work document if there is no PRD); path and pinned identity or `none`, applicable Verification rows or work criteria, and criteria owner>.
+- **Criteria:** <approved PRD (work document if there is no PRD); path and pinned identity or `none`, applicable Verification rows and `checks.md` at the pinned head, or work criteria, and criteria owner>.
 - **Evidence and review scope:** <driver or project verification skill, links to logs and artifacts; for re-review, changes since the prior pins, prior findings and their closure conditions>.
 
 Confirm the inputs before running anything; the worktree's starting revision is not a pin. Use the project verification skill or named driver to run the actual user surface at the pinned base and head. Keep parallel runs' data, caches, outputs and ports separate. Record the revisions, environment, inputs and observed outcomes. Assess whether the verification covers the user path and important failure boundaries, and whether it would fail if the behavior broke. If detectability is unclear, state the question the evidence cannot answer and run a focused counterexample. Inspect existing evidence to narrow extra checks, not to substitute author logs, green CI or bot approval for independent execution.
+
+When the criteria include a check table (`checks.md`), run each row's 검증 방법 at the pinned head and judge the row by its 목적. 범위 외 lists observation means, not review targets: a 범위 외 value being off is never by itself a reason to FAIL. If watching it shows the 목적 broken, FAIL and cite the 목적. Report problems the table does not cover as findings. A row whose tests did not run, ran zero cases, or were skipped is not a pass. Put one line per row in `evidence`: `F-xx PASS|FAIL | 목적 | what was observed | evidence path`.
 
 Do not edit or publish the PR, or merge it. Write only isolated scratch files if needed. Return evidence to the Shipping worker. Reproduce an observation before assigning an uncertain cause.
 
