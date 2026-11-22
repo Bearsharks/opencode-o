@@ -258,9 +258,15 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(fingerprint(self.prd), before)
         self.review(3, error="review_in_progress")
         (run / "release").touch()
-        self.finish(proc, 0, verdict="READY", run_id="archive-held")
+        ready = self.finish(proc, 0, verdict="READY", run_id="archive-held")
         approved = self.status("approved")
         self.archive(path=str(self.archived))
+        snapshot = Path(ready["snapshot"])
+        moved_snapshot = self.archived / snapshot.relative_to(self.prd)
+        self.assertFalse(snapshot.exists())
+        self.assertEqual((moved_snapshot / "request.md").read_bytes(), self.brief.read_bytes())
+        receipt = self.archived / "reviews" / Path(ready["record"]).name
+        self.assertEqual(json.loads(receipt.read_bytes())["snapshot"], str(snapshot))
         before = fingerprint(self.archived)
         archived_status = self.cli_call(["status", "jot"])
         self.assertEqual(archived_status, {**approved, "archived": True,
@@ -431,7 +437,7 @@ class PRDTest(unittest.TestCase):
         self.assertEqual(first["run_id"], record["run_id"])
         self.assertEqual(set(first), {"state", "index", "hash", "revise_count", "revise_records",
                                       "run_id", "record"})
-        self.assertFalse(Path(record["snapshot"]).exists())
+        self.assertTrue(Path(record["snapshot"]).is_dir())
         self.assertIn("```json", record["response"])
         # Approval does not rerun the current parser on historical raw evidence.
         record["response"] = "archived response in a different format"
@@ -462,8 +468,13 @@ class PRDTest(unittest.TestCase):
         mode = evidence.parent.stat().st_mode
 
         ready = self.review(verdict="READY")
-        kept = {"format", Path(ready["record"]).name}
+        approved_snapshot = Path(ready["snapshot"])
+        kept = {"format", Path(ready["record"]).name, approved_snapshot.parent.name}
         self.assertEqual({p.name for p in self.reviews.iterdir()}, kept)
+        self.assertEqual(list(approved_snapshot.parent.iterdir()), [approved_snapshot])
+        self.assertEqual(independent_hash(approved_snapshot), ready["hash"])
+        self.assertTrue(all(not p.stat().st_mode & 0o222
+                            for p in (approved_snapshot, *approved_snapshot.rglob("*"))))
         self.status("approved", run_id=ready["run_id"], record=ready["record"],
                     revise_count=0, revise_records=[])
         self.assertEqual(fingerprint(evidence.parent), before)
@@ -476,28 +487,59 @@ class PRDTest(unittest.TestCase):
         self.assertEqual({p.name for p in self.reviews.iterdir()}, kept)
         self.assertEqual(self.calls(), calls)
 
-    def test_appended_answer_after_approval_restarts_review_history(self):
+    def test_appended_answer_after_approval_uses_approved_snapshot_diff(self):
         self.example_candidate()
         ready = self.review(verdict="READY")
-        self.append(self.brief, "\n사용자 답: 로컬 환경에서 확인.\n")
+        approved_snapshot = Path(ready["snapshot"])
+        original_request = self.brief.read_bytes()
+        self.append(self.brief, "\n> 사용자 답: 로컬 환경에서 확인.\n")
         self.append_brief()
         draft = self.status(revise_count=0, revise_records=[])
         self.assertNotIn("run_id", draft)
         self.assertNotEqual(draft["hash"], ready["hash"])
 
         revised = self.review(1, config={"answer": answer("REVISE", FINDING)}, verdict="REVISE")
-        self.assertIn("이번 제출은 전체 검수한다.", self.latest_brief().read_text())
+        brief = self.latest_brief().read_text()
+        heading = "## 직전 지적과 제출본 간 diff"
+        self.assertNotIn("이번 제출은 전체 검수한다.", brief)
+        diff = brief[brief.index(heading):]
+        self.assertEqual(diff.splitlines()[:6], [
+            heading, "", f"직전 검수: `{ready['run_id']}` (READY)",
+            f"직전 사본: `{approved_snapshot}`", "", "[]",
+        ])
+        self.assertEqual([line for line in diff.splitlines() if line.startswith(("--- ", "+++ "))],
+                         ["--- before/request.md", "+++ after/request.md"])
+        self.assertIn("\n+> 사용자 답: 로컬 환경에서 확인.\n", diff)
+        self.assertEqual((approved_snapshot / "request.md").read_bytes(), original_request)
         self.assertEqual(Path(revised["snapshot"], "request.md").read_bytes(), self.brief.read_bytes())
         self.assertEqual({p.name for p in self.reviews.iterdir()},
-                         {"format", Path(ready["record"]).name, Path(revised["record"]).name,
+                         {"format", Path(ready["record"]).name, approved_snapshot.parent.name,
+                          Path(revised["record"]).name,
                           Path(revised["snapshot"]).parent.name})
         self.status(revise_count=1, revise_records=[revised["record"]])
         self.append(self.index, "\ncandidate reworked\n")
         again = self.review(verdict="READY")
-        self.assertIn("## 직전 지적과 제출본 간 diff", self.latest_brief().read_text())
+        self.assertIn(f"직전 검수: `{revised['run_id']}` (REVISE)", self.latest_brief().read_text())
         self.assertNotEqual(again["run_id"], ready["run_id"])
-        self.assertEqual({p.name for p in self.reviews.iterdir()}, {"format", Path(again["record"]).name})
+        self.assertEqual({p.name for p in self.reviews.iterdir()},
+                         {"format", Path(again["record"]).name, Path(again["snapshot"]).parent.name})
         self.status("approved", run_id=again["run_id"], revise_count=0, revise_records=[])
+
+    def test_legacy_approval_without_snapshot_can_still_be_reviewed(self):
+        self.example_candidate()
+        ready = self.review(verdict="READY")
+        snapshot = Path(ready["snapshot"])
+        for folder in (snapshot, *snapshot.rglob("*/")):
+            folder.chmod(0o700)
+        shutil.rmtree(snapshot.parent)
+        self.status("approved", record=ready["record"])
+        self.review(verdict="READY", run_id=ready["run_id"])
+        self.append(self.brief, "\n사용자 답: 로컬 환경에서 확인.\n")
+        self.append_brief()
+        self.review(verdict="READY")
+        brief = self.latest_brief().read_text()
+        self.assertIn("이번 제출은 전체 검수한다.", brief)
+        self.assertNotIn("## 직전 지적과 제출본 간 diff", brief)
 
     def test_json_schema_and_exit_values(self):
         self.example_candidate()
@@ -614,6 +656,7 @@ class PRDTest(unittest.TestCase):
         brief = self.latest_brief().read_bytes()
         self.assertTrue(brief.startswith(reviewer.read_bytes()))
         self.assertNotIn(self.preamble.read_bytes(), brief)
+        self.assertIn("이번 제출은 전체 검수한다.".encode(), brief)
         self.assertNotIn("## 직전 지적과 제출본 간 diff".encode(), brief)
 
     def test_preamble_only_change_invalidates_approval_and_forces_full_review(self):

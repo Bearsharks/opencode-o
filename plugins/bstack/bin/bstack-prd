@@ -443,6 +443,7 @@ class PRD:
             _, criteria = reviewer_instructions(self.cwd)
             if approved := self.approval(history, digest, criteria):
                 name, data = approved
+                self.snapshot_token(name, data)
                 return 0, {**value, "state": "approved", "run_id": self.record_run_id(name, data),
                             "record": str(reviews_path / name)}
             idle = try_lock(reviews, fcntl.LOCK_SH)
@@ -464,11 +465,11 @@ class PRD:
             return capture(snapshot, snapshot=True)
 
     @staticmethod
-    def prune_reviews(reviews, approved_name):
+    def prune_reviews(reviews, approved_name, approved_token):
         # Both locks are held. Remove old receipts before their snapshots so
         # interrupted cleanup cannot leave a legacy REVISE without its snapshot.
         for name in sorted(os.listdir(reviews), key=lambda entry: not entry.endswith(".json")):
-            if name not in ("format", approved_name):
+            if name not in ("format", approved_name, approved_token):
                 remove_review_entry(reviews, name)
 
     def prepare(self, candidate, reference, previous, reviews, token):
@@ -562,11 +563,11 @@ class PRD:
                 if approved := self.approval(history, digest, criteria):
                     name, data = approved
                     self.record_run_id(name, data)
-                    self.snapshot_token(name, data)
+                    approved_token = self.snapshot_token(name, data)
                     # Retry interrupted cleanup without discarding reviews
                     # accumulated after an older approval.
                     if name == history[-1][0]:
-                        self.prune_reviews(reviews, name)
+                        self.prune_reviews(reviews, name, approved_token)
                     return review_output(data, self.reviews / name)
                 preflight(candidate, digest)
                 request_hash = sha(candidate["request.md"])
@@ -575,9 +576,12 @@ class PRD:
                     return 4, {"error": "rework_limit_reached",
                                "detail": "재작업 한도 도달: 사용자와 쟁점을 다듬고 답을 request.md에 추가하세요.",
                                "revise_count": len(records), "revise_records": records}
-                # READY retains a receipt but no snapshot for an incremental review.
-                previous = history[-1] if (history and history[-1][1]["verdict"] != "READY"
-                                           and history[-1][1].get("reviewer_hash") == criteria) else None
+                previous = history[-1] if history and history[-1][1].get("reviewer_hash") == criteria else None
+                if previous and previous[1]["verdict"] == "READY":
+                    approved_token = self.snapshot_token(*previous)
+                    # Older approvals pruned their snapshot, leaving no baseline.
+                    if not entry_exists(reviews, approved_token):
+                        previous = None
                 number = int(history[-1][0].split("-")[0]) + 1 if history else 1
                 token = secrets.token_hex(16)
                 brief = self.prepare(candidate, reference, previous, reviews, token)
@@ -603,7 +607,7 @@ class PRD:
                     record = {**result, **value, "response": raw, "request_hash": request_hash}
                     atomic_write(reviews, name, json_bytes(record))
                     if record["verdict"] == "READY":
-                        self.prune_reviews(reviews, name)
+                        self.prune_reviews(reviews, name, token)
                     return review_output(record, self.reviews / name)
                 finally:
                     if optional_file(reviews, "active") == token.encode("ascii"):
