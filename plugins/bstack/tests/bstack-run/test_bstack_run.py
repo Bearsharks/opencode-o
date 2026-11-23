@@ -640,7 +640,7 @@ class BstackRunTest(unittest.TestCase):
                 self.assertTrue(status_line.endswith(" fast=true"), status_line)
 
     def test_fast_unmapped_model_warns_and_keeps_original_model(self):
-        for model in ("zai-coding-plan/glm-5.3", "other/custom#high", "claude:sonnet"):
+        for model in ("zai-coding-plan/glm-5.4", "other/custom#high", "claude:sonnet"):
             with self.subTest(model=model):
                 proc = self.call("run", "--role", "panel", "--fast", "--model", model,
                                  "--message", "hello")
@@ -718,10 +718,10 @@ class BstackRunTest(unittest.TestCase):
                 self.assertEqual({path.name for path in directory.iterdir()}, files)
                 self.assertEqual((directory / "brief.md").read_bytes(), b"hello")
                 self.assertEqual((directory / "result.md").read_text(), "fake answer")
-        proc = self.call("run", "--role", "panel", "--model", "zai-coding-plan/glm-5.3",
+        proc = self.call("run", "--role", "panel", "--model", "zai-coding-plan/glm-5.4",
                          "--message", "hello", "--worktree=my-panel")
         run_id = self.run_id(proc)
-        self.assertEqual(self.status(run_id)["model"], "zai-coding-plan/glm-5.3")
+        self.assertEqual(self.status(run_id)["model"], "zai-coding-plan/glm-5.4")
         self.assertEqual(self.worker_argv(run_id)[-1], "--worktree=my-panel")
 
     def test_review_uses_configured_model_and_fast_mapping(self):

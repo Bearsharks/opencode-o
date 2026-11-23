@@ -35,7 +35,7 @@ The launcher records the original model reference (including any `#variant`)
 as `base_model`, the selected reference as `model`, and whether fast routing
 changed the model as `fast`. The shipped `explore` model is already Luna Fast,
 so `--fast` leaves it unchanged without warning. A request for an unmapped model, including
-`zai-coding-plan/glm-5.3`, leaves the model unchanged and writes a stderr
+`zai-coding-plan/glm-5.4`, leaves the model unchanged and writes a stderr
 warning. Plain `ask` inherits the parent selection, even with `BSTACK_FAST=1`.
 
 In the live `run --role explore --fast --message "reply pong"` probe,

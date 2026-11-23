@@ -7,7 +7,7 @@
     "review": "openai/gpt-6.2-sol",
     "panel": [
       "openai/gpt-6.2-sol",
-      "zai-coding-plan/glm-5.3",
+      "zai-coding-plan/glm-5.4",
       "claude:sonnet"
     ]
   },
