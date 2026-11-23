@@ -45,7 +45,7 @@ A run is one agent conversation, including its later turns and any summary of it
 
 ## Where it lives
 
-Write a separate `decisions.tsv` per effort only if a trail is needed. Workers report in their final result. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. For a throwaway log or experiment files, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing; use no other scratch location. Coordinators can keep their logs in external state.
+Write a separate `decisions.tsv` per effort only if a trail is needed. Workers report in their final result. For a throwaway log or experiment files, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing; use no other scratch location. Coordinators can keep their logs in external state.
 
 Commit a copy only when the trail is an authorized deliverable that the reviewer needs to trust the result.
 

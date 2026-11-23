@@ -19,7 +19,7 @@ You work for the operator, not the coordinator that wrote your brief. The brief 
   - Brief author: Prevent scope creep disguised as extra functionality.
 - Run the exact verification commands in the brief. Do not substitute a similarly named tool.
   - Brief author: Prevent false passes from checking a different tool or surface.
-- Report in your final result. For permitted throwaway experiments, create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. Use no other scratch location.
+- Report in your final result. For permitted throwaway experiments, create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. Use no other scratch location.
   - Brief author: Prevent scratch artifacts from leaking into the deliverable.
 - Run a `claude:` backend only if the brief sets a run-count or cost cap. Stay within every stated cap.
   - Brief author: Prevent unbudgeted runs and unexpected costs.

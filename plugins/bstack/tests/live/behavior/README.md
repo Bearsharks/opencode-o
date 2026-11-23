@@ -28,16 +28,16 @@ bash "$suite/run-case.sh" question opus --max-cost-usd "${CAP_CONFIRM:?}" --ask 
 
 | 사례 | 모델 | 사람이 읽을 내용 |
 |---|---|---|
-| `clear` | `opus` | 작성된 draft, 검수 없이 확인 대기. 사용자 기준(원문)과 에이전트 제안을 나누고, 요구사항의 성공 정의·성공 정의 근거·검증·검증 근거를 확인한다. 기본 목록 숨김, `--all`의 `[x]`, 없는 ID의 stderr `no such item`과 종료 1을 확인한다. 확인을 주는 다음 턴은 승인. |
+| `clear` | `opus` | 검수 전에 사용자와 맞출 내용(목표, 정할 것)을 보이고 확인 대기. 요구사항의 성공 정의·성공 정의 근거·검증·검증 근거와, 인용한 원문(`todo.py`, 테스트)을 직접 읽었는지 확인한다. 기본 목록 숨김, `--all`의 `[x]`, 없는 ID의 stderr `no such item`과 종료 1을 확인한다. 확인을 주는 다음 턴은 승인. |
 | `clear-auto` | `opus` | 자율 진행 명시가 `> ` 원문에 포함된다. 별도 확인 턴 없이 독립 승인. |
-| `question` | `opus` | 초기 draft: `F-01/성공 정의`에서 복원 위치를 글로 묻고 PRD 본문은 초기 템플릿이다. 다음 턴은 답 원문을 붙이고 ‘내 메모’로 복원하되 폴더는 복원하지 않는 후보를 **확인 대기**한다. 확인을 주는 세 번째 턴은 승인. |
-| `mode-positive` | `opus` | mode 진입 → 실제 `bstack-feature` `Read` 완료 → PRD 폴더와 Markdown 작성. 초기에는 메모/폴더 범위 질문, 다음 턴은 원문 답을 보존한 후보와 별도 확인, 마지막 턴은 독립 승인. 승인 전 플레이북을 열지 않는다. |
+| `question` | `opus` | 첫 턴은 PRD 본문을 쓰기 전에 복원 위치를 글로 묻는다. 다음 턴은 답 원문을 `request.md`에 붙이고 ‘내 메모’로 복원하되 폴더는 복원하지 않는 내용을 보이고 **확인 대기**한다. 확인을 주는 세 번째 턴은 승인. |
+| `mode-positive` | `opus` | mode 진입 → 실제 `bstack-feature` `Read` 완료 → PRD 폴더와 `request.md` 작성. 초기에는 메모/폴더 범위 질문, 다음 턴은 원문 답을 반영한 내용과 확인, 마지막 턴은 독립 승인. 승인 전 플레이북을 열지 않는다. |
 | `mode-negative` | `sonnet` | 승인받은 오타 수정으로 `labels.txt`가 정확히 `Welcome` 한 줄이 된다. PRD·`bstack-feature` 관문 및 다른 제품 변경 없음. 계획만 보고하면 통과가 아니다. |
 | `availability` | `sonnet` | 독립 승인, 제품 불변. 사람이 실제 조사/예행 로그에서 CSV와 `tests/pilot.py` 관찰이 작성 전에 있었는지, 목표와 검증 근거가 각각 문제의 증거와 관찰 수단의 가용성·한계를 정확히 인용하는지 확인한다. |
 | `resume` | `sonnet` | 30일 기준의 초기 독립 승인, 다음 턴에 45일 답을 그대로 덧붙이고 새 커밋을 독립 검수한 뒤 승인 기록을 갱신한다. 사람이 다른 기준과 변경 범위를 확인한다. |
 
 승인 기대가 있는 턴은 커밋된 `.bstack/<case>/approval`의 `<SHA> <run ID>` 한 줄을 확인한다.
-SHA는 검수한 PRD 커밋이어야 하고, run ID는 `bstack-run run --role review`의 `READY` 결과를 가리켜야 한다.
+SHA는 검수한 PRD 커밋이어야 하고, run ID는 `EVIDENCE`가 `놓친 것 없음`으로 시작하는 `bstack-run` 검수 결과를 가리켜야 한다.
 픽스처에서 커밋이 허용되는 경로는 해당 PRD 폴더뿐이다.
 
 ## 기록

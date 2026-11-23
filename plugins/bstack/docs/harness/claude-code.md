@@ -18,7 +18,7 @@ Use background Bash completion notifications or Monitor for long work. One wait 
 
 Run records are kept indefinitely in `<plugin root>/state/runs/<repo-name>-<sha256(repo path)[:12]>/<run id>/`, shared by a repository's Git worktrees. `status ID` reports `run_dir`; records contain `brief.md`, `meta.json`, and `result.md` once finalized. Only failed or interrupted runs save a bounded diagnostic tail in `stderr.log`.
 
-Workers report in their final result. For permitted throwaway experiments, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. Keep PRD-linked evidence in `.bstack/<name>/evidence/`. There is no other scratch location.
+Workers report in their final result. For permitted throwaway experiments, workers create a temporary directory (e.g. `mktemp -d`) and delete it before finishing. There is no other scratch location.
 
 Roles and variants come from [`config/models.json`](../../config/models.json); use `/bstack:setup-bstack` to change them. `--model provider/model#variant` overrides a single call. The launcher chooses only the first configured seat for `--role panel` without an override; for a panel, make one call per seat with `--model`. Do not use terra. Start fresh unless a continuation genuinely needs the prior session; pipe a follow-up to `bstack-run ask ID --brief -` to continue it. The worker CLI uses `oc-lite run --worktree` for isolation and `-s` for continuity; `oc-lite run --fork -s SESSION` is worker-side branching, not a launcher flag.
 
