@@ -1,0 +1,1148 @@
+#!/usr/bin/env python3
+"""Run an OpenCode, Codex, or Claude Code worker without exposing its transcript on stdout."""
+
+import argparse
+from collections import deque
+from contextlib import ExitStack, contextmanager
+from datetime import datetime, timezone
+import fcntl
+import hashlib
+import io
+import json
+import math
+import os
+from pathlib import Path
+import re
+import secrets
+import shlex
+import signal
+import subprocess
+import sys
+from threading import Thread
+import time
+import uuid
+
+
+SCRIPT = Path(__file__).resolve()
+PLUGIN_ROOT = SCRIPT.parent.parent
+CONFIG = PLUGIN_ROOT / "config" / "models.json"
+ROLES = ("impl", "hard", "explore", "review", "panel")
+CLAUDE_ALIASES = {"haiku", "sonnet", "opus"}
+RUN_ID = re.compile(r"\d{8}-\d{6}-(?:" + "|".join(ROLES) + r")-[0-9a-f]{4}")
+RESULT_LIMIT = 6000
+
+
+class UsageError(Exception):
+    pass
+
+
+def now():
+    return datetime.now(timezone.utc)
+
+
+def git_output(*args):
+    try:
+        git = subprocess.run(
+            ["git", *args], stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        return None
+    return git.stdout if git.returncode == 0 else None
+
+
+def repository_root():
+    top = git_output("rev-parse", "--show-toplevel")
+    if not top:
+        return Path.cwd()
+    checkout = Path(os.fsdecode(top.removesuffix(b"\n"))).resolve()
+    common = git_output("rev-parse", "--git-common-dir")
+    if common:
+        git_dir = Path(os.fsdecode(common.removesuffix(b"\n"))).resolve()
+        if git_dir.name == ".git":
+            return git_dir.parent
+    # Git lists the main worktree first, from the common dir's metadata.
+    worktrees = git_output("worktree", "list", "--porcelain", "-z") or b""
+    first = worktrees.split(b"\0", 1)[0]
+    return Path(os.fsdecode(first[9:])).resolve() if first.startswith(b"worktree ") else checkout
+
+
+def run_root(repo):
+    key = hashlib.sha256(os.fsencode(repo)).hexdigest()[:12]
+    return PLUGIN_ROOT / "state" / "runs" / f"{repo.name or 'root'}-{key}"
+
+
+def read_meta(directory):
+    return json.loads((directory / "meta.json").read_text(encoding="utf-8"))
+
+
+def write_meta(directory, meta):
+    temporary = directory / ".meta.json.tmp"
+    temporary.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(directory / "meta.json")
+
+
+@contextmanager
+def run_lock(directory):
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
+def lock_is_held(path):
+    try:
+        with path.open("rb") as stream:
+            try:
+                fcntl.flock(stream, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return True
+    except FileNotFoundError:
+        pass
+    return False
+
+
+def observed_meta(directory):
+    """Report run ownership without writing metadata or consulting the session."""
+    meta = read_meta(directory)
+    if meta["status"] != "running":
+        return meta
+    if meta.get("launcher_lock"):
+        owned = lock_is_held(directory / "brief.md")
+    else:
+        # Legacy Claude supervisors locked raw.jsonl. Legacy OpenCode runs
+        # had no ownership proof; do not wait on or signal an unverified run.
+        owned = is_claude(meta["model"]) and lock_is_held(directory / "raw.jsonl")
+    if not owned:
+        # The owner may have finished between the first read and the lock probe.
+        # Its terminal record is published before it drops the lifetime lock.
+        meta = read_meta(directory)
+        if meta["status"] == "running":
+            meta.update(status="orphaned", exit_code=None)
+            meta.pop("child_pid", None)
+    return meta
+
+
+def record_directive(directory, meta, kind, **payload):
+    """Append under the run lock, in the same atomic record as run state."""
+    meta.setdefault("directives", []).append({"kind": kind, "time": now().isoformat(), **payload})
+    write_meta(directory, meta)
+
+
+def lookup(root, run_id):
+    if not RUN_ID.fullmatch(run_id):
+        raise UsageError(f"invalid run id: {run_id}")
+    directory = root / run_id
+    if (directory / "meta.json").is_file():
+        return directory
+    raise UsageError(f"run not found: {run_id}")
+
+
+def check_model(model, config):
+    if any(word.casefold() in model.casefold() for word in config.get("deny", [])):
+        raise UsageError(f"denied model: {model}")
+
+
+def is_claude(model):
+    return model.startswith("claude:")
+
+
+def is_codex(model):
+    return model.startswith("codex:")
+
+
+def is_opencode(model):
+    return not (is_claude(model) or is_codex(model))
+
+
+def config_path():
+    return Path(os.environ.get("BSTACK_CONFIG") or CONFIG)
+
+
+def read_config():
+    return json.loads(config_path().read_text(encoding="utf-8"))
+
+
+def mapped_fast_model(model, mappings):
+    name, separator, variant = model.partition("#")
+    target = None if is_claude(model) else mappings.get(name)
+    return None if target is None else target + separator + variant
+
+
+def select_fast(model, config):
+    if is_codex(model):
+        # Codex keeps the model and asks for the priority service tier instead.
+        return model, True
+    mappings = {} if is_claude(model) else config.get("fast", {})
+    selected = mapped_fast_model(model, mappings)
+    if selected is None:
+        name = model.partition("#")[0]
+        if name not in mappings.values():
+            print(f"bstack-run: warning: no fast mapping for {model!r}; using it unchanged",
+                  file=sys.stderr)
+        return model, False
+    check_model(selected, config)
+    return selected, selected != model
+
+
+def show_config():
+    print(f"Config: {config_path()}")
+    try:
+        config = read_config()
+        if not isinstance(config, dict):
+            raise ValueError("expected a JSON object")
+    except (OSError, ValueError) as error:
+        print(f"Checks: FAILED\n- {error}")
+        return 1
+
+    errors = []
+
+    def nonempty_string(value):
+        return isinstance(value, str) and bool(value.strip())
+
+    def object_field(key):
+        value = config.get(key, {})
+        if not isinstance(value, dict):
+            errors.append(f"{key}: expected an object")
+            return {}
+        return value
+
+    if not nonempty_string(config.get("cli")):
+        errors.append("cli: required nonempty string")
+    roles = object_field("roles")
+    deny = config.get("deny", [])
+    if not isinstance(deny, list) or not all(map(nonempty_string, deny)):
+        errors.append("deny: expected a list of nonempty strings")
+        deny = []
+
+    def validate_model(model, field):
+        try:
+            check_model(model, {"deny": deny})
+        except UsageError as error:
+            errors.append(f"{field}: {error}")
+        if is_claude(model) and model.removeprefix("claude:") not in CLAUDE_ALIASES:
+            errors.append(f"{field}: invalid Claude model {model!r}; "
+                          "allowed aliases: haiku, sonnet, opus")
+        if is_codex(model) and not codex_model_valid(model):
+            errors.append(f"{field}: invalid Codex model {model!r}; expected codex:<model>[#effort]")
+
+    try:
+        codex_overrides(config)
+    except UsageError as error:
+        errors.append(str(error))
+
+    mappings = {}
+    for source, target in object_field("fast").items():
+        field = f"fast[{source!r}]"
+        if not nonempty_string(source) or not nonempty_string(target):
+            errors.append(f"{field}: expected nonempty source and target models")
+            continue
+        mappings[source] = target
+        validate_model(source, f"{field} source")
+        validate_model(target, f"{field} target")
+
+    preambles = {}
+    for role, value in object_field("preamble").items():
+        if value is None:
+            continue
+        field = f"preamble.{role}"
+        if not nonempty_string(value):
+            errors.append(f"{field}: expected a path or null")
+            continue
+        preambles[role] = value
+        try:
+            path = (PLUGIN_ROOT / value).resolve()
+            preambles[role] = str(path)
+            if not path.is_file():
+                errors.append(f"{field}: not a file: {path}")
+        except (OSError, ValueError, RuntimeError) as error:
+            errors.append(f"{field}: {error}")
+
+    rows = [("Role", "Default model", "--fast model", "Preamble")]
+    for role in ROLES:
+        default = roles.get(role)
+        preamble = preambles.get(role, "-")
+        if role == "panel":
+            if not isinstance(default, list) or not default:
+                errors.append("roles.panel: required nonempty model list")
+                rows.append((role, "-", "-", preamble))
+                continue
+            models = default
+        else:
+            models = [default]
+        for index, model in enumerate(models):
+            field = f"roles.{role}" if role != "panel" else f"roles.panel[{index}]"
+            selected = None
+            if nonempty_string(model) and is_codex(model):
+                validate_model(model, field)
+                selected = f"{model} (priority tier)"
+            elif nonempty_string(model):
+                validate_model(model, field)
+                selected = mapped_fast_model(model, mappings) or model
+                if selected != model:
+                    validate_model(selected, f"{field} --fast")
+            else:
+                errors.append(f"{field}: required nonempty model string")
+                model = "-"
+            rows.append((role, model, selected or "-", preamble))
+
+    widths = [max(map(len, column)) for column in zip(*rows)]
+    for row in rows:
+        print(" | ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip())
+    if errors:
+        print("Checks: FAILED")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+    print("Checks: OK (required keys, deny, preambles, Claude aliases, Codex settings)")
+    return 0
+
+
+def codex_model_valid(model):
+    name, separator, effort = model.removeprefix("codex:").partition("#")
+    return all(
+        value and not value.startswith("-") and not any(char.isspace() for char in value)
+        for value in ([name, effort] if separator else [name])
+    )
+
+
+def codex_overrides(config):
+    """Codex `-c key=value` settings from models.json; user config is not loaded."""
+    codex = config.get("codex", {})
+    overrides = codex.get("config", []) if isinstance(codex, dict) else None
+    if not isinstance(overrides, list) or any(
+        not isinstance(item, str) or "=" not in item or item.startswith("-") for item in overrides
+    ):
+        raise UsageError("invalid codex.config: expected a list of key=value strings")
+    return overrides
+
+
+def get_brief(args):
+    if args.message is not None:
+        return args.message
+    data = sys.stdin.buffer.read() if args.brief == "-" else Path(args.brief).read_bytes()
+    return data.decode("utf-8")
+
+
+def resolve_allowed_tools(config, plugin_root):
+    tools = config.get("allowed_tools", [])
+    if not isinstance(tools, list) or any(
+        not isinstance(tool, str) or not tool.strip() or tool.lstrip().startswith("-")
+        for tool in tools
+    ):
+        raise UsageError("invalid claude.allowed_tools: expected a list of tool rules")
+    if any("<plugin-dir>" in tool for tool in tools) and re.search(r"[*()\\\x00-\x1f]", plugin_root):
+        raise UsageError("plugin directory contains characters unsafe in Claude tool rules")
+    resolved = []
+    for tool in tools:
+        executable = re.fullmatch(r"Bash\((<plugin-dir>/[^\s*()]+):\*\)", tool)
+        if executable:
+            # Claude matches Bash command text. Quote the whole executable as
+            # it appears in the command, not just the directory segment.
+            command = shlex.quote(executable[1].replace("<plugin-dir>", plugin_root))
+            resolved.append(f"Bash({command}:*)")
+        else:
+            resolved.append(tool.replace("<plugin-dir>", plugin_root))
+    return resolved
+
+
+def prepare(root, args, resources):
+    config = read_config()
+    parent = None
+    if args.command == "ask":
+        parent_directory = lookup(root, args.id)
+        parent = read_meta(parent_directory)
+        if not parent["session_id"]:
+            raise UsageError(f"run has no session id: {args.id}")
+        role, model, title = (parent[key] for key in ("role", "model", "title"))
+    else:
+        role = args.role
+        default = config["roles"][role]
+        model = args.model if args.model is not None else (
+            default[0] if isinstance(default, list) else default
+        )
+        title = args.title if args.title is not None else f"bstack {role}"
+    check_model(model, config)
+    base_model = parent.get("base_model", model) if parent else model
+    fast = parent.get("fast", False) if parent else False
+    # ask inherits the parent selection unless explicitly opted in.
+    requested_fast = args.fast or (parent is None and os.environ.get("BSTACK_FAST") == "1")
+    if requested_fast and not fast:
+        model, fast = select_fast(model, config)
+    claude = is_claude(model)
+    plugin_dir = getattr(args, "plugin_dir", None)
+    if plugin_dir is not None and not claude:
+        raise UsageError("--plugin-dir is only supported for Claude Code (claude:<model>)")
+    if claude:
+        alias = model.removeprefix("claude:")
+        if not alias or alias.startswith("-") or any(char.isspace() for char in alias):
+            raise UsageError("expected a model alias or ID after claude:")
+        claude_config = config.get("claude", {})
+        permission_mode = claude_config.get("permission_mode", "acceptEdits")
+        if not isinstance(permission_mode, str) or not permission_mode or permission_mode.startswith("-"):
+            raise UsageError("invalid claude.permission_mode")
+        plugin_dir = parent["plugin_dir"] if parent else (
+            str(Path(plugin_dir).resolve()) if plugin_dir is not None else None
+        )
+        allowed_tools = resolve_allowed_tools(claude_config, plugin_dir or str(PLUGIN_ROOT))
+        if (getattr(args, "worktree", None) or "").startswith("-"):
+            raise UsageError("Claude Code worktree names cannot start with '-'")
+        if parent and parent["session_id"].startswith("-"):
+            raise UsageError("invalid Claude Code session id")
+    codex = is_codex(model)
+    if codex:
+        if not codex_model_valid(model):
+            raise UsageError("expected codex:<model>[#effort]")
+        if getattr(args, "worktree", None) is not None:
+            # codex exec refuses --worktree with --ignore-user-config.
+            raise UsageError("Codex workers take no --worktree; launch from a `git worktree add` checkout")
+        if parent and parent["session_id"].startswith("-"):
+            raise UsageError("invalid Codex session id")
+        codex_config = parent["codex_config"] if parent else codex_overrides(config)
+    brief = get_brief(args).encode("utf-8")
+    opted_out, _ = prompt_body(brief)
+    preamble = config.get("preamble", {}).get(role) if not opted_out else None
+    preamble_path = (PLUGIN_ROOT / preamble).resolve() if preamble is not None else None
+    preamble_bytes = preamble_path.read_bytes() if preamble_path is not None else None
+    if claude and preamble_bytes is not None:
+        preamble_bytes.decode("utf-8")  # Validate before allocating a run.
+    started = now()
+    root.mkdir(parents=True, exist_ok=True)
+    prefix = f"{started:%Y%m%d-%H%M%S}-{role}"
+    while True:
+        directory = root / f"{prefix}-{secrets.token_hex(2)}"
+        try:
+            directory.mkdir(mode=0o700)
+            break
+        except FileExistsError:
+            continue
+    meta = {
+        "id": directory.name,
+        "role": role,
+        "model": model,
+        "base_model": base_model,
+        "fast": fast,
+        "cli": os.environ.get("BSTACK_CLI", config["cli"]),
+        "title": title,
+        "status": "running",
+        "launcher_lock": True,
+        "preamble_sha256": (hashlib.sha256(preamble_bytes).hexdigest()
+                            if preamble_bytes is not None else None),
+        "exit_code": None,
+        "session_id": parent["session_id"] if parent else None,
+        "parent_id": parent["id"] if parent else None,
+        "preamble": str(preamble_path) if preamble_path is not None else None,
+        "started_at": started.isoformat(),
+        "ended_at": None,
+        "cwd": str(Path.cwd()),
+    }
+    if claude:
+        meta.update(
+            cli=os.environ.get("BSTACK_CLAUDE_CLI", "claude"),
+            permission_mode=permission_mode,
+            plugin_dir=plugin_dir,
+            allowed_tools=allowed_tools,
+            cwd=parent["cwd"] if parent else meta["cwd"],
+            result=None,
+            is_error=None,
+            total_cost_usd=None,
+            transcript_path=None,
+        )
+    elif codex:
+        meta.update(
+            cli=os.environ.get("BSTACK_CODEX_CLI", "codex"),
+            codex_config=codex_config,
+            cwd=parent["cwd"] if parent else meta["cwd"],
+            transcript_path=None,
+        )
+    else:
+        meta["export_cmd"] = export_command(meta)
+    owner = resources.enter_context((directory / "brief.md").open("xb"))
+    fcntl.flock(owner, fcntl.LOCK_EX)
+    owner.write(brief)
+    owner.flush()
+    write_meta(directory, meta)
+    if parent:
+        with run_lock(parent_directory):
+            record_directive(parent_directory, read_meta(parent_directory), "ask", run_id=directory.name)
+    return directory, meta, owner.fileno()
+
+
+class EventReader:
+    """Keep only assistant text from the terminal, non-tool step."""
+
+    def __init__(self):
+        self.session_id = None
+        self.parts = []
+        self.answer = ""
+        self.used_tool = False
+        self.interrupted = False
+
+    def feed(self, line):
+        try:
+            event = json.loads(line)
+        except (ValueError, RecursionError):
+            return
+        if not isinstance(event, dict):
+            return
+        sid = event.get("sessionID")
+        if isinstance(sid, str) and sid:
+            self.session_id = sid
+        kind = event.get("type")
+        error = event.get("error")
+        if (kind == "error" and isinstance(error, dict) and error.get("type") == "aborted"
+                and error.get("message") == "Session interrupted: user"):
+            self.interrupted = True
+        part = event.get("part")
+        if not isinstance(part, dict):
+            return
+        if kind == "step_start" and part.get("type") == "step-start":
+            self.parts.clear()
+            self.answer = ""
+            self.used_tool = False
+        elif kind == "text" and part.get("type") == "text":
+            text = part.get("text")
+            if isinstance(text, str):
+                self.parts.append(text)
+        elif kind == "tool_use":
+            self.used_tool = True
+        elif kind == "step_finish" and part.get("type") == "step-finish":
+            if not self.used_tool and part.get("reason") != "tool-calls":
+                self.answer = "\n\n".join(self.parts)
+            self.parts.clear()
+
+
+def export_command(meta):
+    if meta["session_id"]:
+        return shlex.join([meta["cli"], "session", "export", meta["session_id"]])
+    return None
+
+
+def prompt_body(brief):
+    first, newline, rest = brief.partition(b"\n")
+    opted_out = (first.removesuffix(b"\r") if newline else first) == b"NO-PREAMBLE"
+    return opted_out, rest if opted_out else brief
+
+
+class Diagnostics:
+    """Bound memory and on-disk diagnostics even for very large event lines."""
+
+    def __init__(self):
+        self.stdout = deque(maxlen=200)
+        self.stderr = deque(maxlen=200)
+
+    def add(self, stream, line):
+        getattr(self, stream).append(line[-1024:])
+
+    def error(self, message):
+        self.add("stderr", f"bstack-run: {message}\n".encode("utf-8", errors="replace"))
+
+    def save(self, directory, status, code):
+        with (directory / "stderr.log").open("wb") as log:
+            log.write(f"bstack-run: status={status} exit_code={code}\n".encode())
+            for stream in ("stderr", "stdout"):
+                lines = getattr(self, stream)
+                if lines:
+                    log.write(f"\n--- {stream} tail ---\n".encode())
+                    log.writelines(lines)
+
+
+@contextmanager
+def worker_pipes(child, brief, diagnostics, *, process_group=False):
+    def send():
+        try:
+            with child.stdin:
+                child.stdin.write(brief)
+        except BrokenPipeError:
+            pass
+        except OSError as exc:
+            diagnostics.error(exc)
+
+    def drain():
+        # Limit readline on stderr; a child may write an arbitrarily long line.
+        for line in iter(lambda: child.stderr.readline(4096), b""):
+            diagnostics.add("stderr", line)
+
+    threads = [Thread(target=send), Thread(target=drain)]
+    for thread in threads:
+        thread.start()
+    try:
+        yield
+    finally:
+        if child.poll() is None:
+            try:
+                if process_group:
+                    os.killpg(child.pid, signal.SIGKILL)
+                else:
+                    child.kill()
+            except ProcessLookupError:
+                pass
+        child.wait()
+        for thread in threads:
+            thread.join()
+
+
+def claude_transcript(session_id, cwd):
+    # Claude keys project directories by the actual path, including for
+    # worktrees. Match by session ID without replicating its slug algorithm.
+    if not session_id or not re.fullmatch(r"[A-Za-z0-9_-]+", session_id):
+        return None
+    config_dir = os.environ.get("CLAUDE_CONFIG_DIR")
+    base = Path(cwd) / Path(config_dir).expanduser() if config_dir else Path.home() / ".claude"
+    candidates = []
+    for path in (base / "projects").glob(f"*/{session_id}.jsonl"):
+        try:
+            if path.is_file():
+                candidates.append((path.stat().st_mtime_ns, str(path.resolve())))
+        except OSError:
+            continue
+    return max(candidates)[1] if candidates else None
+
+
+def finish(directory, meta, exit_code, diagnostics, *, answer="", claude_result=None,
+           transcript_path=None, session_id=None, interrupted=False):
+    with run_lock(directory):
+        latest = read_meta(directory)
+        if is_claude(latest["model"]):
+            latest["transcript_path"] = transcript_path
+            if transcript_path:
+                latest["session_id"] = session_id
+        elif is_codex(latest["model"]):
+            latest["transcript_path"] = transcript_path
+        else:
+            latest["export_cmd"] = export_command(latest)
+        if latest["status"] != "interrupted":
+            if claude_result is not None:
+                latest.update(claude_result)
+                details = "\n".join(
+                    f"- `{key}`: `{json.dumps(latest[key], ensure_ascii=False)}`"
+                    for key in ("session_id", "is_error", "total_cost_usd")
+                )
+                answer = (latest["result"] or "") + "\n\n## Claude Code\n\n" + details + "\n"
+            if interrupted:
+                latest.update(status="interrupted", exit_code=130, ended_at=now().isoformat())
+            else:
+                latest.update(status="done" if exit_code == 0 else "failed",
+                              exit_code=exit_code, ended_at=now().isoformat())
+        (directory / "result.md").write_bytes(answer.encode("utf-8"))
+        if latest["status"] != "done":
+            diagnostics.save(directory, latest["status"], latest["exit_code"])
+        latest.pop("child_pid", None)
+        write_meta(directory, latest)
+        meta.pop("child_pid", None)
+        meta.update(latest)
+    return meta["exit_code"]
+
+
+def perform_opencode(directory, meta, worktree, brief, preamble, env, diagnostics):
+    reader = EventReader()
+    cmd = [meta["cli"], "run"]
+    if meta["parent_id"]:
+        cmd += ["-s", meta["session_id"]]
+    cmd += ["-m", meta["model"], "--auto", "--format", "json", "--title", meta["title"]]
+    if worktree is not None:
+        cmd.append("--worktree" + (f"={worktree}" if worktree else ""))
+    exit_code = 1
+    if preamble is not None:
+        brief = preamble + b"\n\n" + brief
+    try:
+        with subprocess.Popen(cmd, cwd=meta["cwd"], env=env, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
+            with worker_pipes(child, brief, diagnostics):
+                for line in child.stdout:
+                    diagnostics.add("stdout", line)
+                    reader.feed(line)
+                    if reader.session_id and reader.session_id != meta["session_id"]:
+                        with run_lock(directory):
+                            meta.update(read_meta(directory))
+                            meta["session_id"] = reader.session_id
+                            meta["export_cmd"] = export_command(meta)
+                            write_meta(directory, meta)
+                code = child.wait()
+                exit_code = code if code >= 0 else 128 - code
+    except KeyboardInterrupt:
+        exit_code = 130
+    except (OSError, ValueError) as exc:
+        diagnostics.error(exc)
+        if isinstance(exc, FileNotFoundError):
+            exit_code = 127
+        elif isinstance(exc, PermissionError):
+            exit_code = 126
+    # The worker can confirm a user abort even if the control API reply was lost.
+    return finish(directory, meta, exit_code, diagnostics, answer=reader.answer,
+                  interrupted=reader.interrupted)
+
+
+def perform_claude(directory, meta, worktree, brief, preamble, env, diagnostics):
+    cmd = [meta["cli"], "-p", "--model", meta["model"].removeprefix("claude:"),
+           "--output-format", "json", "--permission-mode", meta["permission_mode"]]
+    if meta["allowed_tools"]:
+        cmd += ["--allowedTools", *meta["allowed_tools"]]
+    if preamble is not None:
+        cmd += ["--append-system-prompt", preamble.decode("utf-8")]
+    session_id = meta["session_id"] or str(uuid.uuid4())
+    # Keep track of the ID even if a new, interrupted run emits no JSON.
+    cmd += ["--resume" if meta["parent_id"] else "--session-id", session_id]
+    if meta["plugin_dir"] is not None:
+        cmd += ["--plugin-dir", meta["plugin_dir"]]
+    if env.get("BSTACK_CLAUDE_MAX_BUDGET_USD"):
+        cmd += ["--max-budget-usd", env["BSTACK_CLAUDE_MAX_BUDGET_USD"]]
+    if worktree is not None:
+        cmd += ["-w", *([worktree] if worktree else [])]
+
+    child = None
+    exit_code = 1
+    result = None
+    try:
+        with ExitStack() as resources:
+            with run_lock(directory):
+                latest = read_meta(directory)
+                if latest["status"] != "interrupted":
+                    child = resources.enter_context(subprocess.Popen(
+                        cmd, cwd=meta["cwd"], env=env, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
+                    ))
+                    resources.enter_context(worker_pipes(child, brief, diagnostics, process_group=True))
+                    latest["child_pid"] = child.pid
+                    write_meta(directory, latest)
+            if child is not None:
+                output = bytearray()
+                for line in child.stdout:
+                    diagnostics.add("stdout", line)
+                    output.extend(line)
+                code = child.wait()
+                exit_code = code if code >= 0 else 128 - code
+                if code >= 0:
+                    payload = json.loads(output)
+                    if not isinstance(payload, dict) or not isinstance(payload.get("is_error"), bool):
+                        raise ValueError("unexpected Claude Code JSON result")
+                    sid = payload.get("session_id")
+                    answer = payload.get("result")
+                    result = {
+                        "session_id": sid if isinstance(sid, str) and sid else meta["session_id"],
+                        "result": answer if isinstance(answer, str) else None,
+                        "is_error": payload["is_error"],
+                        "total_cost_usd": payload.get("total_cost_usd"),
+                    }
+                    if result["is_error"] and not exit_code:
+                        exit_code = 1
+    except KeyboardInterrupt:
+        exit_code = 130
+    except (OSError, ValueError, RecursionError) as exc:
+        diagnostics.error(exc)
+        if child is None and isinstance(exc, FileNotFoundError):
+            exit_code = 127
+        elif child is None and isinstance(exc, PermissionError):
+            exit_code = 126
+        else:
+            exit_code = exit_code or 1
+    if result and result["session_id"]:
+        session_id = result["session_id"]
+    try:
+        transcript = claude_transcript(session_id, meta["cwd"])
+    except (OSError, RuntimeError) as exc:
+        transcript = None
+        diagnostics.error(f"Claude Code transcript lookup: {exc}")
+    if transcript is None:
+        diagnostics.error(f"Claude Code transcript not found: {session_id}")
+    elif result is not None:
+        result["session_id"] = session_id
+    return finish(directory, meta, exit_code, diagnostics, claude_result=result,
+                  transcript_path=transcript, session_id=session_id)
+
+
+def codex_transcript(thread_id):
+    if not thread_id or not re.fullmatch(r"[A-Za-z0-9_-]+", thread_id):
+        return None
+    home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex").expanduser()
+    matches = sorted((home / "sessions").glob(f"*/*/*/rollout-*-{thread_id}.jsonl"))
+    return str(matches[-1].resolve()) if matches else None
+
+
+def perform_codex(directory, meta, worktree, brief, preamble, env, diagnostics):
+    # No sandbox; approval requests that remain go to Codex automatic review.
+    name, _, effort = meta["model"].removeprefix("codex:").partition("#")
+    cmd = [meta["cli"], "exec"]
+    if meta["parent_id"]:
+        cmd += ["resume", meta["session_id"]]
+    cmd += ["--json", "--ignore-user-config", "-m", name,
+            "-c", 'sandbox_mode="danger-full-access"', "-c", 'approval_policy="on-request"',
+            "-c", 'approvals_reviewer="auto_review"']
+    for override in meta["codex_config"]:
+        cmd += ["-c", override]
+    if effort:
+        cmd += ["-c", f"model_reasoning_effort={json.dumps(effort)}"]
+    if meta["fast"]:
+        cmd += ["-c", 'service_tier="priority"']
+    cmd.append("-")
+    if preamble is not None:
+        brief = preamble + b"\n\n" + brief
+
+    child = None
+    exit_code = 1
+    answer = ""
+    try:
+        with ExitStack() as resources:
+            with run_lock(directory):
+                latest = read_meta(directory)
+                if latest["status"] != "interrupted":
+                    child = resources.enter_context(subprocess.Popen(
+                        cmd, cwd=meta["cwd"], env=env, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
+                    ))
+                    resources.enter_context(worker_pipes(child, brief, diagnostics, process_group=True))
+                    latest["child_pid"] = child.pid
+                    write_meta(directory, latest)
+            if child is not None:
+                for line in child.stdout:
+                    diagnostics.add("stdout", line)
+                    try:
+                        event = json.loads(line)
+                    except (ValueError, RecursionError):
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    kind = event.get("type")
+                    item = event.get("item")
+                    if kind == "thread.started" and isinstance(event.get("thread_id"), str):
+                        if event["thread_id"] != meta["session_id"]:
+                            with run_lock(directory):
+                                meta.update(read_meta(directory))
+                                meta["session_id"] = event["thread_id"]
+                                write_meta(directory, meta)
+                    elif (kind == "item.completed" and isinstance(item, dict)
+                          and item.get("type") == "agent_message" and isinstance(item.get("text"), str)):
+                        answer = item["text"]
+                    elif kind in ("error", "turn.failed"):
+                        diagnostics.error(f"codex {kind}: {json.dumps(event, ensure_ascii=False)[:800]}")
+                code = child.wait()
+                exit_code = code if code >= 0 else 128 - code
+    except KeyboardInterrupt:
+        exit_code = 130
+    except (OSError, ValueError) as exc:
+        diagnostics.error(exc)
+        if child is None and isinstance(exc, FileNotFoundError):
+            exit_code = 127
+        elif child is None and isinstance(exc, PermissionError):
+            exit_code = 126
+    return finish(directory, meta, exit_code, diagnostics, answer=answer,
+                  transcript_path=codex_transcript(meta["session_id"]))
+
+
+def perform(directory, meta, worktree):
+    diagnostics = Diagnostics()
+    try:
+        _, brief = prompt_body((directory / "brief.md").read_bytes())
+        preamble = None
+        if meta["preamble"] is not None:
+            preamble = Path(meta["preamble"]).read_bytes()
+            if hashlib.sha256(preamble).hexdigest() != meta["preamble_sha256"]:
+                raise ValueError("preamble changed before worker launch")
+    except (OSError, ValueError) as exc:
+        diagnostics.error(exc)
+        return finish(directory, meta, 1, diagnostics)
+    env = dict(os.environ)
+    backend = (perform_claude if is_claude(meta["model"]) else
+               perform_codex if is_codex(meta["model"]) else perform_opencode)
+    return backend(directory, meta, worktree, brief, preamble, env, diagnostics)
+
+
+def open_result(directory, meta):
+    # Keep the stdout contract: the answer only, not the artifact footer.
+    if is_claude(meta["model"]):
+        return io.StringIO(meta.get("result") or "")
+    return (directory / "result.md").open(encoding="utf-8", newline="")
+
+
+def launch(directory, meta, args, owner_fd):
+    worktree = getattr(args, "worktree", None)
+    if args.bg:
+        # The same locked open-file description survives the launcher-to-worker handoff.
+        command = [sys.executable, str(SCRIPT), "_worker", str(directory), str(owner_fd)]
+        if worktree is not None:
+            command.append(worktree)
+        try:
+            subprocess.Popen(
+                command, start_new_session=True, stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, pass_fds=(owner_fd,),
+            )
+        except OSError as exc:
+            diagnostics = Diagnostics()
+            diagnostics.error(exc)
+            finish(directory, meta, 1, diagnostics)
+            raise
+        print(f"id={meta['id']}")
+        return 0
+
+    exit_code = perform(directory, meta, worktree)
+    print(f"id={meta['id']} status={meta['status']} model={meta['model']} "
+          f"session={meta['session_id'] or ''} fast={json.dumps(meta['fast'])}")
+    with open_result(directory, meta) as result:
+        text = result.read(RESULT_LIMIT + 1)
+    if len(text) > RESULT_LIMIT:
+        text = text[:RESULT_LIMIT] + f"\n…(truncated, use bstack-run result {meta['id']})\n"
+    sys.stdout.write(text)
+    return exit_code
+
+
+def show_result(directory, meta):
+    if (meta["status"] in ("running", "orphaned") or
+            (meta["status"] == "interrupted" and not (directory / "result.md").is_file())):
+        print(f"status={meta['status']}")
+        return 3
+    with open_result(directory, meta) as result:
+        last = ""
+        for chunk in iter(lambda: result.read(8192), ""):
+            sys.stdout.write(chunk)
+            last = chunk[-1]
+        if last and last != "\n":
+            sys.stdout.write("\n")
+    return 0
+
+
+def session_api(meta, operation, payload=None):
+    cmd = [meta["cli"], "api", f"session.{operation}",
+           "--param", f"sessionID={meta['session_id']}"]
+    if payload is not None:
+        cmd += ["-d", json.dumps(payload, ensure_ascii=False)]
+    proc = subprocess.run(cmd, cwd=meta["cwd"], stdin=subprocess.DEVNULL,
+                          capture_output=True)
+    if proc.returncode:
+        detail = proc.stderr.decode("utf-8", errors="replace").strip()
+        raise UsageError(f"session.{operation} failed (exit {proc.returncode})"
+                         + (f": {detail}" if detail else ""))
+    response = json.loads(proc.stdout)
+    if not isinstance(response, dict):
+        raise UsageError(f"unexpected session.{operation} response")
+    return response
+
+
+def control(directory, args):
+    kind = args.command
+
+    def mark_interrupted(meta):
+        if meta["status"] != "interrupted":
+            meta.update(status="interrupted", exit_code=130, ended_at=now().isoformat())
+            write_meta(directory, meta)
+
+    def reject(meta):
+        hint = f"; use ask {args.id} to continue" if kind != "interrupt" else ""
+        print(f"bstack-run: run is {meta['status']}: {args.id}{hint}", file=sys.stderr)
+        return 4
+
+    if kind != "interrupt":
+        meta = read_meta(directory)
+        if not is_opencode(meta["model"]):
+            backend = "Claude Code" if is_claude(meta["model"]) else "Codex"
+            print(f"bstack-run: {backend} does not support {kind}; "
+                  f"use ask {args.id} to continue after the run", file=sys.stderr)
+            return 4
+        if meta["status"] != "running":
+            return reject(meta)
+        text = get_brief(args)
+    with run_lock(directory):
+        meta = observed_meta(directory)
+        if meta["status"] != "running":
+            return reject(meta)
+        # Claude and Codex runs are stopped by signal; only OpenCode has a session API.
+        opencode = is_opencode(meta["model"])
+        if opencode and not meta["session_id"]:
+            raise UsageError(f"run has no session id yet: {args.id}; retry once it is available")
+        if kind == "interrupt" and not opencode:
+            pid = meta.pop("child_pid", None)
+            # Codex runs commands in their own process groups and stops them on SIGINT.
+            stop = signal.SIGINT if is_codex(meta["model"]) else signal.SIGTERM
+            if pid is not None:
+                try:
+                    os.killpg(pid, stop)
+                except ProcessLookupError:
+                    pass
+            mark_interrupted(meta)
+        elif kind != "interrupt":
+            response = session_api(meta, "prompt", {"text": text, "delivery": kind})
+            data = response.get("data")
+            if not isinstance(data, dict) or not data.get("id") or data.get("delivery") != kind:
+                raise UsageError(f"unexpected session.prompt response for {kind}")
+            record_directive(directory, meta, kind, text=text)
+            print(f"id={args.id} delivery={kind} message_id={data['id']}")
+            return 0
+
+    if opencode:
+        # The worker may observe the abort and finish before the API replies.
+        # Do not hold the metadata lock across that round trip.
+        response = session_api(meta, "interrupt")
+        if response.get("interrupted") is not True:
+            raise UsageError(f"session was not interrupted: {args.id}")
+        with run_lock(directory):
+            mark_interrupted(read_meta(directory))
+    print(f"id={args.id} status=interrupted")
+    return 0
+
+
+def show_bundle(directory):
+    # Asks have their own result files. A pending or empty follow-up should
+    # not hide the last answer available to the replacement worker.
+    candidates = [directory]
+    for path in directory.parent.iterdir():
+        if (path != directory and RUN_ID.fullmatch(path.name)
+                and (path / "meta.json").is_file()
+                and read_meta(path).get("parent_id") == directory.name):
+            candidates.append(path)
+    latest = None
+    result = "(No result yet.)\n"
+    for path in candidates:
+        meta = read_meta(path)
+        ended_at = meta["ended_at"]
+        if not ended_at or not (path / "result.md").is_file():
+            continue
+        has_result = (meta.get("result") if is_claude(meta["model"])
+                      else (path / "result.md").stat().st_size)
+        if has_result:
+            key = (datetime.fromisoformat(ended_at), path.name)
+            if latest is None or key > latest:
+                latest = key
+                with open_result(path, meta) as artifact:
+                    result = artifact.read()
+
+    print(f"# Brief bundle: {directory.name}\n\n## Original brief\n")
+    sys.stdout.write((directory / "brief.md").read_bytes().decode("utf-8"))
+    print("\n\n## Directives")
+    for index, directive in enumerate(read_meta(directory).get("directives", []), 1):
+        print(f"\n\n### Directive {index}: {directive['kind']}\n\nTime: {directive['time']}\n")
+        if directive["kind"] == "ask":
+            child = directory.parent / directive["run_id"]
+            try:
+                sys.stdout.write((child / "brief.md").read_bytes().decode("utf-8"))
+            except FileNotFoundError:
+                print(f"(Brief unavailable: {child.name})")
+        else:
+            sys.stdout.write(directive["text"])
+    print("\n\n## Last result\n")
+    sys.stdout.write(result)
+    if not result.endswith("\n"):
+        print()
+    return 0
+
+
+def show_recent(root):
+    metas = []
+    for directory in root.glob("*"):
+        if RUN_ID.fullmatch(directory.name) and (directory / "meta.json").is_file():
+            metas.append(observed_meta(directory))
+    for meta in sorted(metas, key=lambda item: (item["started_at"], item["id"]), reverse=True)[:20]:
+        elapsed = datetime.fromisoformat(meta["ended_at"] or now().isoformat()) - (
+            datetime.fromisoformat(meta["started_at"])
+        )
+        title = json.dumps(meta["title"], ensure_ascii=False)
+        print(f"id={meta['id']} status={meta['status']} model={meta['model']} "
+              f"title={title} elapsed={max(0, int(elapsed.total_seconds()))}s "
+              f"fast={json.dumps(meta.get('fast', False))}")
+    return 0
+
+
+def timeout_seconds(value):
+    seconds = float(value)
+    if not math.isfinite(seconds) or seconds < 0:
+        raise argparse.ArgumentTypeError("timeout must be finite and nonnegative")
+    return seconds
+
+
+def parser():
+    cli = argparse.ArgumentParser(description=__doc__)
+    commands = cli.add_subparsers(dest="command", required=True)
+    commands.add_parser("config", help="show and validate worker model settings")
+    run = commands.add_parser("run")
+    run.add_argument("--role", choices=ROLES, required=True)
+    run.add_argument("--model")
+    run.add_argument("--fast", action="store_true",
+                     help="select the configured fast model (also BSTACK_FAST=1)")
+    run.add_argument("--title")
+    run.add_argument("--worktree", nargs="?", const="", metavar="NAME")
+    run.add_argument("--plugin-dir", metavar="PATH", help="load a local Claude Code plugin")
+    ask = commands.add_parser("ask")
+    ask.add_argument("id")
+    ask.add_argument("--fast", action="store_true", help="resume using the configured fast model")
+    steer = commands.add_parser("steer", help="steer a running worker at its next step")
+    queue = commands.add_parser("queue", help="queue a prompt for after the current turn")
+    for command in (steer, queue):
+        command.add_argument("id")
+    for command in (run, ask, steer, queue):
+        prompt = command.add_mutually_exclusive_group(required=True)
+        prompt.add_argument("--brief", metavar="FILE", help="read a UTF-8 brief (use - for stdin)")
+        prompt.add_argument("--message", metavar="TEXT")
+    for command in (run, ask):
+        command.add_argument("--bg", action="store_true")
+    commands.add_parser("interrupt", help="interrupt a running worker").add_argument("id")
+    commands.add_parser("brief-bundle", help="print the brief, directives and last result").add_argument("id")
+    commands.add_parser("result").add_argument("id")
+    commands.add_parser("status").add_argument("id", nargs="?")
+    wait = commands.add_parser("wait")
+    wait.add_argument("id")
+    wait.add_argument("--timeout", type=timeout_seconds, metavar="SEC")
+    return cli
+
+
+def main():
+    if os.environ.pop("BSTACK_CPA_COORDINATOR", None) == "1":
+        # The proxy is for the coordinator only. Restore native provider routing for workers.
+        for key in ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_DEFAULT_HAIKU_MODEL"):
+            os.environ.pop(key, None)
+    if len(sys.argv) in (4, 5) and sys.argv[1] == "_worker":
+        directory, owner_fd = Path(sys.argv[2]), int(sys.argv[3])
+        os.set_inheritable(owner_fd, False)
+        try:
+            meta = read_meta(directory)
+            try:
+                check_model(meta["model"], read_config())
+            except (UsageError, ValueError, OSError) as exc:
+                diagnostics = Diagnostics()
+                diagnostics.error(exc)
+                return finish(directory, meta, 2, diagnostics)
+            return perform(directory, meta, sys.argv[4] if len(sys.argv) == 5 else None)
+        finally:
+            os.close(owner_fd)
+
+    args = parser().parse_args()
+    if args.command == "config":
+        return show_config()
+    root = run_root(repository_root())
+    if args.command in ("run", "ask"):
+        with ExitStack() as resources:
+            directory, meta, owner_fd = prepare(root, args, resources)
+            return launch(directory, meta, args, owner_fd)
+    if args.command == "status" and args.id is None:
+        return show_recent(root)
+    directory = lookup(root, args.id)
+    if args.command in ("steer", "queue", "interrupt"):
+        return control(directory, args)
+    if args.command == "brief-bundle":
+        return show_bundle(directory)
+    meta = observed_meta(directory)
+    if args.command == "status":
+        meta["directive_count"] = len(meta.pop("directives", []))
+        meta["run_dir"] = str(directory)
+        print(json.dumps(meta, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "wait":
+        deadline = time.monotonic() + args.timeout if args.timeout is not None else None
+        while (meta["status"] == "running" or
+               (meta["status"] == "interrupted" and meta.get("launcher_lock")
+                and lock_is_held(directory / "brief.md"))):
+            remaining = deadline - time.monotonic() if deadline is not None else 0.1
+            if remaining <= 0:
+                print(f"status={meta['status']}")
+                return 3
+            time.sleep(min(remaining, 0.1))
+            meta = observed_meta(directory)
+        meta = observed_meta(directory)
+    return show_result(directory, meta)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (UsageError, OSError, ValueError) as error:
+        print(f"bstack-run: {error}", file=sys.stderr)
+        sys.exit(2)

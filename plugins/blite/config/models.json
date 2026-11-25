@@ -1,0 +1,43 @@
+{
+  "cli": "oc-lite",
+  "roles": {
+    "impl": "codex:gpt-6.2-sol",
+    "hard": "codex:gpt-6.2-astra",
+    "explore": "openai/gpt-6-luna-fast",
+    "review": "codex:gpt-6.2-sol",
+    "panel": [
+      "openai/gpt-6.2-sol",
+      "zai-coding-plan/glm-5.4",
+      "claude:sonnet"
+    ]
+  },
+  "preamble": {
+    "impl": "templates/preamble/impl.md",
+    "hard": "templates/preamble/impl.md",
+    "explore": "templates/preamble/explore.md",
+    "review": "templates/preamble/reviewer.md",
+    "panel": null
+  },
+  "fast": {
+    "openai/gpt-6.2-sol": "openai/gpt-6.2-sol-fast",
+    "openai/gpt-6.2-astra": "openai/gpt-6.2-astra-fast",
+    "openai/gpt-6-luna": "openai/gpt-6-luna-fast"
+  },
+  "codex": {
+    "config": [
+      "model_reasoning_effort=\"high\"",
+      "mcp_servers.roblox_studio.command=\"/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP\"",
+      "mcp_servers.roblox_studio.disabled_tools=[\"start_stop_play\", \"multi_edit\", \"character_navigation\", \"http_get\", \"subagent\", \"list_roblox_studios\", \"submit_feedback\"]"
+    ]
+  },
+  "claude": {
+    "permission_mode": "acceptEdits",
+    "allowed_tools": [
+      "Bash(<plugin-dir>/bin/bstack-run:*)"
+    ]
+  },
+  "deny": [
+    "terra",
+    "fable"
+  ]
+}

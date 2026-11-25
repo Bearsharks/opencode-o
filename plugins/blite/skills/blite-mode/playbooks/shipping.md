@@ -1,0 +1,12 @@
+### Shipping
+
+**The Shipping worker judges the PR and merges only what passed.** Claude fills in the [Shipping brief](../../../templates/shipping-brief.md), launches it from the target repository with `"$BSTACK_RUN" run --role impl --brief "$SHIPPING_BRIEF" --bg`, waits for the report, and checks the verdicts and the forge read-back. Claude does not review or merge.
+
+The Shipping worker:
+
+1. **Pins the inputs.** Repository, PR URL, base ref and full base SHA, full head SHA, and the PRD folder and `checks.md` read at that head with `git show <head>:<path>`.
+2. **Reviews in two independent sessions.** Create one review checkout for the PR with `git worktree add --detach "$REVIEW_TREE" "$HEAD_SHA"`. From inside it, start the structure and behavior reviewers, each in its own `bstack-run run --role review` session without `--worktree`, using the [structure](../../../templates/review-structure.md) and [behavior](../../../templates/review-behavior.md) briefs. Neither may have authored the change. Keep outputs outside the checkout, and serialize checks that share builds, ports, or Studio.
+   For a re-review, confirm the checkout is clean and idle, switch it with `git -C "$REVIEW_TREE" switch --detach "$HEAD_SHA"`, and verify `HEAD`. From inside it, send each affected perspective `bstack-run ask <its latest run ID> --brief -` with the new pins, the delta, and the open findings. Re-review only perspectives the change affects. A new head is not a new reviewer.
+3. **Judges.** Parse each result as JSON and check its perspective and pins against the brief; a missing, malformed, or mismatched result is no verdict. The PR passes only when both perspectives return `PASS` or `PASS+NOTES`. `FAIL` is a confirmed violation and `BLOCKED` is missing evidence; neither passes. Report their findings with closure conditions and stop.
+4. **Merges only what was reviewed.** Immediately before merging, read `gh pr view <url> --json state,baseRefName,baseRefOid,headRefOid`. If the head or base differs from the reviewed pins, report `STALE` and stop. Otherwise run `gh pr merge <url> --squash --match-head-commit <reviewed head SHA>`, then read back `gh pr view <url> --json state,mergedAt,mergeCommit`. Command success is not a merge. Report `MERGED` only when the forge shows the merge commit.
+5. **Cleans up.** After a confirmed merge, remove the review checkout if it is clean and no run uses it. On any stop, keep it for the re-review.
