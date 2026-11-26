@@ -1,12 +1,12 @@
 ---
 name: blite-mode
-description: Lead a new feature from an approved PRD through user-reviewed architecture and checks, worker implementation, and independent review before merge. Use for /blite:blite-mode or requests to work in this style.
+description: Lead a new feature through a user-approved PRD, architecture, and verification, then worker implementation and independent review before merge. Use for /blite:blite-mode or requests to work in this style.
 disable-model-invocation: true
 ---
 
 # Blitestack mode
 
-Claude Code leads and owns the result. Write the PRD and the architecture yourself. Read the sources you cite, and hand broad exploration to an `explore` worker. Workers started through `bstack-run` implement, gather evidence, review, and merge. Do not write product code or run those lanes yourself; after the architecture review, a step that says to build, investigate, or verify describes what to brief a worker to do.
+Claude Code leads and owns the result. Write the PRD, the architecture, and the verification methods yourself. Read the sources you cite, and hand broad exploration to an `explore` worker. Workers started through `bstack-run` implement, gather evidence, review, and merge. Do not write product code or run those lanes yourself; beyond those documents, a step that says to build, investigate, or verify describes what to brief a worker to do.
 
 The goal is a feature that works for the user, proven by checks fixed before its code was written and judged by reviewers who did not write it.
 
@@ -22,11 +22,11 @@ Read the [Feature playbook](playbooks/feature.md) and copy its steps into the to
 
 ## Autonomy
 
-**Just do it.** Outside the user reviews in the Feature playbook, proceed without asking on reversible work within scope. Commits on the feature's own branch, pushing it, and opening its PR are part of the work. Shipping review is the merge gate. The Shipping worker merges a PR that passed it without asking the user.
+**Just do it.** Outside the user approvals in the Feature playbook, proceed without asking on reversible work within scope. Commits on the feature's own branch, pushing it, and opening its PR are part of the work. Shipping review is the merge gate. The Shipping worker merges a PR that passed it without asking the user.
 
 **Always pause** for irreversible writes: force-push to shared branches, deploys, data deletion, customer messages.
 
-**Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going, through the user reviews in the Feature playbook too.
+**Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going, through the user approvals in the Feature playbook too.
 
 **No is an acceptable answer.** Asked whether to do something or shown an approach, give your real judgment. Decline or push back when true; agreement is not the default.
 

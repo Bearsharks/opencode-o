@@ -1,6 +1,6 @@
 ---
 name: blite-feature
-description: 새 기능의 PRD를 만든다. 요구사항마다 성공 정의와 그 근거를 정하고, 유지할 정책과 수정할 정책을 정한다. 구현 전에 독립 검수로 놓친 것을 찾고 승인을 남긴다.
+description: 새 기능의 PRD를 만든다. 목표, 범위, 요구사항마다 성공 정의와 그 근거, 유지할 정책과 수정할 정책을 사용자에게 제안해 허락받는다. 허락받은 판을 PRD로 쓰고, 독립 검수로 놓친 것을 찾아 승인을 남긴다.
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,9 @@ disable-model-invocation: true
 
 목표는 처음부터 잘 쓴 PRD다. 구현자가 이 PRD만 보고 사용자가 원한 것과 그 이유를 알 수 있어야 한다. 검수 통과가 목표가 아니다.
 
-조사하고 사용자와 맞춰 명확해진 뒤에 쓴다. 인용하는 원문은 직접 읽는다. 작업자의 요약은 원문을 대신하지 않는다. `request.md`와 `index.md`는 사용자와 대화하는 Claude가 직접 쓴다.
+어떻게 만들지(파일, 자료구조, 라이브러리, 작업 분해)와 어떻게 검증할지는 정하지 않는다.
 
-## PRD 형태
-
-`.bstack/<name>/index.md`는 [템플릿](references/template/index.md)을 따른다.
+## 사용자와 정할 것
 
 - **목표:** 누가 어떤 문제를 겪는지와 그 증거를 2~3줄로 쓴다. 증거가 없으면 `미정: <확인 방법>`으로 남긴다.
 - **범위:** 포함할 기능, 만들지 않는 것과 그 이유·출처.
@@ -21,15 +19,17 @@ disable-model-invocation: true
   - **성공 정의 근거:** 왜 그것이 성공인가. 사용자 기준은 `사용자 「원문 발췌」`로 시작하고, `request.md`의 인용에서 그대로 옮긴다.
 - **정책:** 이번 변경이 닿는 기존 동작·계약·정책마다 현재 동작과 출처, 유지 또는 수정, 결정 출처를 쓴다. 수정하는 정책의 새 동작은 요구사항 행에 쓴다.
 
-어떻게 만들지(파일, 자료구조, 라이브러리, 작업 분해)와 어떻게 검증할지는 PRD에 쓰지 않는다. 다른 곳에 없는 실험·측정 결과는 `.bstack/<name>/evidence/`에 두고 링크한다.
+조사해서 정한다. 인용하는 원문은 직접 읽는다. 작업자의 요약은 원문을 대신하지 않는다.
 
-## 진행
+## 허락과 산출물
+
+사용자에게 제안해 허락받은 판을 `.bstack/<name>/index.md`에 [템플릿](references/template/index.md)대로 쓴다. `request.md`와 `index.md`는 사용자와 대화하는 Claude가 직접 쓴다. 다른 곳에 없는 실험·측정 결과는 `.bstack/<name>/evidence/`에 두고 링크한다.
 
 - **PRD 폴더:** `.bstack/` 바로 아래 폴더 중 `archive/`가 아닌 것은 모두 진행 중인 PRD다. 시작하기 전에 이 목록을 본다.
   - 진행 중인 PRD가 있고 이 요청이 그중 하나를 잇는지 확실하지 않으면 사용자에게 "진행 중인 PRD <이름 목록>이 있습니다. 이 중 하나를 이어 가나요, 새 기능인가요?"라고 묻는다.
-  - 새 기능이면 `.bstack/<name>/`과 `.bstack/archive/<name>/`이 모두 없는 새 이름(소문자 kebab-case, `archive` 제외)으로 폴더를 만든다. 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식의 `request.md`로 쓰고, [템플릿](references/template/index.md)을 `index.md`로 복사한다.
+  - 새 기능이면 `.bstack/<name>/`과 `.bstack/archive/<name>/`이 모두 없는 새 이름(소문자 kebab-case, `archive` 제외)으로 폴더를 만든다. 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식의 `request.md`로 쓴다.
   - 이 PRD에 사용자 답이 오면 언제든 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다.
   - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`이다. Feature 플레이북이 PR을 열기 전에 보관한다. 사용자가 버리기로 한 PRD도 보관한다.
 - **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA로 `bstack-run run --role review --brief -`를 실행한다. 같은 PRD를 다시 볼 때는 `bstack-run ask <직전 검수 run ID> --brief -`로 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 PRD 경로와 SHA를 붙인다. 작성자의 결론이나 원하는 판정은 넣지 않는다.
-  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 사용자가 정할 것이면 묻는다.
-  - 놓친 것이 없으면 `.bstack/<name>/approval`에 `<SHA> <run ID>` 한 줄을 쓰고 커밋한다. `index.md` 경로와 검수 run ID를 Feature 플레이북에 넘긴다. 승인이 구현 권한을 새로 주지는 않는다.
+  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 허락받은 내용이 바뀌면 사용자에게 다시 허락받는다.
+  - 놓친 것이 없으면 `.bstack/<name>/approval`에 `<SHA> <run ID>` 한 줄을 쓰고 커밋한다. 승인이 구현 권한을 새로 주지는 않는다.

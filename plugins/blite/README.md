@@ -2,7 +2,7 @@
 
 bstack의 가벼운 판입니다. 새 기능 하나를 증거로 끝까지 만듭니다.
 
-PRD 승인 → 아키텍처 검토 → 검증 방법 검토와 검증 표 고정 → 작업자 구현 → 정리와 PR → Shipping 작업자의 독립 검수와 병합
+사용자 허락과 PRD → 사용자 허락과 아키텍처 → 사용자 허락과 검증 표·실패하는 테스트 → 작업자 구현 → 정리와 PR → Shipping 작업자의 독립 검수와 병합
 
 ```bash
 claude plugin marketplace add /path/to/opencode-o
