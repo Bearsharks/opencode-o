@@ -3,7 +3,7 @@
 Launched with `--role review`, which attaches the [reviewer preamble](preamble/reviewer.md).
 
 - **Candidate:** <repository, PR URL, base ref, full base and head SHAs>.
-- **Criteria:** <PRD folder path at the pinned head, its `approval` line, and `checks.md` at the pinned head>.
+- **Criteria:** <PRD folder path at the pinned head, its `approval` line, and its `design.md` and `checks.md` at the pinned head>.
 - **Evidence and review scope:** <links to diffs, logs and artifacts; for re-review, the changes since the prior pins, prior findings and their closure conditions>.
 
 Review the pinned diff and read the selected criteria at its pinned revision. Trace each changed contract from producer through its consumers. Check ownership, retired paths and remaining callers, duplicate decisions, and exception branches.
