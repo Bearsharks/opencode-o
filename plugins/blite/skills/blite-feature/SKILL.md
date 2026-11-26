@@ -31,5 +31,5 @@ disable-model-invocation: true
   - 이 PRD에 사용자 답이 오면 언제든 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다.
   - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`이다. Feature 플레이북이 PR을 열기 전에 보관한다. 사용자가 버리기로 한 PRD도 보관한다.
 - **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA로 `bstack-run run --role review --brief -`를 실행한다. 같은 PRD를 다시 볼 때는 `bstack-run ask <직전 검수 run ID> --brief -`로 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 PRD 경로와 SHA를 붙인다. 작성자의 결론이나 원하는 판정은 넣지 않는다.
-  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 허락받은 내용이 바뀌면 사용자에게 다시 허락받는다.
+  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 사용자가 정할 것이면 묻는다.
   - 놓친 것이 없으면 `.bstack/<name>/approval`에 `<SHA> <run ID>` 한 줄을 쓰고 커밋한다. 승인이 구현 권한을 새로 주지는 않는다.
