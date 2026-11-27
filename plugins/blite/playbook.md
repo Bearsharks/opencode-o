@@ -19,11 +19,11 @@ In steps 1 to 3 the user approves the content before the artifact is written. Pr
 
 A later user decision approves what it changes. Record it as blite-feature defines, update the artifacts it affects, and continue without asking again.
 
-After step 3 the user approves nothing more. Committing and pushing the feature branch, opening the PR, and merging a PR that passed step 6 are part of the work. Decide what comes up and continue. If the user has said to run without stopping, continue through the approvals of steps 1 to 3 as well.
+After step 3 the user approves nothing more, except for a review finding that cannot be closed. Committing and pushing the feature branch, opening the PR, and merging a PR that passed step 6 are part of the work. Decide what comes up and continue. If the user has said to run without stopping, continue through the approvals of steps 1 to 3 as well.
 
 ## When review does not pass
 
-- `FAIL`: one `impl` worker finds why the findings were missed and fixes the change, not only the findings.
+- `FAIL`: act on what each finding says must change. For the code, one `impl` worker finds why it was missed and fixes the change, not only the finding. For a check, change it as the finding directs (blite-checks) before the code is reworked. A finding that cannot be closed goes to the user once everything else is done.
 - `BLOCKED`: get the missing evidence before sending the PR again.
 - `STALE`: one `impl` worker rebases onto the current base.
 
@@ -35,4 +35,4 @@ Work that is not in `checks.md` and needs doing later goes to the backlog, whoev
 
 ## Finish
 
-Reply with what was built, each requirement with the evidence that passed it, the merge commit, and open decisions.
+Reply with what was built, each requirement with the evidence that passed it, the merge commit, the checks changed on a reviewer's direction, and open decisions.

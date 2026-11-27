@@ -14,7 +14,7 @@ If you are the lead and did not come here through blite-mode, read [the instruct
 
 Give an `impl` worker `design.md`, the approved `index.md` with its 정책 section, `checks.md`, and the check SHA. The code is done when:
 
-- every row of `checks.md` that the PRD has not removed passes at the head by its own method;
+- every row of `checks.md` passes at the head by its own method, except rows the PRD removed and rows a later row replaced;
 - `checks.md` and the tests it names are identical to their content at the check SHA.
 
 ## PR

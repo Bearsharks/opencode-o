@@ -14,6 +14,6 @@ Follow the Shipping worker section of `skills/blite-shipping/SKILL.md`.
 ## Report
 
 - Reviewed pins: base ref and SHA, head SHA.
-- Each perspective: verdict, run ID, evidence references, and findings with closure conditions.
+- Each perspective: verdict, run ID, evidence references, and its findings as written.
 - Outcome: `MERGED` with the merge commit and the forge read-back, `FAIL`, `BLOCKED`, or `STALE` with the old and new pins.
 - The review checkout path and whether it was removed.
