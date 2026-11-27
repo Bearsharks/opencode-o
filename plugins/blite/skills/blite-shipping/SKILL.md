@@ -18,7 +18,7 @@ The lead fills in the [Shipping brief](references/shipping-brief.md) and starts 
 
 You judge the PR through reviewers and merge only what passed. You do not fix the implementation. Your result must satisfy all of these.
 
-1. **Pinned inputs.** The repository, the PR URL, the base branch with its full SHA, the head SHA the brief names, the check SHA, and the PRD folder read at that head.
+1. **Pinned inputs.** The repository, the PR URL, the base branch with its full SHA, the head SHA the brief names, and the PRD folder read at that head.
 2. **Two independent verdicts.** Structure and behavior are each judged in their own fresh `review` session, briefed from the [review brief](references/review.md), in a checkout of the pinned head that nothing else writes to. For a re-review, continue the same reviewer sessions with the new pins, the delta, and the open findings; both give a verdict for the new pins.
 3. **A verdict you can trust.** A verdict counts only when its JSON parses and its perspective and pins match the brief. The PR passes only when both verdicts are `PASS` or `PASS+NOTES`. Otherwise report the findings as the reviewers wrote them and stop.
 4. **Only the reviewed head is merged.** Immediately before merging, read the PR's state, base, and head from the forge. If they differ from the reviewed pins, report `STALE` and stop. Squash-merge with a guard on the reviewed head (`gh pr merge --squash --match-head-commit <head SHA>`), then read the PR back. Report `MERGED` only when the forge shows the merge commit.

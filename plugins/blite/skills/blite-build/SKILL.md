@@ -12,10 +12,10 @@ If you are the lead and did not come here through blite-mode, first read what [b
 
 ## Code
 
-Give an `impl` worker `design.md`, `index.md` with its 정책 section, `checks.md`, and the check SHA. The code is done when:
+Give an `impl` worker `design.md`, `index.md` with its 정책 section, and `checks.md`. The code is done when:
 
 - every row of `checks.md` passes at the head by its own method; of rows with the same F-ID, the last one counts;
-- `checks.md` and the tests it names are identical to their content at the check SHA.
+- every test a row names has been seen to fail when its behavior is absent.
 
 ## PR
 

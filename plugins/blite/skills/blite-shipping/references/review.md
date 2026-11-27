@@ -4,7 +4,7 @@ Send one per perspective, with the other perspective's section removed.
 
 - **Perspective:** <structure | behavior>
 - **Candidate:** <repository, PR URL, base branch, full base and head SHAs>
-- **Criteria:** <PRD folder at the pinned head (`request.md`, `index.md`, `design.md`, `checks.md`), and the check SHA, the commit that last pinned `checks.md` and its tests>
+- **Criteria:** <PRD folder at the pinned head (`request.md`, `index.md`, `design.md`, `checks.md`)>
 - **Evidence and scope:** <diffs, logs, artifacts, the project's verification skill or named driver; for a re-review, the changes since the prior pins and the open findings>
 
 Confirm the pins before judging. The revision a checkout happens to start at is not a pin.
@@ -21,7 +21,7 @@ Verify the behavior a user would meet at the pinned head, with the project's ver
 
 Judge each row of `checks.md` by its 목적, not by its 검증 방법 alone. Ask whether the method covers the path a user takes and its important failure boundaries, and whether it would fail if the behavior broke; when that is unclear, run a focused counterexample.
 
-Of rows with the same F-ID, judge the last. `checks.md` and the tests it names must be unchanged since the check SHA.
+Of rows with the same F-ID, judge the last.
 
 A row passes only when its check passes and you saw its 목적 met. Report each row in `evidence` as `F-xx <PASS|FAIL|BLOCKED> | 목적 | observed outcome or missing evidence | evidence reference`.
 

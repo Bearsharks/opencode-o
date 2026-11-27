@@ -8,14 +8,14 @@ Six steps take one feature from request to merge. A step is finished when its ar
 |---|---|---|---|
 | 1. PRD | Lead with the user | `index.md` | [blite-feature](skills/blite-feature/SKILL.md) |
 | 2. Architecture | Lead with the user | `design.md` | [blite-architecture](skills/blite-architecture/SKILL.md) |
-| 3. Verification | Lead with the user; an `impl` worker prepares the tests | `checks.md` and its failing tests, pinned as the check SHA | [blite-checks](skills/blite-checks/SKILL.md) |
+| 3. Verification | Lead with the user | `checks.md` | [blite-checks](skills/blite-checks/SKILL.md) |
 | 4. Implement | `impl` worker | Code at which every pinned check passes | [blite-build](skills/blite-build/SKILL.md) |
 | 5. Clean up and open the PR | `impl` worker | A ready PR at a pinned head | [blite-build](skills/blite-build/SKILL.md) |
 | 6. Review and merge | Shipping worker with two `review` sessions | Both verdicts and the merge commit | [blite-shipping](skills/blite-shipping/SKILL.md) |
 
 ## User approval
 
-In steps 1 to 3 the user approves the content before the artifact is written, and the artifact is written from the version they approved. An answer that settles some decisions and raises a new question or alternative is not approval yet.
+In steps 1 to 3 the user approves the content before the artifact is written, and the artifact is written from the version they approved. An answer that changes the proposal or raises a new question is not approval yet; show the version that reflects it and get that approved.
 
 After step 3 the user is asked only in the two cases below. Committing and pushing the feature branch, opening the PR, merging a PR that passed step 6, and adding to the backlog on the base branch after the merge are part of the work. Decide what comes up and continue.
 
