@@ -1,21 +1,20 @@
 ---
 name: blite-build
-description: Implement an approved PRD against its pinned checks and deliver it as a ready PR at a pinned head. Defines what the code and the PR must satisfy before independent review.
+description: Implement an approved PRD using the agreed verification methods and deliver it as a ready PR at a pinned head. Defines what the code and the PR must satisfy before independent review.
 disable-model-invocation: true
 ---
 
 # Build and PR
 
-The goal is code at which each pinned check passes because its 목적 is met, delivered as a PR a reviewer can judge at one fixed head.
+The goal is an implementation whose verification methods pass because their 목적 is met, delivered as a PR a reviewer can judge at one fixed head.
 
 If you are the lead and did not come here through blite-mode, first read what [blite-mode](../blite-mode/SKILL.md) points to.
 
 ## Code
 
-Give an `impl` worker `design.md`, `index.md` with its 정책 section, and `checks.md`. The code is done when:
+Give an `impl` worker `design.md`, `index.md` with its 정책 section, and `checks.md`. The worker implements the feature and the tests needed by its verification methods.
 
-- every row of `checks.md` passes at the head by its own method; of rows with the same F-ID, the last one counts;
-- every row's method has been seen to fail when its behavior is absent.
+For each F-ID, use the last row in `checks.md`. Its verification method must pass at the head and have been observed to fail when the behavior is absent.
 
 ## PR
 

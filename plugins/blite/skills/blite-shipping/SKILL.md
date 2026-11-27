@@ -1,12 +1,12 @@
 ---
 name: blite-shipping
-description: Judge a PR in two independent review sessions against its PRD, design, and pinned checks, and merge only the head that passed. Use for the review-and-merge step of a blite feature.
+description: Judge a PR in two independent review sessions against its PRD, design, and verification methods, and merge only the head that passed. Use for the review-and-merge step of a blite feature.
 disable-model-invocation: true
 ---
 
 # Review and merge
 
-The goal is that only code two independent reviewers judged against the PRD, the design, and the pinned checks reaches the base branch.
+The goal is that only code two independent reviewers judged against the PRD, design, and checks.md at the reviewed head reaches the base branch.
 
 ## Lead
 

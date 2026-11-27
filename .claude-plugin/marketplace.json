@@ -14,7 +14,7 @@
     {
       "name": "blite",
       "source": "./plugins/blite",
-      "description": "Build a new feature from a user-approved PRD, architecture, and pinned checks, with OpenCode workers and independent review before merge.",
+      "description": "Build a new feature from a user-approved PRD, architecture, and verification methods, with OpenCode workers and independent review before merge.",
       "version": "0.1.0",
       "author": { "name": "bynn" },
       "license": "MIT"
