@@ -15,23 +15,19 @@ Six steps take one feature from request to merge. A step is finished when its ar
 
 ## User approval
 
-In steps 1 to 3 the user approves the content before the artifact is written. Propose with your reasons, showing each decision with its options and what each would change, and write the artifact from the version they approved. An answer that settles some decisions and raises a new question or alternative is not approval yet.
+In steps 1 to 3 the user approves the content before the artifact is written, and the artifact is written from the version they approved. An answer that settles some decisions and raises a new question or alternative is not approval yet.
 
-A later user decision approves what it changes. Record it as blite-feature defines, update the artifacts it affects, and continue without asking again.
-
-After step 3 the user approves nothing more, except for a review finding that cannot be closed. Committing and pushing the feature branch, opening the PR, and merging a PR that passed step 6 are part of the work. Decide what comes up and continue. If the user has said to run without stopping, continue through the approvals of steps 1 to 3 as well.
+After step 3 the user is asked only in the two cases below. Committing and pushing the feature branch, opening the PR, merging a PR that passed step 6, and adding to the backlog on the base branch after the merge are part of the work. Decide what comes up and continue.
 
 ## When review does not pass
 
-- `FAIL`: act on what each finding says must change. For the code, one `impl` worker finds why it was missed and fixes the change, not only the finding. For a check, change it as the finding directs (blite-checks) before the code is reworked. A finding that cannot be closed goes to the user once everything else is done.
-- `BLOCKED`: get the missing evidence before sending the PR again.
-- `STALE`: one `impl` worker rebases onto the current base.
+Act on what the Shipping report and its findings say must change, and send the PR back to the same Shipping run. Find why a finding was missed and fix the change, not only the finding.
 
-Each time, rerun the checks and send the new head to the same Shipping run, until `MERGED`.
+Ask the user in two cases: a finding says it cannot be closed, or the PR has been reworked twice and still does not pass.
 
-## Work outside the checks
+## Backlog
 
-Work that is not in `checks.md` and needs doing later goes to the backlog, whoever found it. Do not add it to the PRD or `checks.md`, and do not widen this change to fix it. After `MERGED`, add it to the backlog as blite-shipping defines.
+After `MERGED`, work that was found but is not in `checks.md` and behavior that merged wrong or incomplete go to the backlog, as blite-shipping defines.
 
 ## Finish
 

@@ -2,7 +2,7 @@
 
 새 기능 하나를 증거로 끝까지 만듭니다.
 
-단계는 PRD, 아키텍처, 검증, 구현, 정리와 PR, 검수와 병합입니다. 앞의 세 단계는 사용자의 허락을 받고, 그 뒤로는 묻지 않고 병합까지 갑니다. 순서와 조건은 [playbook](playbook.md)에 있습니다.
+단계는 PRD, 아키텍처, 검증, 구현, 정리와 PR, 검수와 병합입니다. 앞의 세 단계는 사용자의 허락을 받고, 그 뒤로는 닫을 수 없는 검수 지적이 나올 때만 묻고 병합까지 갑니다. 순서와 조건은 [playbook](playbook.md)에 있습니다.
 
 ```bash
 claude plugin marketplace add /path/to/opencode-o
