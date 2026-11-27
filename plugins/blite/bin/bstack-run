@@ -26,7 +26,7 @@ import uuid
 SCRIPT = Path(__file__).resolve()
 PLUGIN_ROOT = SCRIPT.parent.parent
 CONFIG = PLUGIN_ROOT / "config" / "models.json"
-ROLES = ("impl", "hard", "explore", "review", "panel")
+ROLES = ("impl", "hard", "explore", "review")
 CLAUDE_ALIASES = {"haiku", "sonnet", "opus"}
 RUN_ID = re.compile(r"\d{8}-\d{6}-(?:" + "|".join(ROLES) + r")-[0-9a-f]{4}")
 RESULT_LIMIT = 6000
@@ -262,35 +262,26 @@ def show_config():
 
     rows = [("Role", "Default model", "--fast model", "Preamble")]
     for role in ROLES:
-        default = roles.get(role)
-        preamble = preambles.get(role, "-")
-        if role == "panel":
-            if not isinstance(default, list) or not default:
-                errors.append("roles.panel: required nonempty model list")
-                rows.append((role, "-", "-", preamble))
-                continue
-            models = default
+        model = roles.get(role)
+        field = f"roles.{role}"
+        selected = None
+        if nonempty_string(model) and is_codex(model):
+            validate_model(model, field)
+            selected = f"{model} (priority tier)"
+        elif nonempty_string(model):
+            validate_model(model, field)
+            selected = mapped_fast_model(model, mappings) or model
+            if selected != model:
+                validate_model(selected, f"{field} --fast")
         else:
-            models = [default]
-        for index, model in enumerate(models):
-            field = f"roles.{role}" if role != "panel" else f"roles.panel[{index}]"
-            selected = None
-            if nonempty_string(model) and is_codex(model):
-                validate_model(model, field)
-                selected = f"{model} (priority tier)"
-            elif nonempty_string(model):
-                validate_model(model, field)
-                selected = mapped_fast_model(model, mappings) or model
-                if selected != model:
-                    validate_model(selected, f"{field} --fast")
-            else:
-                errors.append(f"{field}: required nonempty model string")
-                model = "-"
-            rows.append((role, model, selected or "-", preamble))
+            errors.append(f"{field}: required nonempty model string")
+            model = "-"
+        rows.append((role, model, selected or "-", preambles.get(role, "-")))
 
     widths = [max(map(len, column)) for column in zip(*rows)]
     for row in rows:
         print(" | ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip())
+    print(f"Common preamble: {preambles.get('common', '-')}")
     if errors:
         print("Checks: FAILED")
         for error in errors:
@@ -317,6 +308,17 @@ def codex_overrides(config):
     ):
         raise UsageError("invalid codex.config: expected a list of key=value strings")
     return overrides
+
+
+def preamble_path(config, key):
+    value = config.get("preamble", {}).get(key)
+    return str((PLUGIN_ROOT / value).resolve()) if value is not None else None
+
+
+def read_preamble(common, role):
+    """The instructions every worker gets, then the role's own."""
+    paths = [path for path in (common, role) if path is not None]
+    return b"\n\n".join(Path(path).read_bytes() for path in paths) if paths else None
 
 
 def get_brief(args):
@@ -359,10 +361,7 @@ def prepare(root, args, resources):
         role, model, title = (parent[key] for key in ("role", "model", "title"))
     else:
         role = args.role
-        default = config["roles"][role]
-        model = args.model if args.model is not None else (
-            default[0] if isinstance(default, list) else default
-        )
+        model = args.model if args.model is not None else config["roles"][role]
         title = args.title if args.title is not None else f"bstack {role}"
     check_model(model, config)
     base_model = parent.get("base_model", model) if parent else model
@@ -403,9 +402,9 @@ def prepare(root, args, resources):
         codex_config = parent["codex_config"] if parent else codex_overrides(config)
     brief = get_brief(args).encode("utf-8")
     opted_out, _ = prompt_body(brief)
-    preamble = config.get("preamble", {}).get(role) if not opted_out else None
-    preamble_path = (PLUGIN_ROOT / preamble).resolve() if preamble is not None else None
-    preamble_bytes = preamble_path.read_bytes() if preamble_path is not None else None
+    common_preamble = None if opted_out else preamble_path(config, "common")
+    role_preamble = None if opted_out else preamble_path(config, role)
+    preamble_bytes = read_preamble(common_preamble, role_preamble)
     if claude and preamble_bytes is not None:
         preamble_bytes.decode("utf-8")  # Validate before allocating a run.
     started = now()
@@ -433,7 +432,8 @@ def prepare(root, args, resources):
         "exit_code": None,
         "session_id": parent["session_id"] if parent else None,
         "parent_id": parent["id"] if parent else None,
-        "preamble": str(preamble_path) if preamble_path is not None else None,
+        "preamble": role_preamble,
+        "preamble_common": common_preamble,
         "started_at": started.isoformat(),
         "ended_at": None,
         "cwd": str(Path.cwd()),
@@ -835,11 +835,9 @@ def perform(directory, meta, worktree):
     diagnostics = Diagnostics()
     try:
         _, brief = prompt_body((directory / "brief.md").read_bytes())
-        preamble = None
-        if meta["preamble"] is not None:
-            preamble = Path(meta["preamble"]).read_bytes()
-            if hashlib.sha256(preamble).hexdigest() != meta["preamble_sha256"]:
-                raise ValueError("preamble changed before worker launch")
+        preamble = read_preamble(meta.get("preamble_common"), meta["preamble"])
+        if preamble is not None and hashlib.sha256(preamble).hexdigest() != meta["preamble_sha256"]:
+            raise ValueError("preamble changed before worker launch")
     except (OSError, ValueError) as exc:
         diagnostics.error(exc)
         return finish(directory, meta, 1, diagnostics)

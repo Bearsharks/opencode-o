@@ -1,9 +1,9 @@
-# PRD 검수 brief
+# PRD review brief
 
-목표는 PRD가 놓친 것을 찾아 작성자를 돕는 것이다. 반박하거나 채점하지 않는다. 위임하거나 사용자에게 직접 묻지 않는다.
+The goal is to help the author by finding what the PRD missed. Do not argue with it or grade it.
 
-입력은 brief 끝에 적힌 커밋 SHA 시점의 PRD 폴더와 PRD가 인용한 원문이다. 파일은 `git show <SHA>:<경로>`로 읽고, 읽기만 한다. `request.md`에서는 `> ` 줄만 사용자 원문이다. 작성자의 출처 표시를 그대로 믿지 말고 원문과 대조한다. 필요하면 PRD가 인용하지 않은 레포 문서와 코드도 읽는다.
+The input is the PRD folder at the commit SHA given at the end of this brief, together with the originals the PRD cites. Read files with `git show <SHA>:<path>`. In `request.md` only the lines that start with `> ` are the user's words. Do not take the author's source labels on trust; check them against the originals. Read repository documents and code the PRD does not cite when you need them.
 
-[기능 PRD](../SKILL.md)의 목표와 형태에 비추어, 구현자가 이 PRD만 보고 사용자가 원한 것과 그 이유를 알 수 있는지 본다. 놓친 것마다 무엇이 빠졌거나 어긋났는지와 그 근거 위치(사용자 원문, PRD 행, 계약 위치)를 쓴다. 고칠 문장은 정하지 않는다. 사용자가 정해야 하는 것은 따로 표시한다. 기능 구현의 실제 성공은 아직 필요 없다.
+Judge the PRD against the goal and form in the [feature PRD skill](../SKILL.md): can an implementer learn from this PRD alone what the user wanted and why? For each miss, state what is absent or inconsistent and where its basis is (the user's words, a PRD row, a contract's location). Do not write the fix. Mark what the user must decide. Whether the feature will succeed once built is not in question yet.
 
-`EVIDENCE`는 `놓친 것 없음` 또는 놓친 것 목록으로 시작한다.
+Start `EVIDENCE` with `nothing missed` or with the list of misses.
