@@ -6,7 +6,7 @@ Six steps take one feature from request to merge. A step is finished when its ar
 
 | Step | Who | Artifact | Defined by |
 |---|---|---|---|
-| 1. PRD | Lead with the user | `index.md`, and the `approval` record of its review | [blite-feature](skills/blite-feature/SKILL.md) |
+| 1. PRD | Lead with the user | `index.md` | [blite-feature](skills/blite-feature/SKILL.md) |
 | 2. Architecture | Lead with the user | `design.md` | [blite-architecture](skills/blite-architecture/SKILL.md) |
 | 3. Verification | Lead with the user; an `impl` worker prepares the tests | `checks.md` and its failing tests, pinned as the check SHA | [blite-checks](skills/blite-checks/SKILL.md) |
 | 4. Implement | `impl` worker | Code at which every pinned check passes | [blite-build](skills/blite-build/SKILL.md) |

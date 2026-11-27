@@ -1,6 +1,6 @@
 ---
 name: blite-feature
-description: 새 기능의 PRD를 만든다. 목표, 범위, 요구사항마다 성공 정의와 그 근거, 유지할 정책과 수정할 정책을 사용자에게 제안해 허락받는다. 허락받은 판을 PRD로 쓰고, 독립 검수로 놓친 것을 찾아 `approval` 기록을 남긴다.
+description: 새 기능의 PRD를 만든다. 목표, 범위, 요구사항마다 성공 정의와 그 근거, 유지할 정책과 수정할 정책을 사용자에게 제안해 허락받는다. 허락받은 판을 PRD로 쓰고, 독립 검수로 놓친 것을 찾는다.
 disable-model-invocation: true
 ---
 
@@ -32,4 +32,3 @@ disable-model-invocation: true
   - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`과 그 커밋이다. 사용자가 버리기로 한 PRD도 보관한다.
 - **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA를 `review` 역할의 새 세션에 검수받는다. 같은 PRD를 다시 볼 때는 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 이 스킬 파일의 절대 경로, PRD 경로, SHA를 붙인 것이다.
   - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 사용자가 정할 것이면 묻는다.
-  - 놓친 것이 없으면 `.bstack/<name>/approval`에 `<SHA> <run ID>` 한 줄을 쓰고 커밋한다. `approval`은 검수가 놓친 것을 찾지 못한 판의 기록이다. 사용자의 허락을 대신하지 않고, 구현 권한을 새로 주지도 않는다.
