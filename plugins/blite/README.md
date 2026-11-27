@@ -2,7 +2,7 @@
 
 새 기능 하나를 증거로 끝까지 만듭니다.
 
-단계는 PRD, 아키텍처, 검증, 구현, 정리와 PR, 검수와 병합입니다. 앞의 세 단계는 사용자의 허락을 받고, 그 뒤로는 닫을 수 없는 검수 지적이 나올 때만 묻고 병합까지 갑니다. 순서와 조건은 [playbook](playbook.md)에 있습니다.
+단계는 PRD, 아키텍처, 검증, 구현, 정리와 PR, 검수와 병합입니다. 순서와 조건은 [playbook](playbook.md)에 있습니다.
 
 ```bash
 claude plugin marketplace add /path/to/opencode-o
@@ -17,6 +17,4 @@ claude plugin install blite@opencode-o
 
 ## blite를 고칠 때
 
-- 규칙이나 파일을 더하거나 옮기기 전에 [구조 기준](ARCHITECTURE.md)에 대어 봅니다.
-- 스킬 검사는 `bash tests/validate-skills.sh`로 합니다.
-- 도구 검사는 `python3 -m unittest discover -s tests/bstack-run`으로 합니다.
+- 무엇을 어디에 두는지는 [구조 기준](ARCHITECTURE.md)에, 고치는 절차는 [MAINTAINING.md](MAINTAINING.md)에 있습니다.

@@ -26,9 +26,9 @@ A role selects a model and an instruction file from `config/models.json`; `confi
 ## What the script does not tell you
 
 - **Every worker already has its instructions.** The script puts the common instruction file and the role's file in front of the brief, unless the brief's first line is `NO-PREAMBLE`.
-- **`--bg` returns a run ID, not a result.** Wait with a single `wait ID`, run in the background when it may take long. Do not poll `status`.
+- **`--bg` returns a run ID, not a result.** `wait ID` blocks until the run ends.
 - **Process status is not the work's status.** `done` with exit code 0 means the worker finished. Whether the work passed is in the worker's answer.
 - **A foreground `run` or `ask` prints at most 6,000 characters of the answer.** `wait` and `result` print all of it.
-- **`ask` continues the session of an earlier run.** Use it for rework or a follow-up after that run has finished. A new task gets a new `run`.
+- **`ask` continues the session of an earlier run.** `run` starts a new one.
 - **`steer` and `queue` reach a worker that is still running.** `steer` arrives at its next step, `queue` after its current turn.
 - **`interrupt` then `brief-bundle` hands a task over.** `brief-bundle` prints the original brief, every later message, and the last result, which is what a fresh worker needs.
