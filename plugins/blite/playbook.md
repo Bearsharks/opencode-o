@@ -1,6 +1,6 @@
 # Feature playbook
 
-The goal is a feature that works for the user, proven by checks fixed before its code was written and judged by reviewers who did not write it.
+The goal is a feature that works for the user, proven by verification methods agreed before implementation and judged by reviewers who did not write the feature.
 
 Six steps take one feature from request to merge. A step is finished when its artifact exists as its skill defines it. Do not start a step before the artifact of the step before it exists.
 
