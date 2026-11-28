@@ -2,9 +2,9 @@
 """SessionStart(compact) hook: put blite mode's skill back in context after a compaction.
 
 A compaction summary keeps the gist of the rules, not the rules. When /blite:blite-mode ran
-earlier in the session, re-add the skill as invoking it does: its base directory and body.
-The skill tells the lead which documents to read; they are not inlined, so the text stays
-small enough to arrive in full.
+earlier in the session, re-add the skill as invoking it does (its base directory and body),
+then the rules for every agent. The skill tells the lead which other documents to read;
+they are not inlined, so the text stays small enough to arrive in full.
 """
 import json
 import sys
@@ -12,9 +12,11 @@ from pathlib import Path
 
 PLUGIN = Path(__file__).resolve().parent.parent
 SKILL = PLUGIN / "skills" / "blite-mode" / "SKILL.md"
+GLOBAL = PLUGIN / "instructions" / "global.md"
 COMMAND = "<command-name>/blite:blite-mode</command-name>"
 
-HEADER = "/blite:blite-mode ran in this session before the compaction. Its skill follows as it is now."
+HEADER = ("/blite:blite-mode ran in this session before the compaction. "
+          "Its skill and the rules for every agent follow as they are now.")
 
 
 def user_texts(entry):
@@ -60,7 +62,8 @@ def main():
     transcript = event.get("transcript_path") if isinstance(event, dict) else None
     if not transcript or not Path(transcript).is_file() or not blite_mode_ran(transcript):
         return
-    context = f"{HEADER}\n\nBase directory for this skill: {SKILL.parent}\n\n{skill_body()}"
+    context = (f"{HEADER}\n\nBase directory for this skill: {SKILL.parent}\n\n{skill_body()}"
+               f"\n\n===== {GLOBAL} =====\n{GLOBAL.read_text(encoding='utf-8').strip()}")
     json.dump({"hookSpecificOutput": {"hookEventName": "SessionStart",
                                       "additionalContext": context}},
               sys.stdout, ensure_ascii=False)
