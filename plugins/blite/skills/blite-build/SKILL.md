@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 The goal is an implementation whose verification methods pass because their 목적 is met, delivered as a PR a reviewer can judge at one fixed head.
 
-If you are the lead and did not come here through blite-mode or blite-free, first read what [blite-free](../blite-free/SKILL.md) points to.
+If you are the lead and did not come here through blite-mode, first read what [blite-mode](../blite-mode/SKILL.md) points to.
 
 ## Code
 

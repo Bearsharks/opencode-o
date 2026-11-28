@@ -1,17 +1,19 @@
 # Feature playbook
 
+Follow this playbook when the user asks to build a feature. For any other request, follow the user's instructions; nothing below applies.
+
 The goal is a feature that works for the user, proven by verification methods agreed before implementation and judged by reviewers who did not write the feature.
 
 Six steps take one feature from request to merge. A step is finished when its artifact exists as its skill defines it. Do not start a step before the artifact of the step before it exists.
 
 | Step | Who | Artifact | Defined by |
 |---|---|---|---|
-| 1. PRD | Lead with the user | `index.md` | [blite-feature](../skills/blite-feature/SKILL.md) |
-| 2. Architecture | Lead with the user | `design.md` | [blite-architecture](../skills/blite-architecture/SKILL.md) |
-| 3. Verification | Lead with the user | `checks.md` | [blite-checks](../skills/blite-checks/SKILL.md) |
-| 4. Implement | `impl` worker | Verified implementation | [blite-build](../skills/blite-build/SKILL.md) |
-| 5. Clean up and open the PR | `impl` worker | A ready PR at a pinned head | [blite-build](../skills/blite-build/SKILL.md) |
-| 6. Review and merge | Shipping worker with two `review` sessions | Both verdicts and the merge commit | [blite-shipping](../skills/blite-shipping/SKILL.md) |
+| 1. PRD | Lead with the user | `index.md` | [blite-feature](skills/blite-feature/SKILL.md) |
+| 2. Architecture | Lead with the user | `design.md` | [blite-architecture](skills/blite-architecture/SKILL.md) |
+| 3. Verification | Lead with the user | `checks.md` | [blite-checks](skills/blite-checks/SKILL.md) |
+| 4. Implement | `impl` worker | Verified implementation | [blite-build](skills/blite-build/SKILL.md) |
+| 5. Clean up and open the PR | `impl` worker | A ready PR at a pinned head | [blite-build](skills/blite-build/SKILL.md) |
+| 6. Review and merge | Shipping worker with two `review` sessions | Both verdicts and the merge commit | [blite-shipping](skills/blite-shipping/SKILL.md) |
 
 ## After step 3
 

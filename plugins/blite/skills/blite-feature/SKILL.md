@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 어떻게 만들지(파일, 자료구조, 라이브러리, 작업 분해)와 어떻게 검증할지는 정하지 않는다.
 
-blite-mode나 blite-free로 들어오지 않았다면 [blite-free](../blite-free/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
 
 ## 사용자와 정할 것
 
