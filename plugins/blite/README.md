@@ -14,7 +14,7 @@ claude plugin install blite@opencode-o
 - 작업자는 모두 `oc-lite`로 돕니다. 역할별 모델과 지침 파일은 `config/models.json`에서 고치고 `bin/bstack-run config`로 확인합니다. 실행 기록은 `state/runs/`에 남습니다.
 - 작업자를 띄우는 도구의 사용법은 [docs/bstack-run.md](docs/bstack-run.md)에 있습니다.
 - 사용자에게 한 마지막 답변이 영어면 [Stop 훅](hooks/korean-reply.py)이 한 번 막고 한국어로 다시 답하게 합니다. 헤드리스 실행(`claude -p`)은 건너뜁니다. 끄려면 `/hooks`에서 끕니다.
-- `/blite:blite-mode`를 쓴 세션이 압축되면 [SessionStart 훅](hooks/reload-blite-mode.py)이 blite-mode와 그것이 가리키는 문서를 원문 그대로 다시 넣습니다. 압축 요약에는 규칙의 요지만 남기 때문입니다.
+- `/blite:blite-mode`를 쓴 세션이 압축되면 [SessionStart 훅](hooks/reload-blite-mode.py)이 blite-mode 스킬을 처음 불렀을 때와 같은 모양(기준 경로와 본문)으로 다시 넣고, 리드는 거기 적힌 문서를 다시 읽습니다. 압축 요약에는 규칙의 요지만 남기 때문입니다.
 - CI와 리뷰 코멘트 처리는 아직 없습니다.
 
 ## blite를 고칠 때
