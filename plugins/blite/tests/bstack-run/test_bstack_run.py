@@ -134,6 +134,47 @@ else:
     print(json.dumps(payload, indent=2))
 """
 
+FAKE_CODEX = """\
+#!/usr/bin/env python3
+import json
+import os
+from pathlib import Path
+import sys
+
+args = sys.argv[1:]
+mode = os.environ.get("FAKE_MODE")
+
+if args[0] == "app-server":
+    log = Path(os.environ["FAKE_API_LOG"]).open("a")
+    print(json.dumps({"argv": args, "cwd": str(Path.cwd())}), file=log, flush=True)
+    def send(message):
+        print(json.dumps(message), flush=True)
+    for line in sys.stdin:
+        message = json.loads(line)
+        print(json.dumps({"method": message["method"], "params": message.get("params")}),
+              file=log, flush=True)
+        if "id" not in message:
+            continue
+        if message["method"] == "thread/compact/start":
+            if mode == "api-fail":
+                send({"id": message["id"], "error": {"code": -32600, "message": "fake compact error"}})
+                continue
+            send({"id": message["id"], "result": {}})
+            send({"method": "item/started", "params": {"item": {"type": "contextCompaction"}}})
+            send({"method": "item/completed", "params": {"item": {"type": "contextCompaction"}}})
+        else:
+            send({"id": message["id"], "result": {}})
+    sys.exit()
+
+brief = sys.stdin.buffer.read().decode("utf-8")
+thread = args[2] if args[1] == "resume" else "thr_fake"
+if fixture := os.environ.get("FAKE_INPUT_RECORD"):
+    Path(fixture).write_text(json.dumps(dict(argv=args, brief=brief, cwd=str(Path.cwd()))))
+print(json.dumps({"type": "thread.started", "thread_id": thread}))
+print(json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": "fake codex answer"}}))
+print(json.dumps({"type": "turn.completed"}))
+"""
+
 
 class BstackRunTest(unittest.TestCase):
     def setUp(self):
@@ -157,6 +198,9 @@ class BstackRunTest(unittest.TestCase):
         self.claude = self.cwd / "fake claude"
         self.claude.write_text(FAKE_CLAUDE, encoding="utf-8")
         self.claude.chmod(0o700)
+        self.codex = self.cwd / "fake codex"
+        self.codex.write_text(FAKE_CODEX, encoding="utf-8")
+        self.codex.chmod(0o700)
         self.claude_ready = self.cwd / "claude-ready"
         self.claude_config = self.cwd / "claude config"
         self.config_path = self.cwd / "test models.json"
@@ -167,6 +211,7 @@ class BstackRunTest(unittest.TestCase):
         self.env = dict(os.environ, BSTACK_CLI=str(self.fake), FAKE_GATE=str(self.gate),
                          BSTACK_CONFIG=str(self.config_path),
                          BSTACK_CLAUDE_CLI=str(self.claude), FAKE_CLAUDE_READY=str(self.claude_ready),
+                         BSTACK_CODEX_CLI=str(self.codex), CODEX_HOME=str(self.cwd / "codex home"),
                          CLAUDE_CONFIG_DIR=str(self.claude_config),
                          FAKE_API_LOG=str(self.api_log), PYTHONIOENCODING="utf-8")
         self.env.pop("FAKE_MODE", None)
@@ -839,7 +884,32 @@ class BstackRunTest(unittest.TestCase):
         parent = self.run_id(self.call("run", "--role", "review", "--message", "start"))
         proc = self.call("ask", parent, "--compact", "--message", "rework")
         self.assertEqual(proc.returncode, 2)
-        self.assertIn("--compact is only supported for OpenCode workers", proc.stderr)
+        self.assertIn("--compact is not supported for Claude Code workers", proc.stderr)
+
+    def test_ask_compact_codex_compacts_with_worker_settings_before_resuming(self):
+        self.config["roles"]["impl"] = "codex:gpt-test#high"
+        self.config["codex"] = {"config": ['mcp_servers.x.command="x"']}
+        self.write_config()
+        parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
+        child = self.run_id(self.call("ask", parent, "--compact", "--message", "rework"))
+        calls = self.api_calls()
+        self.assertEqual(calls[0]["argv"], [
+            "app-server", "-c", 'model="gpt-test"', "-c", 'mcp_servers.x.command="x"',
+            "-c", 'model_reasoning_effort="high"'])
+        self.assertEqual([call["method"] for call in calls[1:]],
+                         ["initialize", "initialized", "thread/resume", "thread/compact/start"])
+        self.assertEqual(calls[3]["params"], {"threadId": "thr_fake", "excludeTurns": True})
+        self.assertEqual(self.worker_argv(child)[:3], ["exec", "resume", "thr_fake"])
+        self.assertEqual(self.call("result", child).stdout, "fake codex answer\n")
+
+    def test_ask_compact_codex_failure_does_not_send_message(self):
+        self.config["roles"]["impl"] = "codex:gpt-test"
+        self.write_config()
+        parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
+        proc = self.call("ask", parent, "--compact", "--message", "rework", mode="api-fail")
+        child = self.run_id(proc, code=1)
+        self.assertEqual(self.status(child)["status"], "failed")
+        self.assertFalse(proc.input_record.exists())
 
     @unittest.skipUnless(shutil.which("git"), "git not installed")
     def test_two_reviewers_resume_in_single_repinned_checkout(self):

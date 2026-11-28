@@ -401,8 +401,8 @@ def prepare(root, args, resources):
             raise UsageError("invalid Codex session id")
         codex_config = parent["codex_config"] if parent else codex_overrides(config)
     compact = getattr(args, "compact", False)
-    if compact and not is_opencode(model):
-        raise UsageError("--compact is only supported for OpenCode workers")
+    if compact and claude:
+        raise UsageError("--compact is not supported for Claude Code workers")
     brief = get_brief(args).encode("utf-8")
     opted_out, _ = prompt_body(brief)
     common_preamble = None if opted_out else preamble_path(config, "common")
@@ -462,8 +462,8 @@ def prepare(root, args, resources):
         )
     else:
         meta["export_cmd"] = export_command(meta)
-        if compact:
-            meta["compact"] = True
+    if compact:
+        meta["compact"] = True
     owner = resources.enter_context((directory / "brief.md").open("xb"))
     fcntl.flock(owner, fcntl.LOCK_EX)
     owner.write(brief)
@@ -776,24 +776,106 @@ def codex_transcript(thread_id):
     return str(matches[-1].resolve()) if matches else None
 
 
+def codex_settings(meta):
+    """The worker's model name and its `-c` overrides, shared by exec and compaction."""
+    name, _, effort = meta["model"].removeprefix("codex:").partition("#")
+    overrides = []
+    for override in meta["codex_config"]:
+        overrides += ["-c", override]
+    if effort:
+        overrides += ["-c", f"model_reasoning_effort={json.dumps(effort)}"]
+    if meta["fast"]:
+        overrides += ["-c", 'service_tier="priority"']
+    return name, overrides
+
+
+CODEX_COMPACT_TIMEOUT = 900
+
+
+def compact_codex(meta, env):
+    """Compact the worker's Codex thread through app-server and wait until it is done.
+
+    app-server has no --ignore-user-config, so the worker's model and overrides are passed
+    explicitly; they take precedence over the user's config.
+    """
+    name, overrides = codex_settings(meta)
+    cmd = [meta["cli"], "app-server", "-c", f"model={json.dumps(name)}", *overrides]
+    thread = meta["session_id"]
+    lines = deque()
+    with subprocess.Popen(cmd, cwd=meta["cwd"], env=env, stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as server:
+        reader = Thread(target=lambda: lines.extend(server.stdout), daemon=True)
+        reader.start()
+        deadline = time.monotonic() + CODEX_COMPACT_TIMEOUT
+
+        def receive():
+            while True:
+                if lines:
+                    try:
+                        message = json.loads(lines.popleft())
+                    except (ValueError, RecursionError):
+                        continue
+                    if isinstance(message, dict):
+                        return message
+                elif not reader.is_alive():
+                    raise UsageError("Codex app-server exited during compaction")
+                elif time.monotonic() > deadline:
+                    raise UsageError("Codex compaction timed out")
+                else:
+                    time.sleep(.05)
+
+        def request(number, method, params):
+            server.stdin.write(json.dumps({"id": number, "method": method, "params": params}).encode()
+                               + b"\n")
+            server.stdin.flush()
+            while True:
+                message = receive()
+                if message.get("id") == number and "method" not in message:
+                    if "error" in message:
+                        raise UsageError(f"Codex {method} failed: "
+                                         + json.dumps(message["error"], ensure_ascii=False)[:500])
+                    return message
+
+        try:
+            request(1, "initialize", {"clientInfo": {"name": "bstack-run", "version": "1"}})
+            server.stdin.write(b'{"method": "initialized"}\n')
+            request(2, "thread/resume", {"threadId": thread, "excludeTurns": True})
+            request(3, "thread/compact/start", {"threadId": thread})
+            while True:
+                message = receive()
+                params = message.get("params")
+                params = params if isinstance(params, dict) else {}
+                item = params.get("item")
+                if (message.get("method") == "item/completed" and isinstance(item, dict)
+                        and item.get("type") == "contextCompaction"):
+                    return
+                turn = params.get("turn")
+                if message.get("method") == "turn/completed" and isinstance(turn, dict):
+                    raise UsageError(f"Codex compaction turn ended {turn.get('status')} without compacting")
+                if message.get("method") == "error" and params.get("willRetry") is False:
+                    raise UsageError("Codex compaction failed: "
+                                     + json.dumps(params.get("error"), ensure_ascii=False)[:500])
+        finally:
+            server.terminate()
+
+
 def perform_codex(directory, meta, worktree, brief, preamble, env, diagnostics):
     # No sandbox; approval requests that remain go to Codex automatic review.
-    name, _, effort = meta["model"].removeprefix("codex:").partition("#")
+    name, overrides = codex_settings(meta)
     cmd = [meta["cli"], "exec"]
     if meta["parent_id"]:
         cmd += ["resume", meta["session_id"]]
     cmd += ["--json", "--ignore-user-config", "-m", name,
             "-c", 'sandbox_mode="danger-full-access"', "-c", 'approval_policy="on-request"',
-            "-c", 'approvals_reviewer="auto_review"']
-    for override in meta["codex_config"]:
-        cmd += ["-c", override]
-    if effort:
-        cmd += ["-c", f"model_reasoning_effort={json.dumps(effort)}"]
-    if meta["fast"]:
-        cmd += ["-c", 'service_tier="priority"']
-    cmd.append("-")
+            "-c", 'approvals_reviewer="auto_review"', *overrides, "-"]
     if preamble is not None:
         brief = preamble + b"\n\n" + brief
+    if meta.get("compact"):
+        try:
+            compact_codex(meta, env)
+        except (UsageError, OSError, ValueError) as exc:
+            diagnostics.error(exc)
+            return finish(directory, meta, 1, diagnostics)
 
     child = None
     exit_code = 1
@@ -1082,7 +1164,7 @@ def parser():
     ask.add_argument("id")
     ask.add_argument("--fast", action="store_true", help="resume using the configured fast model")
     ask.add_argument("--compact", action="store_true",
-                     help="compact the OpenCode session before sending the message")
+                     help="compact the OpenCode or Codex session before sending the message")
     steer = commands.add_parser("steer", help="steer a running worker at its next step")
     queue = commands.add_parser("queue", help="queue a prompt for after the current turn")
     for command in (steer, queue):
