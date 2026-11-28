@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/reload-blite-mode.py\"",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/reload-entry.py\"",
             "timeout": 10
           }
         ]

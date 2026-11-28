@@ -10,7 +10,7 @@ The goal is that only code two independent reviewers judged against the PRD, des
 
 ## Lead
 
-If you are the lead and did not come here through blite-mode, first read what [blite-mode](../blite-mode/SKILL.md) points to.
+If you are the lead and did not come here through blite-mode or blite-free, first read what [blite-free](../blite-free/SKILL.md) points to.
 
 The lead fills in the [Shipping brief](references/shipping-brief.md) and starts a Shipping worker with the `impl` role. The lead does not review or merge.
 

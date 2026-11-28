@@ -10,5 +10,5 @@ Read these four, then follow the playbook for this request.
 
 1. [Every agent](../../instructions/global.md): what holds for every agent, you included.
 2. [Lead](../../instructions/roles/lead.md): your role.
-3. [Feature playbook](../../playbook.md): the steps and their artifacts.
+3. [Feature playbook](../../playbooks/feature.md): the steps and their artifacts.
 4. [bstack-run](../../docs/bstack-run.md): the tool that runs workers.

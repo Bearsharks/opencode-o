@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 어떻게 만들지(파일, 자료구조, 라이브러리, 작업 분해)와 어떻게 검증할지는 정하지 않는다.
 
-이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+blite-mode나 blite-free로 들어오지 않았다면 [blite-free](../blite-free/SKILL.md)가 가리키는 문서를 먼저 읽는다.
 
 ## 사용자와 정할 것
 
@@ -31,4 +31,4 @@ disable-model-invocation: true
   - 이 PRD에 사용자 답이 오면 언제든 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다.
   - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`과 그 커밋이다. 사용자가 버리기로 한 PRD도 보관한다.
 - **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA를 `review` 역할의 새 세션에 검수받는다. 같은 PRD를 다시 볼 때는 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 이 스킬 파일의 절대 경로, PRD 경로, SHA를 붙인 것이다.
-  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 허락받은 내용을 바꾸는 수정은 playbook의 사용자 승인 규칙에 따른다.
+  - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 허락받은 내용을 바꾸는 수정은 다시 허락받는다.

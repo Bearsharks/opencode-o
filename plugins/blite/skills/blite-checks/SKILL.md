@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 목표는 통과하는 것과 성공 정의가 이루어지는 것이 같은 검증 방법이다. 통과해도 목적이 실패하는 경우도, 목적이 이루어졌는데 통과하지 못하는 경우도 남지 않아야 한다. 관찰 수단이 돌았다는 것만으로는 부족하다.
 
-이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+blite-mode나 blite-free로 들어오지 않았다면 [blite-free](../blite-free/SKILL.md)가 가리키는 문서를 먼저 읽는다.
 
 ## 사용자와 정할 것
 
