@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 어떻게 만들지(파일, 자료구조, 라이브러리, 작업 분해)와 어떻게 검증할지는 정하지 않는다.
 
-이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+아직 읽지 않았다면 [전역 지침](../../instructions/global.md), [리드 지침](../../instructions/roles/lead.md), [bstack-run](../../docs/bstack-run.md)을 먼저 읽는다.
 
 ## 사용자와 정할 것
 
@@ -23,12 +23,8 @@ disable-model-invocation: true
 
 ## 허락과 산출물
 
-사용자에게 제안해 허락받은 판을 `.bstack/<name>/index.md`에 [템플릿](references/template/index.md)대로 쓴다. 다른 곳에 없는 실험·측정 결과는 `.bstack/<name>/evidence/`에 두고 링크한다.
+사용자에게 제안해 허락받은 판을 작업 폴더의 `index.md`에 [템플릿](references/template/index.md)대로 쓴다. 다른 곳에 없는 실험·측정 결과는 작업 폴더의 `evidence/`에 두고 링크한다.
 
-- **PRD 폴더:** `.bstack/` 바로 아래 폴더 중 `archive/`가 아닌 것은 모두 진행 중인 PRD다. 시작하기 전에 이 목록을 본다.
-  - 진행 중인 PRD가 있고 이 요청이 그중 하나를 잇는지 확실하지 않으면 사용자에게 묻는다.
-  - 새 기능이면 `.bstack/<name>/`과 `.bstack/archive/<name>/`이 모두 없는 새 이름(소문자 kebab-case, `archive` 제외)으로 폴더를 만든다. 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식의 `request.md`로 쓴다.
-  - 이 PRD에 사용자 답이 오면 언제든 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다.
-  - 보관은 `git mv .bstack/<name> .bstack/archive/<name>`과 그 커밋이다. 사용자가 버리기로 한 PRD도 보관한다.
-- **검수:** PRD 폴더를 커밋하고, 그 커밋 SHA를 `review` 역할의 새 세션에 검수받는다. 같은 PRD를 다시 볼 때는 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 이 스킬 파일의 절대 경로, PRD 경로, SHA를 붙인 것이다.
+- **요청 원문:** 새 작업이면 시작할 때 첫 요청 전문을 한 줄마다 `> `를 붙여 [원문 템플릿](references/template/request.md) 형식의 `request.md`로 작업 폴더에 쓴다. 이 PRD에 사용자 답이 오면 언제든 `request.md` 끝에 덧붙인다. 이미 적힌 원문은 고치지 않는다.
+- **검수:** 작업 폴더를 커밋하고, 그 커밋 SHA를 `review` 역할의 새 세션에 검수받는다. 같은 PRD를 다시 볼 때는 같은 검수자에게 맡긴다. brief는 [검수 brief](references/reviewer.md) 전문 뒤에 이 스킬 파일의 절대 경로, 작업 폴더 경로, SHA를 붙인 것이다.
   - 검수자가 놓친 것을 알려 주면 왜 놓쳤는지 보고 PRD를 고친다. 허락받은 내용을 바꾸는 수정은 다시 허락받는다.

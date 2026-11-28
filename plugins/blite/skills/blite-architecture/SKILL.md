@@ -8,7 +8,9 @@ disable-model-invocation: true
 
 목표는 요구사항을 이루는 구조를 처음부터 맞게 정하는 것이다. 구조가 틀리면 구현을 잘해도 덧댐이 쌓인다. 다른 모듈이 알아야 하는 것(맡는 일, 상태의 주인, 주고받는 데이터)만 정하고, 한 모듈 안에서 바꿔도 다른 곳이 모르는 것(알고리즘, 함수, 세부 타입, 작업 순서, 테스트)은 구현에 맡긴다.
 
-이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+아직 읽지 않았다면 [전역 지침](../../instructions/global.md), [리드 지침](../../instructions/roles/lead.md), [bstack-run](../../docs/bstack-run.md)을 먼저 읽는다.
+
+전제 조건은 이룰 요구사항이다.
 
 작업 크기에 맞춰 깊이를 정한다.
 
@@ -24,4 +26,4 @@ disable-model-invocation: true
 
 ## 허락과 산출물
 
-사용자에게 [템플릿](references/template/design.md)의 모양으로 제안해 허락받은 판을 `.bstack/<name>/design.md`로 남기고, 무엇으로 확인했는지(소스 위치, 실행 결과)도 적는다.
+사용자에게 [템플릿](references/template/design.md)의 모양으로 제안해 허락받은 판을 작업 폴더의 `design.md`로 남기고, 무엇으로 확인했는지(소스 위치, 실행 결과)도 적는다.

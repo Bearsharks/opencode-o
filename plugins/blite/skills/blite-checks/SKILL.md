@@ -8,7 +8,9 @@ disable-model-invocation: true
 
 목표는 통과하는 것과 성공 정의가 이루어지는 것이 같은 검증 방법이다. 통과해도 목적이 실패하는 경우도, 목적이 이루어졌는데 통과하지 못하는 경우도 남지 않아야 한다. 관찰 수단이 돌았다는 것만으로는 부족하다.
 
-이 스킬만 따로 쓸 때는 [blite-mode](../blite-mode/SKILL.md)가 가리키는 문서를 먼저 읽는다.
+아직 읽지 않았다면 [전역 지침](../../instructions/global.md), [리드 지침](../../instructions/roles/lead.md), [bstack-run](../../docs/bstack-run.md)을 먼저 읽는다.
+
+전제 조건은 검증할 요구사항과 각각의 성공 정의다.
 
 ## 사용자와 정할 것
 
@@ -20,5 +22,5 @@ disable-model-invocation: true
 
 ## 허락과 산출물
 
-- 사용자에게 제안해 허락받은 판을 `.bstack/<name>/checks.md`에 [템플릿](references/template/checks.md)대로 쓴다. 목적 칸에는 성공 정의를 그대로 옮긴다.
-- 쓴 뒤에는 행을 고치지 않는다. 검수자가 검증을 강하게 또는 약하게 하라고 지시하면, 지시대로 고친 행을 같은 F-ID로 표 아래에 덧붙이고 근거 칸에 「검수자의 지시」와 검수 run ID를 적는다. 아래 행이 위 행을 대신한다.
+- 사용자에게 제안해 허락받은 판을 작업 폴더의 `checks.md`에 [템플릿](references/template/checks.md)대로 쓴다. 목적 칸에는 성공 정의를 그대로 옮긴다.
+- 쓴 뒤에는 행을 고치지 않는다. 검증 방법을 바꿔야 하면 바꾼 행을 같은 F-ID로 표 아래에 덧붙이고, 근거 칸에 바꾼 이유와 그 출처를 적는다. 아래 행이 위 행을 대신한다.

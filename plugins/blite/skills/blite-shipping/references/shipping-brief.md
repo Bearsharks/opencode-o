@@ -2,9 +2,9 @@
 
 Fill in every field. Use `none` for an absent input.
 
-- **Goal:** <the feature, from the PRD's 목표>
+- **Goal:** <what the work is for, from the requirements' goal>
 - **Target:** <absolute repository directory, GitHub repository, base branch, PR URL, pinned head SHA>
-- **Criteria:** <PRD folder path at the head>
+- **Criteria:** <paths at the head of the user's request, the requirements, the design, and the verification methods>
 - **Authority:** start `review` sessions with `bstack-run`, and merge the PR once it has passed. No changes to the code, and none to the PR other than merging it.
 - **Write scope:** a review checkout and a directory for review outputs, both outside the repository's working tree.
 - **Tools:** <absolute paths to the plugin's `bin/bstack-run`, `docs/bstack-run.md`, `skills/blite-shipping/SKILL.md`, `skills/blite-shipping/references/review.md`, and any project verification skill or named driver>
