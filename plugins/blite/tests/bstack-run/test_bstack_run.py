@@ -43,6 +43,10 @@ if args[0] == "api":
                 time.sleep(.01)
             sys.exit("fake API disconnected after sending the interrupt")
         print(json.dumps({"interrupted": mode != "not-interrupted"}))
+    elif args[1] == "session.compact":
+        print(json.dumps({"data": {"id": "cmp_fake"}}))
+    elif args[1] == "experimental.session.wait":
+        pass
     else:
         payload = json.loads(args[args.index("-d") + 1])
         print(json.dumps({"data": {"id": "msg_fake", "delivery": payload["delivery"]}}))
@@ -812,6 +816,30 @@ class BstackRunTest(unittest.TestCase):
         directives = json.loads((self.root / parent / "meta.json").read_bytes())["directives"]
         self.assertEqual(directives[0]["run_id"], child)
         self.assertNotIn("text", directives[0])
+
+    def test_ask_compact_compacts_and_waits_before_sending(self):
+        parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
+        child = self.run_id(self.call("ask", parent, "--compact", "--message", "rework"))
+        self.assertEqual([call["argv"][1:4] for call in self.api_calls()],
+                         [["session.compact", "--param", "sessionID=ses_fake"],
+                          ["experimental.session.wait", "--param", "sessionID=ses_fake"]])
+        self.assertEqual(self.worker_argv(child)[:3], ["run", "-s", "ses_fake"])
+        self.assertEqual(self.call("result", child).stdout, "fake answer\n")
+
+    def test_ask_compact_failure_does_not_send_message(self):
+        parent = self.run_id(self.call("run", "--role", "impl", "--message", "start"))
+        proc = self.call("ask", parent, "--compact", "--message", "rework", mode="api-fail")
+        child = self.run_id(proc, code=1)
+        self.assertEqual(self.status(child)["status"], "failed")
+        self.assertFalse(proc.input_record.exists())
+
+    def test_ask_compact_rejects_claude(self):
+        self.config["roles"]["review"] = "claude:opus"
+        self.write_config()
+        parent = self.run_id(self.call("run", "--role", "review", "--message", "start"))
+        proc = self.call("ask", parent, "--compact", "--message", "rework")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("--compact is only supported for OpenCode workers", proc.stderr)
 
     @unittest.skipUnless(shutil.which("git"), "git not installed")
     def test_two_reviewers_resume_in_single_repinned_checkout(self):

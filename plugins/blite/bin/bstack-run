@@ -400,6 +400,9 @@ def prepare(root, args, resources):
         if parent and parent["session_id"].startswith("-"):
             raise UsageError("invalid Codex session id")
         codex_config = parent["codex_config"] if parent else codex_overrides(config)
+    compact = getattr(args, "compact", False)
+    if compact and not is_opencode(model):
+        raise UsageError("--compact is only supported for OpenCode workers")
     brief = get_brief(args).encode("utf-8")
     opted_out, _ = prompt_body(brief)
     common_preamble = None if opted_out else preamble_path(config, "common")
@@ -459,6 +462,8 @@ def prepare(root, args, resources):
         )
     else:
         meta["export_cmd"] = export_command(meta)
+        if compact:
+            meta["compact"] = True
     owner = resources.enter_context((directory / "brief.md").open("xb"))
     fcntl.flock(owner, fcntl.LOCK_EX)
     owner.write(brief)
@@ -647,6 +652,16 @@ def perform_opencode(directory, meta, worktree, brief, preamble, env, diagnostic
     exit_code = 1
     if preamble is not None:
         brief = preamble + b"\n\n" + brief
+    if meta.get("compact"):
+        # Queue the summary, let it finish, then send the follow-up into the compacted session.
+        try:
+            data = session_api(meta, "compact", {}).get("data")
+            if not isinstance(data, dict) or not data.get("id"):
+                raise UsageError("unexpected session.compact response")
+            session_api(meta, "experimental.session.wait")
+        except (UsageError, OSError, ValueError) as exc:
+            diagnostics.error(exc)
+            return finish(directory, meta, 1, diagnostics)
     try:
         with subprocess.Popen(cmd, cwd=meta["cwd"], env=env, stdin=subprocess.PIPE,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) as child:
@@ -901,7 +916,9 @@ def show_result(directory, meta):
 
 
 def session_api(meta, operation, payload=None):
-    cmd = [meta["cli"], "api", f"session.{operation}",
+    if "." not in operation:
+        operation = f"session.{operation}"
+    cmd = [meta["cli"], "api", operation,
            "--param", f"sessionID={meta['session_id']}"]
     if payload is not None:
         cmd += ["-d", json.dumps(payload, ensure_ascii=False)]
@@ -909,11 +926,13 @@ def session_api(meta, operation, payload=None):
                           capture_output=True)
     if proc.returncode:
         detail = proc.stderr.decode("utf-8", errors="replace").strip()
-        raise UsageError(f"session.{operation} failed (exit {proc.returncode})"
+        raise UsageError(f"{operation} failed (exit {proc.returncode})"
                          + (f": {detail}" if detail else ""))
+    if not proc.stdout.strip():
+        return {}
     response = json.loads(proc.stdout)
     if not isinstance(response, dict):
-        raise UsageError(f"unexpected session.{operation} response")
+        raise UsageError(f"unexpected {operation} response")
     return response
 
 
@@ -1062,6 +1081,8 @@ def parser():
     ask = commands.add_parser("ask")
     ask.add_argument("id")
     ask.add_argument("--fast", action="store_true", help="resume using the configured fast model")
+    ask.add_argument("--compact", action="store_true",
+                     help="compact the OpenCode session before sending the message")
     steer = commands.add_parser("steer", help="steer a running worker at its next step")
     queue = commands.add_parser("queue", help="queue a prompt for after the current turn")
     for command in (steer, queue):
