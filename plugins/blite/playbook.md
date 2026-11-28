@@ -17,13 +17,17 @@ Six steps take one feature from request to merge. A step is finished when its ar
 
 ## After step 3
 
-After step 3 the user is asked only in the two cases below. Committing and pushing the feature branch, opening the PR, merging a PR that passed step 6, and adding to the backlog on the base branch after the merge are part of the work. Decide what comes up and continue.
+Committing and pushing the feature branch, opening the PR, merging a PR that passed step 6, and adding to the backlog on the base branch after the merge are part of the work.
+
+## Rework
+
+If a fix brings the implementation into line with the approved requirements, design, and verification methods, send it back to implementation without asking for approval again. If any of those agreements need to change, return to the earliest affected step (PRD, architecture, or verification). Get the user's approval for the changed parts of that step and any later affected steps before delegating implementation again.
 
 ## When review does not pass
 
-Act on what the Shipping report and its findings say must change. Change verification methods as blite-checks defines, return the affected work to blite-build, and send the new PR head back to the same Shipping run. Find why a finding was missed and fix the change, not only the finding.
+Find why the Shipping findings were missed and fix the change, not only the findings. Follow the rework path above, then send the new PR head back to the same Shipping run.
 
-Ask the user in two cases: a finding says it cannot be closed, or the PR has been reworked twice and still does not pass.
+Escalate to the user if a finding says it cannot be closed, or if the PR has been reworked twice and still does not pass.
 
 ## Backlog
 
